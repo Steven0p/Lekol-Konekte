@@ -124,6 +124,8 @@ a:hover { text-decoration: underline; }
 .btn-secondaire:hover:not(:disabled) { border-color: var(--bleu); background: var(--bleu-clair); }
 .btn-fantome { background: transparent; color: var(--gris); }
 .btn-fantome:hover:not(:disabled) { color: var(--noir); background: var(--gris-clair); }
+.btn-rouge { background: #dc2626; color: #fff; }
+.btn-rouge:hover:not(:disabled) { background: #b91c1c; }
 .btn-bloc { width: 100%; }
 .btn-sm { padding: .45rem .75rem; font-size: .88rem; }
 

@@ -30,6 +30,7 @@ router.get('/eleves/:id/notes', requireAuth, note.listerPourEleve);
 // Publication (Direction)
 router.post('/publications', requireRole('direction'), publication.publierCtrl);
 router.get('/publications', requireRole('admin', 'direction'), publication.lister);
+router.get('/admin/bulletins', requireRole('admin', 'direction'), publication.listerBulletinsNiveau);
 
 // Bulletins & documents officiels
 router.get('/eleves/:id/bulletins', requireAuth, publication.listerBulletins);

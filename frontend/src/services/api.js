@@ -99,6 +99,7 @@ export const directionApi = {
   supprimerMatiere: (id) => request(`/matieres/${id}`, { method: 'DELETE' }),
   publications: () => request('/publications'),
   publier: (body) => request('/publications', { method: 'POST', body: json(body) }),
+  bulletinsNiveau: (niveau) => request(`/admin/bulletins${qs({ niveau })}`),
   tarifs: () => request('/tarifs'),
   creerTarif: (body) => request('/tarifs', { method: 'POST', body: json(body) }),
   majTarif: (id, body) => request(`/tarifs/${id}`, { method: 'PUT', body: json(body) }),

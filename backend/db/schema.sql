@@ -149,6 +149,8 @@ CREATE TABLE IF NOT EXISTS documents_officiels (
   id                 INT AUTO_INCREMENT PRIMARY KEY,
   id_eleve           INT NOT NULL,
   type               ENUM('bulletin','releve','duplicata') NOT NULL,
+  periode            ENUM('1er_trimestre','2e_trimestre','3e_trimestre') NULL,
+  annee_scolaire     VARCHAR(9) NULL,
   url_pdf            VARCHAR(500) NOT NULL,
   identifiant_unique VARCHAR(64) NOT NULL UNIQUE,
   date_generation    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

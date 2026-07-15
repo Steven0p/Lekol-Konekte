@@ -2,7 +2,8 @@
 import path from 'path';
 import { publier } from '../services/publication.service.js';
 import { lister as listerPublications } from '../models/publication.model.js';
-import { listerPourEleve as listerBulletinsEleve, trouverAvecProprietaire as trouverDocument }
+import { listerPourEleve as listerBulletinsEleve, listerParNiveau as listerBulletinsNiveauModel,
+  trouverAvecProprietaire as trouverDocument }
   from '../models/documentOfficiel.model.js';
 import { trouverAvecProprietaire as trouverEleve } from '../models/eleve.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
@@ -34,6 +35,7 @@ export async function publierCtrl(req, res, next) {
       message: 'Notes publiées.',
       bulletinsGeneres: r.nbBulletins,
       elevesSansNotes: r.nbSansNotes,
+      bulletinsDejaFaits: r.nbDejaFaits,
     });
   } catch (err) {
     next(err);
@@ -45,6 +47,18 @@ export async function lister(req, res, next) {
   try {
     const publications = await listerPublications();
     return res.json({ publications });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/admin/bulletins?niveau= (admin/direction)
+// niveau optionnel : sans niveau → tous les bulletins.
+export async function listerBulletinsNiveau(req, res, next) {
+  try {
+    const niveau = (req.query.niveau || '').trim();
+    const bulletins = await listerBulletinsNiveauModel(niveau || undefined);
+    return res.json({ bulletins });
   } catch (err) {
     next(err);
   }
