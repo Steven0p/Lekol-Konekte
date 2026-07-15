@@ -1,0 +1,72 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import RoutePrivee from './components/RoutePrivee.jsx';
+import RoutePublique from './components/RoutePublique.jsx';
+import Layout from './components/Layout.jsx';
+import Login from './pages/auth/Login.jsx';
+import Register from './pages/auth/Register.jsx';
+import VerifierCourriel from './pages/auth/VerifierCourriel.jsx';
+import TableauDeBord from './pages/TableauDeBord.jsx';
+import MesInscriptions from './pages/parent/MesInscriptions.jsx';
+import NouvelleInscription from './pages/parent/NouvelleInscription.jsx';
+import DetailInscription from './pages/parent/DetailInscription.jsx';
+import NotesBulletins from './pages/parent/NotesBulletins.jsx';
+import Paiements from './pages/parent/Paiements.jsx';
+import NouveauPaiement from './pages/parent/NouveauPaiement.jsx';
+import DetailPaiement from './pages/parent/DetailPaiement.jsx';
+import AdminInscriptions from './pages/admin/AdminInscriptions.jsx';
+import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
+import AdminNotes from './pages/admin/AdminNotes.jsx';
+import AdminPaiements from './pages/admin/AdminPaiements.jsx';
+import Matieres from './pages/direction/Matieres.jsx';
+import Publications from './pages/direction/Publications.jsx';
+import Tarifs from './pages/direction/Tarifs.jsx';
+import Ecole from './pages/direction/Ecole.jsx';
+
+export default function App() {
+  return (
+    <Routes>
+      {/* Auth (public) */}
+      <Route path="/login" element={<RoutePublique><Login /></RoutePublique>} />
+      <Route path="/register" element={<RoutePublique><Register /></RoutePublique>} />
+      <Route path="/verifier-courriel" element={<VerifierCourriel />} />
+
+      {/* Zone authentifiée */}
+      <Route
+        element={
+          <RoutePrivee>
+            <Layout />
+          </RoutePrivee>
+        }
+      >
+        <Route path="/" element={<TableauDeBord />} />
+
+        {/* Parent — Inscriptions */}
+        <Route path="/inscriptions" element={<RoutePrivee roles={['parent']}><MesInscriptions /></RoutePrivee>} />
+        <Route path="/inscriptions/nouvelle" element={<RoutePrivee roles={['parent']}><NouvelleInscription /></RoutePrivee>} />
+        <Route path="/inscriptions/:id" element={<RoutePrivee roles={['parent']}><DetailInscription /></RoutePrivee>} />
+
+        {/* Parent — Notes & bulletins */}
+        <Route path="/notes" element={<RoutePrivee roles={['parent']}><NotesBulletins /></RoutePrivee>} />
+
+        {/* Parent — Paiements */}
+        <Route path="/paiements" element={<RoutePrivee roles={['parent']}><Paiements /></RoutePrivee>} />
+        <Route path="/paiements/nouveau" element={<RoutePrivee roles={['parent']}><NouveauPaiement /></RoutePrivee>} />
+        <Route path="/paiements/:id" element={<RoutePrivee roles={['parent']}><DetailPaiement /></RoutePrivee>} />
+
+        {/* Admin (secrétariat) */}
+        <Route path="/admin/inscriptions" element={<RoutePrivee roles={['admin']}><AdminInscriptions /></RoutePrivee>} />
+        <Route path="/admin/inscriptions/:id" element={<RoutePrivee roles={['admin']}><AdminDetailInscription /></RoutePrivee>} />
+        <Route path="/admin/notes" element={<RoutePrivee roles={['admin']}><AdminNotes /></RoutePrivee>} />
+        <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
+
+        {/* Direction */}
+        <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />
+        <Route path="/direction/publications" element={<RoutePrivee roles={['direction']}><Publications /></RoutePrivee>} />
+        <Route path="/direction/tarifs" element={<RoutePrivee roles={['direction']}><Tarifs /></RoutePrivee>} />
+        <Route path="/direction/ecole" element={<RoutePrivee roles={['direction']}><Ecole /></RoutePrivee>} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}

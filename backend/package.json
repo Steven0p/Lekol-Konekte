@@ -1,0 +1,27 @@
+{
+  "name": "lekol-konekte-backend",
+  "version": "1.0.0",
+  "description": "API Lekol Konekte — plateforme de gestion scolaire",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node scripts/seed.js",
+    "build": "npm --prefix ../frontend install && npm --prefix ../frontend run build"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.4.1",
+    "express-session": "^1.18.1",
+    "express-mysql-session": "^3.0.3",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.11.5",
+    "nodemailer": "^6.9.16",
+    "pdf-lib": "^1.17.1"
+  }
+}

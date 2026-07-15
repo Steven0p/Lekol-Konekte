@@ -1,0 +1,20 @@
+# Dépendances (réinstallées dans l'image)
+**/node_modules
+
+# Build frontend (régénéré à l'étape 1)
+frontend/dist
+
+# Fichiers téléversés (doivent vivre sur un volume persistant, pas dans l'image)
+backend/uploads
+
+# Secrets et logs
+**/.env
+**/.env.*
+!**/.env.example
+*.log
+
+# Divers
+.git
+.gitignore
+*.md
+Lekol_Konekte_Specification_Technique.docx

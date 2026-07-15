@@ -1,0 +1,49 @@
+// Contexte d'authentification — utilisateur courant + actions
+import { createContext, useContext, useEffect, useState } from 'react';
+import { authApi } from '../services/api.js';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [utilisateur, setUtilisateur] = useState(null);
+  const [chargement, setChargement] = useState(true);
+
+  useEffect(() => {
+    authApi.me()
+      .then((data) => setUtilisateur(data.utilisateur))
+      .catch(() => setUtilisateur(null))
+      .finally(() => setChargement(false));
+  }, []);
+
+  const login = async (payload) => {
+    const data = await authApi.login(payload);
+    setUtilisateur(data.utilisateur);
+    return data.utilisateur;
+  };
+
+  // register n'ouvre PAS de session : l'utilisateur doit vérifier son courriel
+  const register = (payload) => authApi.register(payload);
+
+  const verifierCourriel = async (payload) => {
+    const data = await authApi.verifierCourriel(payload);
+    setUtilisateur(data.utilisateur);
+    return data.utilisateur;
+  };
+
+  const logout = async () => {
+    await authApi.logout();
+    setUtilisateur(null);
+  };
+
+  return (
+    <AuthContext.Provider value={{ utilisateur, chargement, login, register, verifierCourriel, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth doit être utilisé dans AuthProvider.');
+  return ctx;
+}
