@@ -3,7 +3,7 @@ import { Router } from 'express';
 import * as matiere from '../controllers/matiere.controller.js';
 import * as note from '../controllers/note.controller.js';
 import * as publication from '../controllers/publication.controller.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireEleve } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -21,8 +21,19 @@ router.patch('/notes/:id/valider', requireRole('admin'), note.valider);
 router.get('/admin/notes', requireRole('admin', 'direction'), note.listerAdmin);
 router.get('/admin/eleves', requireRole('admin', 'direction'), note.listerElevesAdmin);
 
+// Secrétariat : registre des codes d'accès élèves (consultation + génération)
+router.get('/admin/eleves-codes', requireRole('admin', 'direction'), note.listerElevesCodes);
+router.post('/admin/eleves/:id/code-acces', requireRole('admin', 'direction'), note.genererCodeAccesAdmin);
+
 // Liste des enfants du parent connecté
 router.get('/mes-eleves', requireRole('parent'), note.listerMesEleves);
+
+// Parent : génère le code d'accès de l'espace élève pour un de ses enfants
+router.post('/eleves/:id/code-acces', requireRole('parent'), note.genererCodeAccesEleve);
+
+// Espace élève (connexion par code) — lecture seule
+router.get('/eleve/mes-notes', requireEleve, note.listerMesNotesEleve);
+router.get('/eleve/mes-bulletins', requireEleve, publication.listerMesBulletinsEleve);
 
 // Consultation des notes d'un élève (propriétaire ou admin/direction)
 router.get('/eleves/:id/notes', requireAuth, note.listerPourEleve);
@@ -35,6 +46,7 @@ router.get('/admin/bulletins', requireRole('admin', 'direction'), publication.li
 // Bulletins & documents officiels
 router.get('/eleves/:id/bulletins', requireAuth, publication.listerBulletins);
 router.get('/eleves/:id/documents-officiels', requireAuth, publication.listerDocumentsOfficiels);
-router.get('/documents-officiels/:id/fichier', requireAuth, publication.servirFichier);
+// Le fichier : servirFichier gère lui-même l'accès (admin, parent propriétaire, ou l'élève).
+router.get('/documents-officiels/:id/fichier', publication.servirFichier);
 
 export default router;

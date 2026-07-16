@@ -74,7 +74,28 @@
       "Bash(curl -s -b dir.txt \"http://localhost:4000/api/admin/bulletins?niveau=ns2\")",
       "Bash(curl -s -b dir.txt -o t.pdf -w \"HTTP=%{http_code} type=%{content_type} size=%{size_download}\\\\n\" \"http://localhost:4000/api/documents-officiels/11/fichier\")",
       "Bash(git check-ignore *)",
-      "Bash(git commit -m 'Initial commit — Lekòl Konekte *)"
+      "Bash(git commit -m 'Initial commit — Lekòl Konekte *)",
+      "Bash(gh repo *)",
+      "Bash(git fetch *)",
+      "Bash(git rev-list *)",
+      "Bash(curl -s -o /dev/null -w \"4000 HTTP=%{http_code}\\\\n\" http://localhost:4000/api/health)",
+      "Bash(curl -s -o /dev/null -w \"5173 HTTP=%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(\"C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -e \"USE lekol_konekte; SHOW COLUMNS FROM eleves LIKE 'code_acces';\")",
+      "Bash(curl -s -b el.txt \"http://localhost:4000/api/eleve/mes-bulletins\")",
+      "Bash(curl -s -w \" [HTTP=%{http_code}]\\\\n\" -X POST http://localhost:4000/api/auth/eleve-connexion -H \"Content-Type: application/json\" -d '{\"code\":\"XXXXXXXX\"}')",
+      "Bash(curl -s -b el.txt -o eb.pdf -w \"HTTP=%{http_code} type=%{content_type} size=%{size_download}\\\\n\" \"http://localhost:4000/api/documents-officiels/11/fichier\")",
+      "Bash(curl -s -b el.txt -o /dev/null -w \"HTTP=%{http_code}\\\\n\" \"http://localhost:4000/api/documents-officiels/8/fichier\")",
+      "Bash(curl -s -b el.txt -o /dev/null -w \"HTTP=%{http_code}\\\\n\" \"http://localhost:4000/api/admin/notes?niveau=ns2\")",
+      "Bash(curl -s -b el.txt -o /dev/null -w \"HTTP=%{http_code}\\\\n\" \"http://localhost:4000/api/mes-eleves\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP=%{http_code}\\\\n\" -X POST \"http://localhost:4000/api/eleves/11/code-acces\")",
+      "Bash(\"C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -N -e \"USE lekol_konekte; SELECT code_acces FROM eleves WHERE id=11;\")",
+      "Bash(curl -s -c el.txt -X POST http://localhost:4000/api/auth/eleve-connexion -H 'Content-Type: application/json' -d '{\"code\":\"__TRACKED_VAR__\"}')",
+      "Bash(curl -s -b el.txt http://localhost:4000/api/auth/me)",
+      "Bash(curl -s -b el.txt http://localhost:4000/api/eleve/mes-notes)",
+      "Bash(curl -s -b el.txt http://localhost:4000/api/eleve/mes-bulletins)",
+      "PowerShell(Start-Process \"http://localhost:5173/eleve\")",
+      "PowerShell(Start-Process \"http://localhost:5173/login\")",
+      "Bash(git remote *)"
     ]
   }
 }

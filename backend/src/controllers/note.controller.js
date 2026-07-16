@@ -2,7 +2,8 @@
 import * as noteModel from '../models/note.model.js';
 import * as matiereModel from '../models/matiere.model.js';
 import { trouverAvecProprietaire as trouverEleve, listerParParent as listerElevesParent,
-  listerTous as listerTousEleves } from '../models/eleve.model.js';
+  listerTous as listerTousEleves, listerAvecCode, genererCodeAcces, appartientAuParent }
+  from '../models/eleve.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
 import { existe as publicationExiste } from '../models/publication.model.js';
 
@@ -125,6 +126,58 @@ export async function listerMesEleves(req, res, next) {
     const idParent = await findParentIdByUserId(req.session.userId);
     if (!idParent) return res.status(403).json({ erreur: 'Compte parent requis.' });
     return res.json({ eleves: await listerElevesParent(idParent) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/eleves/:id/code-acces (parent propriétaire) — génère/régénère le code élève
+export async function genererCodeAccesEleve(req, res, next) {
+  try {
+    const idEleve = Number(req.params.id);
+    const idParent = await findParentIdByUserId(req.session.userId);
+    if (!idParent) return res.status(403).json({ erreur: 'Compte parent requis.' });
+    if (!(await appartientAuParent(idEleve, idParent))) {
+      return res.status(403).json({ erreur: 'Cet élève ne vous appartient pas.' });
+    }
+    const code = await genererCodeAcces(idEleve);
+    if (!code) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    return res.status(201).json({ code });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/admin/eleves-codes (admin/direction) — tous les codes d'accès élèves
+export async function listerElevesCodes(req, res, next) {
+  try {
+    const eleves = await listerAvecCode({ recherche: req.query.recherche });
+    return res.json({ eleves });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/admin/eleves/:id/code-acces (admin/direction) — génère le code pour un élève
+export async function genererCodeAccesAdmin(req, res, next) {
+  try {
+    const code = await genererCodeAcces(Number(req.params.id));
+    if (!code) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    return res.status(201).json({ code });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/eleve/mes-notes (session élève) — notes validées + publiées, lecture seule
+export async function listerMesNotesEleve(req, res, next) {
+  try {
+    const notes = await noteModel.listerPourEleve(req.session.eleveId, {
+      periode: req.query.periode,
+      anneeScolaire: req.query.anneeScolaire,
+      seulementVisibles: true,
+    });
+    return res.json({ notes });
   } catch (err) {
     next(err);
   }

@@ -20,3 +20,11 @@ export function requireRole(...rolesAutorises) {
     next();
   };
 }
+
+// Exige une session « espace élève » (connexion par code, sans compte utilisateur)
+export function requireEleve(req, res, next) {
+  if (!req.session || !req.session.eleveId || req.session.role !== 'eleve') {
+    return res.status(401).json({ erreur: 'Connexion élève requise.' });
+  }
+  next();
+}

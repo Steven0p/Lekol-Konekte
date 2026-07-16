@@ -64,6 +64,16 @@ export async function listerBulletinsNiveau(req, res, next) {
   }
 }
 
+// GET /api/eleve/mes-bulletins (session élève) — ses bulletins, lecture seule
+export async function listerMesBulletinsEleve(req, res, next) {
+  try {
+    const bulletins = await listerBulletinsEleve(req.session.eleveId, 'bulletin');
+    return res.json({ bulletins });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/eleves/:id/bulletins (propriétaire ou admin)
 export async function listerBulletins(req, res, next) {
   try {
@@ -99,7 +109,11 @@ export async function servirFichier(req, res, next) {
   try {
     const doc = await trouverDocument(Number(req.params.id));
     if (!doc) return res.status(404).json({ erreur: 'Document introuvable.' });
-    if (!estAdmin(req) && doc.id_utilisateur !== req.session.userId) {
+
+    // Accès : admin/direction, OU parent propriétaire, OU l'élève lui-même (session par code).
+    const estProprietaireParent = doc.id_utilisateur === req.session.userId;
+    const estEleveConcerne = req.session.role === 'eleve' && doc.id_eleve === req.session.eleveId;
+    if (!estAdmin(req) && !estProprietaireParent && !estEleveConcerne) {
       return res.status(403).json({ erreur: 'Accès refusé.' });
     }
     const chemin = path.resolve(UPLOAD_ROOT, doc.url_pdf);

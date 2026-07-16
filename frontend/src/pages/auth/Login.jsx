@@ -53,6 +53,9 @@ export default function Login() {
           <p className="auth-lien">
             Pas encore de compte ? <Link to="/register">Créer un compte</Link>
           </p>
+          <p className="auth-lien">
+            Élève ? <Link to="/eleve">Accéder avec un code</Link>
+          </p>
         </form>
       </div>
     </div>

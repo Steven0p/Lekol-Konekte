@@ -21,6 +21,13 @@ export function AuthProvider({ children }) {
     return data.utilisateur;
   };
 
+  // Connexion espace élève par code d'accès (sans courriel ni mot de passe)
+  const eleveConnexion = async (code) => {
+    const data = await authApi.eleveConnexion(code);
+    setUtilisateur(data.utilisateur);
+    return data.utilisateur;
+  };
+
   // register n'ouvre PAS de session : l'utilisateur doit vérifier son courriel
   const register = (payload) => authApi.register(payload);
 
@@ -36,7 +43,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, register, verifierCourriel, logout }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, eleveConnexion, register, verifierCourriel, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -35,8 +35,23 @@ export default function NotesBulletins() {
   const [bulletins, setBulletins] = useState([]);
   const [apercuId, setApercuId] = useState(null);
   const [telechargeId, setTelechargeId] = useState(null);
+  const [genereEnCours, setGenereEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
   const [chargeDetail, setChargeDetail] = useState(false);
+
+  // Génère (ou régénère) le code d'accès de l'espace élève pour l'enfant sélectionné.
+  const genererCode = async () => {
+    setErreur('');
+    setGenereEnCours(true);
+    try {
+      const { code } = await notesApi.genererCodeEleve(idEleve);
+      setEleves((prev) => prev.map((el) => (String(el.id) === idEleve ? { ...el, code_acces: code } : el)));
+    } catch (e) {
+      setErreur(e.message);
+    } finally {
+      setGenereEnCours(false);
+    }
+  };
 
   // Télécharge le PDF en tant que blob (avec le cookie de session) et force l'enregistrement.
   const telecharger = async (id) => {
@@ -105,6 +120,36 @@ export default function NotesBulletins() {
               </select>
             } />
           </Carte>
+
+          {/* Code d'accès de l'espace élève */}
+          {(() => {
+            const enfant = eleves.find((el) => String(el.id) === idEleve);
+            if (!enfant) return null;
+            return (
+              <Carte titre="Accès élève (code)" style={{ marginTop: '1rem' }}>
+                <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
+                  Donnez ce code à {enfant.nom} pour qu'il/elle consulte ses résultats sur la page « Espace élève ».
+                </p>
+                <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <span style={{
+                    fontFamily: 'monospace', fontSize: '1.4rem', fontWeight: 700, letterSpacing: '3px',
+                    padding: '.4rem .9rem', border: '1px solid var(--gris-bordure)', borderRadius: 8,
+                    background: 'var(--gris-clair)',
+                  }}>
+                    {enfant.code_acces || '— aucun —'}
+                  </span>
+                  <Bouton variante="secondaire" onClick={genererCode} enCours={genereEnCours}>
+                    {enfant.code_acces ? 'Régénérer le code' : 'Générer le code'}
+                  </Bouton>
+                </div>
+                {enfant.code_acces && (
+                  <p className="texte-gris" style={{ marginTop: '.6rem', fontSize: '.85rem' }}>
+                    Régénérer le code annule l'ancien.
+                  </p>
+                )}
+              </Carte>
+            );
+          })()}
 
           {chargeDetail ? <Chargement /> : (
             <div className="pile pile-md" style={{ marginTop: '1rem' }}>

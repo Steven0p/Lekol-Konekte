@@ -33,6 +33,7 @@ export const authApi = {
   verifierCourriel: (payload) => request('/auth/verifier-courriel', { method: 'POST', body: json(payload) }),
   renvoyerCode: (courriel) => request('/auth/renvoyer-code', { method: 'POST', body: json({ courriel }) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: json(payload) }),
+  eleveConnexion: (code) => request('/auth/eleve-connexion', { method: 'POST', body: json({ code }) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
 };
@@ -55,6 +56,13 @@ export const notesApi = {
   notesEleve: (idEleve) => request(`/eleves/${idEleve}/notes`),
   bulletinsEleve: (idEleve) => request(`/eleves/${idEleve}/bulletins`),
   documentsOfficielsEleve: (idEleve) => request(`/eleves/${idEleve}/documents-officiels`),
+  genererCodeEleve: (idEleve) => request(`/eleves/${idEleve}/code-acces`, { method: 'POST' }),
+};
+
+// Espace élève (connexion par code) — lecture seule
+export const eleveApi = {
+  mesNotes: () => request('/eleve/mes-notes'),
+  mesBulletins: () => request('/eleve/mes-bulletins'),
 };
 
 export const paiementsApi = {
@@ -90,6 +98,9 @@ export const adminApi = {
   // Paiements
   paiements: (statut) => request(`/admin/paiements${qs({ statut })}`),
   validationPaiement: (id, body) => request(`/paiements/${id}/validation`, { method: 'PATCH', body: json(body) }),
+  // Codes d'accès élèves (secrétariat)
+  elevesCodes: (recherche) => request(`/admin/eleves-codes${qs({ recherche })}`),
+  genererCodeEleve: (id) => request(`/admin/eleves/${id}/code-acces`, { method: 'POST' }),
 };
 
 export const directionApi = {

@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS eleves (
   nom                VARCHAR(120) NOT NULL,
   date_naissance     DATE,
   niveau             VARCHAR(60),
+  code_acces         VARCHAR(20) UNIQUE,
   statut_inscription ENUM('en_attente','accepte','refuse','confirmee') NOT NULL DEFAULT 'en_attente',
   FOREIGN KEY (id_parent) REFERENCES parents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

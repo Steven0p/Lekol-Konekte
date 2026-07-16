@@ -3,8 +3,10 @@ import RoutePrivee from './components/RoutePrivee.jsx';
 import RoutePublique from './components/RoutePublique.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/auth/Login.jsx';
+import ConnexionEleve from './pages/auth/ConnexionEleve.jsx';
 import Register from './pages/auth/Register.jsx';
 import VerifierCourriel from './pages/auth/VerifierCourriel.jsx';
+import EspaceEleve from './pages/eleve/EspaceEleve.jsx';
 import TableauDeBord from './pages/TableauDeBord.jsx';
 import MesInscriptions from './pages/parent/MesInscriptions.jsx';
 import NouvelleInscription from './pages/parent/NouvelleInscription.jsx';
@@ -16,6 +18,7 @@ import DetailPaiement from './pages/parent/DetailPaiement.jsx';
 import AdminInscriptions from './pages/admin/AdminInscriptions.jsx';
 import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
 import AdminNotes from './pages/admin/AdminNotes.jsx';
+import AdminCodesEleves from './pages/admin/AdminCodesEleves.jsx';
 import AdminPaiements from './pages/admin/AdminPaiements.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
@@ -27,6 +30,7 @@ export default function App() {
     <Routes>
       {/* Auth (public) */}
       <Route path="/login" element={<RoutePublique><Login /></RoutePublique>} />
+      <Route path="/eleve" element={<RoutePublique><ConnexionEleve /></RoutePublique>} />
       <Route path="/register" element={<RoutePublique><Register /></RoutePublique>} />
       <Route path="/verifier-courriel" element={<VerifierCourriel />} />
 
@@ -48,6 +52,9 @@ export default function App() {
         {/* Parent — Notes & bulletins */}
         <Route path="/notes" element={<RoutePrivee roles={['parent']}><NotesBulletins /></RoutePrivee>} />
 
+        {/* Espace élève (connexion par code) */}
+        <Route path="/eleve/notes" element={<RoutePrivee roles={['eleve']}><EspaceEleve /></RoutePrivee>} />
+
         {/* Parent — Paiements */}
         <Route path="/paiements" element={<RoutePrivee roles={['parent']}><Paiements /></RoutePrivee>} />
         <Route path="/paiements/nouveau" element={<RoutePrivee roles={['parent']}><NouveauPaiement /></RoutePrivee>} />
@@ -57,6 +64,7 @@ export default function App() {
         <Route path="/admin/inscriptions" element={<RoutePrivee roles={['admin']}><AdminInscriptions /></RoutePrivee>} />
         <Route path="/admin/inscriptions/:id" element={<RoutePrivee roles={['admin']}><AdminDetailInscription /></RoutePrivee>} />
         <Route path="/admin/notes" element={<RoutePrivee roles={['admin']}><AdminNotes /></RoutePrivee>} />
+        <Route path="/admin/codes-eleves" element={<RoutePrivee roles={['admin']}><AdminCodesEleves /></RoutePrivee>} />
         <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
 
         {/* Direction */}

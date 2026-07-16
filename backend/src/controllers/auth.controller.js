@@ -6,6 +6,8 @@ import {
   createParent,
   marquerCourrielVerifie,
 } from '../models/user.model.js';
+import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
+  from '../models/eleve.model.js';
 import { envoyerCodeVerification, verifierCode } from '../services/otp.service.js';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -179,6 +181,32 @@ export async function login(req, res, next) {
   }
 }
 
+// POST /api/auth/eleve-connexion — connexion à l'espace élève par code d'accès.
+// N'utilise ni courriel ni mot de passe ; ouvre une session « élève ».
+export async function eleveConnexion(req, res, next) {
+  try {
+    const code = (req.body.code || '').trim().toUpperCase();
+    if (!code) {
+      return res.status(400).json({ erreur: 'Code d\'accès requis.' });
+    }
+
+    const eleve = await trouverEleveParCode(code);
+    if (!eleve) {
+      return res.status(401).json({ erreur: 'Code d\'accès invalide.' });
+    }
+
+    // Session élève : pas de userId, on marque l'identité par eleveId + role.
+    req.session.eleveId = eleve.id;
+    req.session.role = 'eleve';
+
+    return res.json({
+      utilisateur: { role: 'eleve', id: eleve.id, nom: eleve.nom, niveau: eleve.niveau },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // POST /api/auth/logout
 export function logout(req, res) {
   req.session.destroy((err) => {
@@ -190,9 +218,16 @@ export function logout(req, res) {
   });
 }
 
-// GET /api/auth/me — utilisateur courant
+// GET /api/auth/me — utilisateur courant (compte classique OU session élève)
 export async function me(req, res, next) {
   try {
+    // Session « espace élève » (par code) : pas de compte utilisateur.
+    if (req.session.eleveId && req.session.role === 'eleve') {
+      const e = await trouverEleveParId(req.session.eleveId);
+      if (!e) return res.status(401).json({ erreur: 'Non authentifié.' });
+      return res.json({ utilisateur: { role: 'eleve', id: e.id, nom: e.nom, niveau: e.niveau } });
+    }
+
     const utilisateur = await findById(req.session.userId);
     if (!utilisateur) {
       return res.status(401).json({ erreur: 'Non authentifié.' });

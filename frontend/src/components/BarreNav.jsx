@@ -14,6 +14,7 @@ const LIENS_PAR_ROLE = {
     { to: '/', libelle: 'Tableau de bord', fin: true },
     { to: '/admin/inscriptions', libelle: 'Inscriptions' },
     { to: '/admin/notes', libelle: 'Notes' },
+    { to: '/admin/codes-eleves', libelle: 'Codes élèves' },
     { to: '/admin/paiements', libelle: 'Paiements' },
   ],
   direction: [
@@ -23,7 +24,7 @@ const LIENS_PAR_ROLE = {
     { to: '/direction/tarifs', libelle: 'Tarifs' },
     { to: '/direction/ecole', libelle: 'École' },
   ],
-  eleve: [{ to: '/', libelle: 'Tableau de bord', fin: true }],
+  eleve: [{ to: '/eleve/notes', libelle: 'Mes résultats' }],
 };
 
 export default function BarreNav() {

@@ -56,7 +56,7 @@ export async function listerParNiveau(niveau, type = 'bulletin') {
 // Document + chaîne de propriété pour servir le fichier
 export async function trouverAvecProprietaire(id) {
   const [rows] = await pool.query(
-    `SELECT d.id, d.type, d.url_pdf, u.id AS id_utilisateur
+    `SELECT d.id, d.type, d.url_pdf, d.id_eleve, u.id AS id_utilisateur
        FROM documents_officiels d
        JOIN eleves e ON e.id = d.id_eleve
        JOIN parents p ON p.id = e.id_parent
