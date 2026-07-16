@@ -7,6 +7,7 @@ import {
   trouverAvecProprietaire,
   listerTout,
 } from '../models/inscription.model.js';
+import { genererCodeAcces } from '../models/eleve.model.js';
 import {
   creerDocument,
   listerParInscription,
@@ -51,9 +52,20 @@ export async function creer(req, res, next) {
       nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
 
+    // Code d'accès élève généré automatiquement dès l'inscription (3 lettres du nom + chiffres)
+    let codeAcces = null;
+    try {
+      codeAcces = await genererCodeAcces(idEleve);
+    } catch (err) {
+      console.error('Génération du code élève échouée :', err.message);
+    }
+
     return res.status(201).json({
       message: 'Inscription créée.',
-      inscription: { id: idInscription, idEleve, statut: 'en_attente', eleveNom, anneeScolaire, niveau },
+      inscription: {
+        id: idInscription, idEleve, statut: 'en_attente', eleveNom, anneeScolaire, niveau,
+        ...(codeAcces ? { codeAcces } : {}),
+      },
     });
   } catch (err) {
     next(err);

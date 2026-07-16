@@ -2,19 +2,27 @@
 import crypto from 'crypto';
 import { pool } from '../config/db.js';
 
-// Génère un code d'accès unique (8 caractères, sans caractères ambigus) et l'enregistre.
+// Génère un code d'accès et l'enregistre : 3 lettres consécutives issues du nom
+// de l'élève (majuscules, sans accents) suivies de 5 chiffres. Ex. « JEA48213 ».
 export async function genererCodeAcces(idEleve) {
-  const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // sans I,O,0,1
-  for (let tentative = 0; tentative < 5; tentative += 1) {
-    let code = '';
-    const octets = crypto.randomBytes(8);
-    for (let i = 0; i < 8; i += 1) code += ALPHABET[octets[i] % ALPHABET.length];
+  const eleve = await trouverParId(idEleve);
+  if (!eleve) return null;
+
+  // Lettres du nom complet (prénom + nom), sans accents ni espaces
+  const lettres = `${eleve.prenom || ''}${eleve.nom || ''}`
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase().replace(/[^A-Z]/g, '');
+  let prefixe = lettres.slice(0, 3);
+  while (prefixe.length < 3) prefixe += 'X'; // complète si le nom est trop court
+
+  for (let tentative = 0; tentative < 10; tentative += 1) {
+    const chiffres = String(crypto.randomInt(0, 100000)).padStart(5, '0');
+    const code = `${prefixe}${chiffres}`;
     try {
-      const [res] = await pool.query('UPDATE eleves SET code_acces = ? WHERE id = ?', [code, idEleve]);
-      if (res.affectedRows === 0) return null; // élève introuvable
+      await pool.query('UPDATE eleves SET code_acces = ? WHERE id = ?', [code, idEleve]);
       return code;
     } catch (err) {
-      if (err.code === 'ER_DUP_ENTRY') continue; // collision improbable → réessaye
+      if (err.code === 'ER_DUP_ENTRY') continue; // collision → réessaye avec d'autres chiffres
       throw err;
     }
   }
