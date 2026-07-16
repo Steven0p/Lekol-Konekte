@@ -24,16 +24,31 @@ export async function genererCodeAcces(idEleve) {
 // Élève par identifiant (données de base)
 export async function trouverParId(id) {
   const [rows] = await pool.query(
-    'SELECT id, nom, niveau, id_parent, code_acces FROM eleves WHERE id = ? LIMIT 1',
+    'SELECT id, nom, prenom, niveau, id_parent, code_acces, photo_url FROM eleves WHERE id = ? LIMIT 1',
     [id]
   );
   return rows[0] || null;
 }
 
+// Enregistre le chemin de la photo de l'élève (badge)
+export async function mettrePhoto(idEleve, photoUrl) {
+  await pool.query('UPDATE eleves SET photo_url = ? WHERE id = ?', [photoUrl, idEleve]);
+}
+
+// Dernière année scolaire d'inscription de l'élève (pour le badge)
+export async function derniereAnneeScolaire(idEleve) {
+  const [rows] = await pool.query(
+    'SELECT annee_scolaire FROM inscriptions WHERE id_eleve = ? ORDER BY id DESC LIMIT 1',
+    [idEleve]
+  );
+  return rows[0] ? rows[0].annee_scolaire : null;
+}
+
 // Élève identifié par son code d'accès (connexion espace élève)
 export async function trouverParCode(code) {
   const [rows] = await pool.query(
-    'SELECT id, nom, niveau, id_parent FROM eleves WHERE code_acces = ? LIMIT 1',
+    `SELECT id, TRIM(CONCAT(COALESCE(prenom,''),' ',nom)) AS nom, niveau, id_parent
+       FROM eleves WHERE code_acces = ? LIMIT 1`,
     [code]
   );
   return rows[0] || null;
@@ -42,7 +57,7 @@ export async function trouverParCode(code) {
 // Élève + parent + utilisateur (pour contrôle d'accès et notifications)
 export async function trouverAvecProprietaire(idEleve) {
   const [rows] = await pool.query(
-    `SELECT e.id, e.nom, e.niveau, e.id_parent,
+    `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau, e.id_parent,
             u.id AS id_utilisateur, u.courriel AS parent_courriel, u.nom AS parent_nom
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent
@@ -56,7 +71,8 @@ export async function trouverAvecProprietaire(idEleve) {
 // Élèves rattachés à un parent (id de la fiche parents)
 export async function listerParParent(idParent) {
   const [rows] = await pool.query(
-    'SELECT id, nom, niveau, date_naissance, code_acces FROM eleves WHERE id_parent = ? ORDER BY nom',
+    `SELECT id, TRIM(CONCAT(COALESCE(prenom,''),' ',nom)) AS nom, niveau, date_naissance, code_acces
+       FROM eleves WHERE id_parent = ? ORDER BY nom`,
     [idParent]
   );
   return rows;
@@ -73,13 +89,14 @@ export async function appartientAuParent(idEleve, idParent) {
 
 // Liste des élèves (admin), filtrable par niveau
 export async function listerTous({ niveau } = {}) {
+  const nomComplet = "TRIM(CONCAT(COALESCE(prenom,''),' ',nom)) AS nom";
   if (niveau) {
     const [rows] = await pool.query(
-      'SELECT id, nom, niveau FROM eleves WHERE niveau = ? ORDER BY nom', [niveau]
+      `SELECT id, ${nomComplet}, niveau FROM eleves WHERE niveau = ? ORDER BY nom`, [niveau]
     );
     return rows;
   }
-  const [rows] = await pool.query('SELECT id, nom, niveau FROM eleves ORDER BY niveau, nom');
+  const [rows] = await pool.query(`SELECT id, ${nomComplet}, niveau FROM eleves ORDER BY niveau, nom`);
   return rows;
 }
 
@@ -94,7 +111,7 @@ export async function listerAvecCode({ recherche } = {}) {
   }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.query(
-    `SELECT e.id, e.nom, e.niveau, e.code_acces,
+    `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau, e.code_acces,
             u.nom AS parent_nom, u.courriel AS parent_courriel
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent
@@ -109,7 +126,7 @@ export async function listerAvecCode({ recherche } = {}) {
 // Tous les élèves d'un niveau (pour la génération des bulletins)
 export async function listerParNiveau(niveau) {
   const [rows] = await pool.query(
-    `SELECT e.id, e.nom, e.niveau,
+    `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau,
             u.courriel AS parent_courriel, u.nom AS parent_nom
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent

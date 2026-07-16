@@ -1,6 +1,8 @@
 // Contrôleur Tarifs + École
+import path from 'path';
 import * as tarifModel from '../models/tarif.model.js';
 import * as ecoleModel from '../models/ecole.model.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
@@ -83,7 +85,34 @@ export async function coordonneesEcole(req, res, next) {
       nom: ecole?.nom || 'Lekòl Konekte',
       coordonneesBancaires: ecole?.coordonnees_bancaires || null,
       coordonneesMoncash: ecole?.coordonnees_moncash || null,
+      aLogo: !!(ecole && ecole.logo_url),
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/ecole/logo (direction, multipart) — téléverse le logo de l'école
+export async function televerserLogo(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ erreur: 'Logo requis (JPG ou PNG, max 5 Mo).' });
+    await ecoleModel.mettreLogo(`logos/${req.file.filename}`);
+    return res.status(201).json({ message: 'Logo enregistré.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/ecole/logo — sert le logo de l'école (accessible à tous, y compris élève)
+export async function servirLogo(req, res, next) {
+  try {
+    const ecole = await ecoleModel.obtenir();
+    if (!ecole || !ecole.logo_url) return res.status(404).json({ erreur: 'Aucun logo.' });
+    const chemin = path.resolve(UPLOAD_ROOT, ecole.logo_url);
+    if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
+      return res.status(400).json({ erreur: 'Chemin invalide.' });
+    }
+    return res.sendFile(chemin);
   } catch (err) {
     next(err);
   }

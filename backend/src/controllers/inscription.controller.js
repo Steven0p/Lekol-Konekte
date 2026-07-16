@@ -29,6 +29,7 @@ export async function creer(req, res, next) {
     if (!idParent) return res.status(403).json({ erreur: 'Compte parent requis.' });
 
     const eleveNom = (req.body.eleveNom || '').trim();
+    const elevePrenom = (req.body.elevePrenom || '').trim();
     const anneeScolaire = (req.body.anneeScolaire || '').trim();
     const niveau = (req.body.niveau || '').trim();
     const dateNaissance = req.body.dateNaissance || null;
@@ -46,7 +47,7 @@ export async function creer(req, res, next) {
     }
 
     const { idInscription, idEleve } = await creerInscription({
-      idParent, eleveNom, dateNaissance, niveau, anneeScolaire,
+      idParent, eleveNom, elevePrenom, dateNaissance, niveau, anneeScolaire,
       nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
 

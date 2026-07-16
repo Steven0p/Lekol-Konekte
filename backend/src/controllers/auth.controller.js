@@ -297,7 +297,8 @@ export async function me(req, res, next) {
     if (req.session.eleveId && req.session.role === 'eleve') {
       const e = await trouverEleveParId(req.session.eleveId);
       if (!e) return res.status(401).json({ erreur: 'Non authentifié.' });
-      return res.json({ utilisateur: { role: 'eleve', id: e.id, nom: e.nom, niveau: e.niveau } });
+      const nomComplet = [e.prenom, e.nom].filter(Boolean).join(' ');
+      return res.json({ utilisateur: { role: 'eleve', id: e.id, nom: nomComplet, niveau: e.niveau } });
     }
 
     const utilisateur = await findById(req.session.userId);

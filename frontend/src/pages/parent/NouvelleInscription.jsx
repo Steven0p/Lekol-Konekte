@@ -9,7 +9,7 @@ import Alerte from '../../components/Alerte.jsx';
 export default function NouvelleInscription() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    eleveNom: '', dateNaissance: '', niveau: '', anneeScolaire: '',
+    eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: '',
     nomParent: '', professionParent: '', telephoneParent: '',
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
@@ -44,8 +44,10 @@ export default function NouvelleInscription() {
           <Alerte type="erreur">{erreur}</Alerte>
 
           <h3 style={{ fontSize: '1rem', marginBottom: '.75rem' }}>Informations sur l'élève</h3>
-          <Champ label="Nom complet de l'élève" value={form.eleveNom}
-            onChange={maj('eleveNom')} required />
+          <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <Champ label="Nom de famille" value={form.eleveNom} onChange={maj('eleveNom')} required />
+            <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')} required />
+          </div>
           <Champ label="Date de naissance" type="date" value={form.dateNaissance}
             onChange={maj('dateNaissance')} />
           <Champ label="Niveau scolaire visé" value={form.niveau}

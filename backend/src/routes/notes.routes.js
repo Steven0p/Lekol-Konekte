@@ -4,6 +4,7 @@ import * as matiere from '../controllers/matiere.controller.js';
 import * as note from '../controllers/note.controller.js';
 import * as publication from '../controllers/publication.controller.js';
 import { requireAuth, requireRole, requireEleve } from '../middleware/auth.js';
+import { uploadPhoto } from '../config/upload.js';
 
 const router = Router();
 
@@ -34,6 +35,11 @@ router.post('/eleves/:id/code-acces', requireRole('parent'), note.genererCodeAcc
 // Espace élève (connexion par code) — lecture seule
 router.get('/eleve/mes-notes', requireEleve, note.listerMesNotesEleve);
 router.get('/eleve/mes-bulletins', requireEleve, publication.listerMesBulletinsEleve);
+
+// Espace élève — badge & photo
+router.get('/eleve/badge', requireEleve, note.badgeEleve);
+router.post('/eleve/photo', requireEleve, uploadPhoto.single('photo'), note.televerserPhotoEleve);
+router.get('/eleve/photo', requireEleve, note.servirPhotoEleve);
 
 // Consultation des notes d'un élève (propriétaire ou admin/direction)
 router.get('/eleves/:id/notes', requireAuth, note.listerPourEleve);

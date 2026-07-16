@@ -65,6 +65,12 @@ export const notesApi = {
 export const eleveApi = {
   mesNotes: () => request('/eleve/mes-notes'),
   mesBulletins: () => request('/eleve/mes-bulletins'),
+  badge: () => request('/eleve/badge'),
+  televerserPhoto: (fichier) => {
+    const fd = new FormData();
+    fd.append('photo', fichier);
+    return request('/eleve/photo', { method: 'POST', body: fd });
+  },
 };
 
 export const paiementsApi = {
@@ -118,11 +124,18 @@ export const directionApi = {
   majTarif: (id, body) => request(`/tarifs/${id}`, { method: 'PUT', body: json(body) }),
   ecole: () => request('/ecole/coordonnees'),
   majEcole: (body) => request('/ecole', { method: 'PUT', body: json(body) }),
+  televerserLogo: (fichier) => {
+    const fd = new FormData();
+    fd.append('logo', fichier);
+    return request('/ecole/logo', { method: 'POST', body: fd });
+  },
 };
 
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;
 export const urlPreuvePaiement = (id) => `${API_URL}/paiements/${id}/preuve`;
+export const urlPhotoEleve = () => `${API_URL}/eleve/photo`;
+export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
 
 export { request, API_URL };

@@ -3,7 +3,7 @@ import { Router } from 'express';
 import * as tarif from '../controllers/tarif.controller.js';
 import * as paiement from '../controllers/paiement.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { uploadPreuve } from '../config/upload.js';
+import { uploadPreuve, uploadLogo } from '../config/upload.js';
 import { uploadLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -20,12 +20,27 @@ function televerserPreuveFichier(req, res, next) {
   });
 }
 
+// Enveloppe multer pour le logo (images seulement)
+function televerserLogoFichier(req, res, next) {
+  uploadLogo.single('logo')(req, res, (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') return res.status(400).json({ erreur: 'Fichier trop volumineux (max 5 Mo).' });
+      if (err.message === 'TYPE_NON_AUTORISE') return res.status(400).json({ erreur: 'Type de fichier non autorisé (JPG, PNG).' });
+      return res.status(400).json({ erreur: 'Échec du téléversement.' });
+    }
+    next();
+  });
+}
+
 // Tarifs & coordonnées
 router.post('/tarifs', requireRole('direction'), tarif.creerTarif);
 router.get('/tarifs', requireAuth, tarif.listerTarifs);
 router.put('/tarifs/:id', requireRole('direction'), tarif.mettreAJourTarif);
 router.put('/ecole', requireRole('direction'), tarif.definirEcole);
 router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
+router.post('/ecole/logo', requireRole('direction'), televerserLogoFichier, tarif.televerserLogo);
+// Logo public (le badge élève, sans compte utilisateur, doit pouvoir l'afficher)
+router.get('/ecole/logo', tarif.servirLogo);
 
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiement.creer);

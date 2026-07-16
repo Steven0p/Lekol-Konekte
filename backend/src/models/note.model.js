@@ -43,7 +43,7 @@ export async function listerAdmin({ niveau, periode, anneeScolaire }) {
   if (anneeScolaire) { conditions.push('n.annee_scolaire = ?'); params.push(anneeScolaire); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.query(
-    `SELECT n.id, n.id_eleve, e.nom AS eleve_nom, e.niveau, n.matiere, m.coefficient,
+    `SELECT n.id, n.id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, n.matiere, m.coefficient,
             n.periode, n.annee_scolaire, n.valeur, n.statut_validation
        FROM notes n
        JOIN eleves e ON e.id = n.id_eleve

@@ -17,29 +17,40 @@ const TYPES_AUTORISES = {
 };
 
 const DEST_PREUVES = path.join(UPLOAD_ROOT, 'preuves');
+const DEST_PHOTOS = path.join(UPLOAD_ROOT, 'photos');   // photos élèves (badge)
+const DEST_LOGOS = path.join(UPLOAD_ROOT, 'logos');     // logo de l'école
 
 // Crée les sous-dossiers si absents (conteneur / volume vierge en production)
-for (const dossier of [DEST, DEST_PREUVES]) {
+for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS]) {
   fs.mkdirSync(dossier, { recursive: true });
 }
+
+const TYPES_IMAGE = { 'image/jpeg': '.jpg', 'image/png': '.png' };
 
 function fileFilter(req, file, cb) {
   if (TYPES_AUTORISES[file.mimetype]) return cb(null, true);
   cb(new Error('TYPE_NON_AUTORISE'));
 }
 
+function imageFilter(req, file, cb) {
+  if (TYPES_IMAGE[file.mimetype]) return cb(null, true);
+  cb(new Error('TYPE_NON_AUTORISE'));
+}
+
 // Fabrique un middleware multer stockant dans un sous-dossier donné
-function creerUpload(dossier) {
+function creerUpload(dossier, filtre = fileFilter, typesExt = TYPES_AUTORISES) {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, dossier),
     filename: (req, file, cb) => {
       // Nom généré aléatoirement — jamais le nom fourni par l'utilisateur (anti-traversal)
-      const ext = TYPES_AUTORISES[file.mimetype] || '';
+      const ext = typesExt[file.mimetype] || '';
       cb(null, `${crypto.randomBytes(16).toString('hex')}${ext}`);
     },
   });
-  return multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 Mo
+  return multer({ storage, fileFilter: filtre, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 Mo
 }
 
 export const uploadDocument = creerUpload(DEST);         // documents d'inscription
 export const uploadPreuve = creerUpload(DEST_PREUVES);   // preuves de paiement
+export const uploadPhoto = creerUpload(DEST_PHOTOS, imageFilter, TYPES_IMAGE);  // photo élève
+export const uploadLogo = creerUpload(DEST_LOGOS, imageFilter, TYPES_IMAGE);    // logo école

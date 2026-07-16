@@ -3,7 +3,7 @@ import { pool } from '../config/db.js';
 
 // Crée l'élève (rattaché au parent) + l'inscription (en_attente), en transaction.
 export async function creerInscription({
-  idParent, eleveNom, dateNaissance, niveau, anneeScolaire,
+  idParent, eleveNom, elevePrenom, dateNaissance, niveau, anneeScolaire,
   nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
 }) {
   const conn = await pool.getConnection();
@@ -11,8 +11,8 @@ export async function creerInscription({
     await conn.beginTransaction();
 
     const [eleveRes] = await conn.query(
-      'INSERT INTO eleves (id_parent, nom, date_naissance, niveau) VALUES (?, ?, ?, ?)',
-      [idParent, eleveNom, dateNaissance || null, niveau || null]
+      'INSERT INTO eleves (id_parent, nom, prenom, date_naissance, niveau) VALUES (?, ?, ?, ?, ?)',
+      [idParent, eleveNom, elevePrenom || null, dateNaissance || null, niveau || null]
     );
     const idEleve = eleveRes.insertId;
 
@@ -40,7 +40,7 @@ export async function creerInscription({
 export async function listerParParent(idParent) {
   const [rows] = await pool.query(
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
-            e.nom AS eleve_nom, e.niveau
+            TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau
        FROM inscriptions i
        JOIN eleves e ON e.id = i.id_eleve
       WHERE e.id_parent = ?
@@ -56,7 +56,7 @@ export async function trouverAvecProprietaire(idInscription) {
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
             i.nom_parent, i.profession_parent, i.telephone_parent,
             i.ancienne_ecole, i.ancienne_classe, i.raison_choix,
-            e.id AS id_eleve, e.nom AS eleve_nom, e.niveau, e.date_naissance,
+            e.id AS id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, e.date_naissance,
             p.id AS id_parent, u.id AS id_utilisateur,
             u.courriel AS parent_courriel, u.nom AS parent_nom
        FROM inscriptions i
@@ -78,7 +78,7 @@ export async function listerTout({ statut, niveau }) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.query(
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
-            e.nom AS eleve_nom, e.niveau, u.courriel AS parent_courriel
+            TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, u.courriel AS parent_courriel
        FROM inscriptions i
        JOIN eleves e ON e.id = i.id_eleve
        JOIN parents p ON p.id = e.id_parent

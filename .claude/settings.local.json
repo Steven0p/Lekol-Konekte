@@ -104,7 +104,11 @@
       "Bash(curl -s -o /dev/null -w \"4000=%{http_code} \" http://localhost:4000/api/health)",
       "PowerShell(Start-Process \"http://localhost:5173/inscriptions/nouvelle\")",
       "Bash(grep -v \"^\\\\s*$\")",
-      "Bash(\"C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -N -e \"USE lekol_konekte; SHOW COLUMNS FROM codes_verification LIKE 'type';\")"
+      "Bash(\"C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -N -e \"USE lekol_konekte; SHOW COLUMNS FROM codes_verification LIKE 'type';\")",
+      "Bash(\"C:/Program Files/MySQL/MySQL Server 8.4/bin/mysql.exe\" -u root -e \"USE lekol_konekte; SHOW COLUMNS FROM eleves LIKE 'photo_url'; SHOW COLUMNS FROM ecole LIKE 'logo_url';\")",
+      "Bash(curl -s -b el.txt http://localhost:4000/api/eleve/badge)",
+      "Bash(curl -s -b el.txt -w \" [HTTP=%{http_code}]\\\\n\" -X POST http://localhost:4000/api/eleve/photo -F \"photo=@test.png;type=image/png\")",
+      "Bash(curl -s -b el.txt -o out.png -w \"HTTP=%{http_code} type=%{content_type} size=%{size_download}\\\\n\" http://localhost:4000/api/eleve/photo)"
     ]
   }
 }

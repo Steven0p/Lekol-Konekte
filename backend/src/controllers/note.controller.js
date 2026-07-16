@@ -1,11 +1,15 @@
 // Contrôleur Notes
+import path from 'path';
 import * as noteModel from '../models/note.model.js';
 import * as matiereModel from '../models/matiere.model.js';
 import { trouverAvecProprietaire as trouverEleve, listerParParent as listerElevesParent,
-  listerTous as listerTousEleves, listerAvecCode, genererCodeAcces, appartientAuParent }
+  listerTous as listerTousEleves, listerAvecCode, genererCodeAcces, appartientAuParent,
+  trouverParId as trouverEleveParId, mettrePhoto, derniereAnneeScolaire }
   from '../models/eleve.model.js';
+import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
 import { existe as publicationExiste } from '../models/publication.model.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 
@@ -164,6 +168,57 @@ export async function genererCodeAccesAdmin(req, res, next) {
     const code = await genererCodeAcces(Number(req.params.id));
     if (!code) return res.status(404).json({ erreur: 'Élève introuvable.' });
     return res.status(201).json({ code });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/eleve/badge (session élève) — données du badge
+export async function badgeEleve(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(req.session.eleveId);
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    const anneeScolaire = await derniereAnneeScolaire(eleve.id);
+    const ecole = await obtenirEcole();
+    return res.json({
+      badge: {
+        nom: eleve.nom,
+        prenom: eleve.prenom || '',
+        niveau: eleve.niveau,
+        anneeScolaire,
+        nisu: eleve.code_acces,
+        aPhoto: !!eleve.photo_url,
+        ecoleNom: ecole?.nom || 'Lekòl Konekte',
+        ecoleALogo: !!(ecole && ecole.logo_url),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/eleve/photo (session élève, multipart) — l'élève téléverse sa photo
+export async function televerserPhotoEleve(req, res, next) {
+  try {
+    if (!req.file) return res.status(400).json({ erreur: 'Photo requise (JPG ou PNG, max 5 Mo).' });
+    const url = `photos/${req.file.filename}`;
+    await mettrePhoto(req.session.eleveId, url);
+    return res.status(201).json({ message: 'Photo enregistrée.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/eleve/photo (session élève) — sert la photo de l'élève connecté
+export async function servirPhotoEleve(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(req.session.eleveId);
+    if (!eleve || !eleve.photo_url) return res.status(404).json({ erreur: 'Aucune photo.' });
+    const chemin = path.resolve(UPLOAD_ROOT, eleve.photo_url);
+    if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
+      return res.status(400).json({ erreur: 'Chemin invalide.' });
+    }
+    return res.sendFile(chemin);
   } catch (err) {
     next(err);
   }

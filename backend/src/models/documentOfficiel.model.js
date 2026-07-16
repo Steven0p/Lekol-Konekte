@@ -42,7 +42,7 @@ export async function listerParNiveau(niveau, type = 'bulletin') {
   const params = [type];
   if (niveau) { conditions.push('e.niveau = ?'); params.push(niveau); }
   const [rows] = await pool.query(
-    `SELECT d.id, d.id_eleve, e.nom AS eleve_nom, e.niveau,
+    `SELECT d.id, d.id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau,
             d.type, d.identifiant_unique, d.date_generation
        FROM documents_officiels d
        JOIN eleves e ON e.id = d.id_eleve

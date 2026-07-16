@@ -235,6 +235,14 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
   .rangee > .champ { flex: 1 1 200px; }
 }
 
+/* Impression — n'imprimer que le contenu utile (ex. badge élève) */
+@media print {
+  .navbar, .no-print { display: none !important; }
+  body { background: #fff; }
+  .contenu { padding: 0; max-width: none; }
+  .badge-carte { box-shadow: none !important; }
+}
+
 /* Petit téléphone */
 @media (max-width: 480px) {
   .contenu { padding: 1rem .75rem; }

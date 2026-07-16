@@ -24,7 +24,10 @@ const LIENS_PAR_ROLE = {
     { to: '/direction/tarifs', libelle: 'Tarifs' },
     { to: '/direction/ecole', libelle: 'École' },
   ],
-  eleve: [{ to: '/eleve/notes', libelle: 'Mes résultats' }],
+  eleve: [
+    { to: '/eleve/notes', libelle: 'Mes résultats' },
+    { to: '/eleve/badge', libelle: 'Mon badge' },
+  ],
 };
 
 export default function BarreNav() {

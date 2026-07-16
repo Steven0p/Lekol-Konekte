@@ -8,6 +8,7 @@ import MotDePasseOublie from './pages/auth/MotDePasseOublie.jsx';
 import Register from './pages/auth/Register.jsx';
 import VerifierCourriel from './pages/auth/VerifierCourriel.jsx';
 import EspaceEleve from './pages/eleve/EspaceEleve.jsx';
+import BadgeEleve from './pages/eleve/BadgeEleve.jsx';
 import TableauDeBord from './pages/TableauDeBord.jsx';
 import MesInscriptions from './pages/parent/MesInscriptions.jsx';
 import NouvelleInscription from './pages/parent/NouvelleInscription.jsx';
@@ -56,6 +57,7 @@ export default function App() {
 
         {/* Espace élève (connexion par code) */}
         <Route path="/eleve/notes" element={<RoutePrivee roles={['eleve']}><EspaceEleve /></RoutePrivee>} />
+        <Route path="/eleve/badge" element={<RoutePrivee roles={['eleve']}><BadgeEleve /></RoutePrivee>} />
 
         {/* Parent — Paiements */}
         <Route path="/paiements" element={<RoutePrivee roles={['parent']}><Paiements /></RoutePrivee>} />
