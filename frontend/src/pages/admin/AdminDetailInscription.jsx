@@ -60,7 +60,7 @@ export default function AdminDetailInscription() {
         </div>
       </div>
 
-      <div className="grille" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'start' }}>
+      <div className="grille grille-2" style={{ alignItems: 'start' }}>
         <Carte titre="Informations">
           <ul className="pile pile-sm" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             <li><span className="texte-gris">Niveau : </span>{inscription.niveau || '—'}</li>

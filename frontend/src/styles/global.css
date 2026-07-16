@@ -193,3 +193,60 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 
 /* ---------- Grille de cartes ---------- */
 .grille { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+/* Grille à deux colonnes fixes qui s'effondre en une colonne sur mobile */
+.grille-2 { grid-template-columns: 1fr 1fr; }
+
+/* ============================================================
+   Responsive — adaptation tablette & téléphone
+   ============================================================ */
+
+/* Tablette et grand téléphone */
+@media (max-width: 720px) {
+  .contenu { padding: 1.25rem .9rem; }
+  .carte { padding: 1.15rem; }
+  .page-entete { margin-bottom: 1.15rem; }
+  .page-entete h1 { font-size: 1.35rem; }
+
+  /* En-tête de page avec action (titre + bouton) : passe à la ligne proprement */
+  .page-entete.rangee.entre { flex-wrap: wrap; gap: .75rem; }
+  .page-entete.rangee.entre > * { min-width: 0; }
+
+  /* Grilles deux colonnes → une seule colonne */
+  .grille-2 { grid-template-columns: 1fr; }
+
+  /* Barre de navigation : marque + compte sur une ligne, liens défilables en dessous */
+  .navbar-inner { flex-wrap: wrap; padding: .6rem .9rem; gap: .5rem .75rem; }
+  .navbar-inner > .rangee:first-child { flex: 1 1 auto; flex-wrap: wrap; gap: .75rem; min-width: 0; }
+  .navbar-liens {
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
+  }
+  .navbar-lien { white-space: nowrap; flex: 0 0 auto; }
+
+  /* Tableaux : cellules un peu plus compactes (le conteneur défile déjà en X) */
+  table.tableau th, table.tableau td { padding: .55rem .6rem; }
+  table.tableau { font-size: .88rem; }
+
+  /* Champs de formulaire alignés en ligne : se répartissent puis passent à la ligne */
+  .rangee > .champ { flex: 1 1 200px; }
+}
+
+/* Petit téléphone */
+@media (max-width: 480px) {
+  .contenu { padding: 1rem .75rem; }
+  .carte { padding: 1rem; }
+  .page-entete h1 { font-size: 1.25rem; }
+
+  /* Boutons pleine largeur dans les formulaires empilés pour faciliter le tap */
+  .champ + .btn, .btn-bloc { width: 100%; }
+
+  /* Le nom du compte peut être masqué si trop à l'étroit, on garde le rôle discret */
+  .navbar-marque span:not(.logo) { font-size: .95rem; }
+
+  /* Sur très petit écran, les champs en ligne s'empilent complètement */
+  .rangee > .champ { flex: 1 1 100%; }
+}
