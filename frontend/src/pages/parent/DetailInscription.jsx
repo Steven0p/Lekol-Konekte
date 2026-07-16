@@ -101,6 +101,19 @@ export default function DetailInscription() {
       </div>
 
       <div style={{ marginTop: '1rem' }}>
+        <Carte titre="Informations complémentaires">
+          <ul className="pile pile-sm" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            <li><span className="texte-gris">Nom du parent : </span>{inscription.nom_parent || '—'}</li>
+            <li><span className="texte-gris">Profession du parent : </span>{inscription.profession_parent || '—'}</li>
+            <li><span className="texte-gris">Téléphone du parent : </span>{inscription.telephone_parent || '—'}</li>
+            <li><span className="texte-gris">Ancienne école : </span>{inscription.ancienne_ecole || '—'}</li>
+            <li><span className="texte-gris">Dernière classe suivie : </span>{inscription.ancienne_classe || '—'}</li>
+            <li><span className="texte-gris">Raison du choix : </span>{inscription.raison_choix || '—'}</li>
+          </ul>
+        </Carte>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
         <Carte titre="Documents">
           {documents.length === 0 ? (
             <p className="texte-gris">Aucun document téléversé.</p>

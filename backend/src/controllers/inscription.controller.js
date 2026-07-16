@@ -33,12 +33,21 @@ export async function creer(req, res, next) {
     const niveau = (req.body.niveau || '').trim();
     const dateNaissance = req.body.dateNaissance || null;
 
+    const t = (v) => (v ? String(v).trim() : null);
+    const nomParent = t(req.body.nomParent);
+    const professionParent = t(req.body.professionParent);
+    const telephoneParent = t(req.body.telephoneParent);
+    const ancienneEcole = t(req.body.ancienneEcole);
+    const ancienneClasse = t(req.body.ancienneClasse);
+    const raisonChoix = t(req.body.raisonChoix);
+
     if (!eleveNom || !anneeScolaire) {
       return res.status(400).json({ erreur: "Le nom de l'élève et l'année scolaire sont requis." });
     }
 
     const { idInscription, idEleve } = await creerInscription({
       idParent, eleveNom, dateNaissance, niveau, anneeScolaire,
+      nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
 
     return res.status(201).json({

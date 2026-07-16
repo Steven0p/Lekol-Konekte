@@ -69,12 +69,18 @@ CREATE TABLE IF NOT EXISTS ecole (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS inscriptions (
-  id              INT AUTO_INCREMENT PRIMARY KEY,
-  id_eleve        INT NOT NULL,
-  annee_scolaire  VARCHAR(9) NOT NULL,
-  statut          ENUM('en_attente','complement_demande','accepte','refuse','confirmee')
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  id_eleve          INT NOT NULL,
+  annee_scolaire    VARCHAR(9) NOT NULL,
+  nom_parent        VARCHAR(120),
+  profession_parent VARCHAR(120),
+  telephone_parent  VARCHAR(40),
+  ancienne_ecole    VARCHAR(160),
+  ancienne_classe   VARCHAR(60),
+  raison_choix      VARCHAR(500),
+  statut            ENUM('en_attente','complement_demande','accepte','refuse','confirmee')
                     NOT NULL DEFAULT 'en_attente',
-  date_soumission DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  date_soumission   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

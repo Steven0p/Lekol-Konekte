@@ -2,7 +2,10 @@
 import { pool } from '../config/db.js';
 
 // Crée l'élève (rattaché au parent) + l'inscription (en_attente), en transaction.
-export async function creerInscription({ idParent, eleveNom, dateNaissance, niveau, anneeScolaire }) {
+export async function creerInscription({
+  idParent, eleveNom, dateNaissance, niveau, anneeScolaire,
+  nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
+}) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
@@ -14,8 +17,12 @@ export async function creerInscription({ idParent, eleveNom, dateNaissance, nive
     const idEleve = eleveRes.insertId;
 
     const [insRes] = await conn.query(
-      'INSERT INTO inscriptions (id_eleve, annee_scolaire, statut) VALUES (?, ?, ?)',
-      [idEleve, anneeScolaire, 'en_attente']
+      `INSERT INTO inscriptions
+        (id_eleve, annee_scolaire, nom_parent, profession_parent, telephone_parent,
+         ancienne_ecole, ancienne_classe, raison_choix, statut)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')`,
+      [idEleve, anneeScolaire, nomParent || null, professionParent || null, telephoneParent || null,
+        ancienneEcole || null, ancienneClasse || null, raisonChoix || null]
     );
     const idInscription = insRes.insertId;
 
@@ -47,6 +54,8 @@ export async function listerParParent(idParent) {
 export async function trouverAvecProprietaire(idInscription) {
   const [rows] = await pool.query(
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
+            i.nom_parent, i.profession_parent, i.telephone_parent,
+            i.ancienne_ecole, i.ancienne_classe, i.raison_choix,
             e.id AS id_eleve, e.nom AS eleve_nom, e.niveau, e.date_naissance,
             p.id AS id_parent, u.id AS id_utilisateur,
             u.courriel AS parent_courriel, u.nom AS parent_nom
