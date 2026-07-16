@@ -5,10 +5,14 @@ import {
   findById,
   createParent,
   marquerCourrielVerifie,
+  mettreAJourMotDePasse,
 } from '../models/user.model.js';
 import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
   from '../models/eleve.model.js';
-import { envoyerCodeVerification, verifierCode } from '../services/otp.service.js';
+import { envoyerCodeVerification, envoyerCodeReinitialisation, verifierCode }
+  from '../services/otp.service.js';
+
+const TYPE_RESET = 'reinitialisation_mdp';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 12;
@@ -128,6 +132,74 @@ export async function renvoyerCode(req, res, next) {
       message: 'Si un compte non vérifié existe, un nouveau code a été envoyé.',
       ...(previewUrl ? { apercuCourriel: previewUrl } : {}),
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/mot-de-passe-oublie — envoie un code de réinitialisation.
+// Réponse générique : ne révèle pas si le courriel existe.
+export async function motDePasseOublie(req, res, next) {
+  try {
+    const courriel = (req.body.courriel || '').trim().toLowerCase();
+    if (!COURRIEL_REGEX.test(courriel)) {
+      return res.status(400).json({ erreur: 'Courriel invalide.' });
+    }
+
+    const utilisateur = await findByCourriel(courriel);
+    const reponse = { message: 'Si un compte existe pour ce courriel, un code de réinitialisation a été envoyé.' };
+
+    if (utilisateur && utilisateur.statut === 'actif') {
+      const { previewUrl } = await envoyerCodeReinitialisation({
+        idUtilisateur: utilisateur.id,
+        courriel: utilisateur.courriel,
+        nom: utilisateur.nom,
+      });
+      if (previewUrl) reponse.apercuCourriel = previewUrl; // dev (Ethereal)
+    }
+
+    return res.json(reponse);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/reinitialiser-mot-de-passe — vérifie le code et change le mot de passe.
+export async function reinitialiserMotDePasse(req, res, next) {
+  try {
+    const courriel = (req.body.courriel || '').trim().toLowerCase();
+    const code = (req.body.code || '').trim();
+    const nouveauMotDePasse = req.body.nouveauMotDePasse || '';
+
+    if (!courriel || !code) {
+      return res.status(400).json({ erreur: 'Courriel et code requis.' });
+    }
+    if (nouveauMotDePasse.length < 8) {
+      return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' });
+    }
+
+    const utilisateur = await findByCourriel(courriel);
+    // Message générique pour ne pas révéler l'existence du compte
+    if (!utilisateur) {
+      return res.status(400).json({ erreur: 'Code invalide.' });
+    }
+
+    const resultat = await verifierCode({ idUtilisateur: utilisateur.id, code, type: TYPE_RESET });
+    if (resultat !== 'ok') {
+      const messages = {
+        aucun_code: 'Aucun code actif. Demandez un nouveau code.',
+        expire: 'Code expiré. Demandez un nouveau code.',
+        trop_tentatives: 'Trop de tentatives. Demandez un nouveau code.',
+        invalide: 'Code invalide.',
+      };
+      const status = resultat === 'invalide' ? 400 : 410;
+      return res.status(status).json({ erreur: messages[resultat] || 'Code invalide.' });
+    }
+
+    const motDePasseHash = await bcrypt.hash(nouveauMotDePasse, SALT_ROUNDS);
+    await mettreAJourMotDePasse(utilisateur.id, motDePasseHash);
+
+    return res.json({ message: 'Mot de passe réinitialisé. Vous pouvez vous connecter.' });
   } catch (err) {
     next(err);
   }

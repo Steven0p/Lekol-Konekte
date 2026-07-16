@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -9,10 +9,12 @@ import Alerte from '../../components/Alerte.jsx';
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
+  const info = location.state?.info;
 
   const soumettre = async (e) => {
     e.preventDefault();
@@ -41,12 +43,17 @@ export default function Login() {
           <h2>Connexion</h2>
           <p className="sous-titre">Accédez à votre espace Lekòl Konekte.</p>
 
+          {info && <Alerte type="info">{info}</Alerte>}
           <Alerte type="erreur">{erreur}</Alerte>
 
           <Champ label="Courriel" type="email" value={courriel}
             onChange={(e) => setCourriel(e.target.value)} required autoComplete="email" />
           <Champ label="Mot de passe" type="password" value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)} required autoComplete="current-password" />
+
+          <p style={{ textAlign: 'right', marginTop: '-.5rem', marginBottom: '1rem', fontSize: '.88rem' }}>
+            <Link to="/mot-de-passe-oublie">Mot de passe oublié ?</Link>
+          </p>
 
           <Bouton type="submit" bloc enCours={enCours}>Se connecter</Bouton>
 

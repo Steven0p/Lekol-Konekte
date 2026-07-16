@@ -34,6 +34,8 @@ export const authApi = {
   renvoyerCode: (courriel) => request('/auth/renvoyer-code', { method: 'POST', body: json({ courriel }) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: json(payload) }),
   eleveConnexion: (code) => request('/auth/eleve-connexion', { method: 'POST', body: json({ code }) }),
+  motDePasseOublie: (courriel) => request('/auth/mot-de-passe-oublie', { method: 'POST', body: json({ courriel }) }),
+  reinitialiserMotDePasse: (payload) => request('/auth/reinitialiser-mot-de-passe', { method: 'POST', body: json(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
 };

@@ -8,6 +8,8 @@ import {
   verifierCourriel,
   renvoyerCode,
   eleveConnexion,
+  motDePasseOublie,
+  reinitialiserMotDePasse,
 } from '../controllers/auth.controller.js';
 import { authLimiter, otpLimiter } from '../middleware/rateLimit.js';
 
@@ -18,6 +20,8 @@ router.post('/login', authLimiter, login);
 router.post('/eleve-connexion', authLimiter, eleveConnexion);
 router.post('/verifier-courriel', otpLimiter, verifierCourriel);
 router.post('/renvoyer-code', otpLimiter, renvoyerCode);
+router.post('/mot-de-passe-oublie', otpLimiter, motDePasseOublie);
+router.post('/reinitialiser-mot-de-passe', otpLimiter, reinitialiserMotDePasse);
 // logout et me gèrent aussi bien un compte classique qu'une session élève.
 router.post('/logout', logout);
 router.get('/me', me);

@@ -4,6 +4,7 @@ import RoutePublique from './components/RoutePublique.jsx';
 import Layout from './components/Layout.jsx';
 import Login from './pages/auth/Login.jsx';
 import ConnexionEleve from './pages/auth/ConnexionEleve.jsx';
+import MotDePasseOublie from './pages/auth/MotDePasseOublie.jsx';
 import Register from './pages/auth/Register.jsx';
 import VerifierCourriel from './pages/auth/VerifierCourriel.jsx';
 import EspaceEleve from './pages/eleve/EspaceEleve.jsx';
@@ -31,6 +32,7 @@ export default function App() {
       {/* Auth (public) */}
       <Route path="/login" element={<RoutePublique><Login /></RoutePublique>} />
       <Route path="/eleve" element={<RoutePublique><ConnexionEleve /></RoutePublique>} />
+      <Route path="/mot-de-passe-oublie" element={<RoutePublique><MotDePasseOublie /></RoutePublique>} />
       <Route path="/register" element={<RoutePublique><Register /></RoutePublique>} />
       <Route path="/verifier-courriel" element={<VerifierCourriel />} />
 

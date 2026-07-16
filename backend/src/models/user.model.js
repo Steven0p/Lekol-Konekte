@@ -15,6 +15,11 @@ export async function marquerCourrielVerifie(id) {
   await pool.query('UPDATE utilisateurs SET courriel_verifie = 1 WHERE id = ?', [id]);
 }
 
+// Met à jour le hash du mot de passe d'un utilisateur
+export async function mettreAJourMotDePasse(id, motDePasseHash) {
+  await pool.query('UPDATE utilisateurs SET mot_de_passe_hash = ? WHERE id = ?', [motDePasseHash, id]);
+}
+
 // Retourne l'id de la fiche parent liée à un utilisateur (ou null)
 export async function findParentIdByUserId(idUtilisateur) {
   const [rows] = await pool.query(
