@@ -86,10 +86,12 @@ export default function AdminCodesEleves() {
                         ) : <span className="texte-gris">— aucun —</span>}
                       </td>
                       <td>
-                        <Bouton sm variante="secondaire" onClick={() => genererCode(el.id)}
-                          enCours={genereId === el.id}>
-                          {el.code_acces ? 'Régénérer' : 'Générer'}
-                        </Bouton>
+                        {!el.code_acces && (
+                          <Bouton sm variante="secondaire" onClick={() => genererCode(el.id)}
+                            enCours={genereId === el.id}>
+                            Générer
+                          </Bouton>
+                        )}
                       </td>
                     </tr>
                   ))}

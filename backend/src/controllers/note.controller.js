@@ -135,7 +135,8 @@ export async function listerMesEleves(req, res, next) {
   }
 }
 
-// POST /api/eleves/:id/code-acces (parent propriétaire) — génère/régénère le code élève
+// POST /api/eleves/:id/code-acces (parent propriétaire) — génère le code s'il n'existe pas.
+// Le code est unique et permanent : on ne le régénère jamais.
 export async function genererCodeAccesEleve(req, res, next) {
   try {
     const idEleve = Number(req.params.id);
@@ -144,8 +145,11 @@ export async function genererCodeAccesEleve(req, res, next) {
     if (!(await appartientAuParent(idEleve, idParent))) {
       return res.status(403).json({ erreur: 'Cet élève ne vous appartient pas.' });
     }
+    const eleve = await trouverEleveParId(idEleve);
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    if (eleve.code_acces) return res.json({ code: eleve.code_acces }); // déjà attribué → inchangé
+
     const code = await genererCodeAcces(idEleve);
-    if (!code) return res.status(404).json({ erreur: 'Élève introuvable.' });
     return res.status(201).json({ code });
   } catch (err) {
     next(err);
@@ -162,11 +166,16 @@ export async function listerElevesCodes(req, res, next) {
   }
 }
 
-// POST /api/admin/eleves/:id/code-acces (admin/direction) — génère le code pour un élève
+// POST /api/admin/eleves/:id/code-acces (admin/direction) — génère le code s'il n'existe pas.
+// Code unique et permanent : jamais régénéré.
 export async function genererCodeAccesAdmin(req, res, next) {
   try {
-    const code = await genererCodeAcces(Number(req.params.id));
-    if (!code) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    const idEleve = Number(req.params.id);
+    const eleve = await trouverEleveParId(idEleve);
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    if (eleve.code_acces) return res.json({ code: eleve.code_acces }); // déjà attribué → inchangé
+
+    const code = await genererCodeAcces(idEleve);
     return res.status(201).json({ code });
   } catch (err) {
     next(err);

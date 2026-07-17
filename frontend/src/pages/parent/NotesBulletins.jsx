@@ -138,15 +138,15 @@ export default function NotesBulletins() {
                   }}>
                     {enfant.code_acces || '— aucun —'}
                   </span>
-                  <Bouton variante="secondaire" onClick={genererCode} enCours={genereEnCours}>
-                    {enfant.code_acces ? 'Régénérer le code' : 'Générer le code'}
-                  </Bouton>
+                  {!enfant.code_acces && (
+                    <Bouton variante="secondaire" onClick={genererCode} enCours={genereEnCours}>
+                      Générer le code
+                    </Bouton>
+                  )}
                 </div>
-                {enfant.code_acces && (
-                  <p className="texte-gris" style={{ marginTop: '.6rem', fontSize: '.85rem' }}>
-                    Régénérer le code annule l'ancien.
-                  </p>
-                )}
+                <p className="texte-gris" style={{ marginTop: '.6rem', fontSize: '.85rem' }}>
+                  Ce code ne change pas.
+                </p>
               </Carte>
             );
           })()}
