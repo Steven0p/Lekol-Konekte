@@ -28,3 +28,11 @@ export function requireEleve(req, res, next) {
   }
   next();
 }
+
+// Exige une session « admin du vlog » (système indépendant, hors comptes école)
+export function requireVlogAdmin(req, res, next) {
+  if (!req.session || !req.session.vlogAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin vlog requise.' });
+  }
+  next();
+}

@@ -9,6 +9,7 @@ import { trouverAvecProprietaire as trouverEleve, listerParParent as listerEleve
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
 import { existe as publicationExiste } from '../models/publication.model.js';
+import { trimestresBloques as trimestresBloquesModel } from '../models/acquittement.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
@@ -206,6 +207,59 @@ export async function badgeEleve(req, res, next) {
   }
 }
 
+// GET /api/admin/eleves/:id/badge (admin/direction) — badge d'un élève donné
+export async function badgeEleveAdmin(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(Number(req.params.id));
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    const anneeScolaire = await derniereAnneeScolaire(eleve.id);
+    const ecole = await obtenirEcole();
+    return res.json({
+      badge: {
+        id: eleve.id,
+        nom: eleve.nom,
+        prenom: eleve.prenom || '',
+        niveau: eleve.niveau,
+        anneeScolaire,
+        nisu: eleve.code_acces,
+        aPhoto: !!eleve.photo_url,
+        ecoleNom: ecole?.nom || 'Lekòl Konekte',
+        ecoleALogo: !!(ecole && ecole.logo_url),
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/admin/eleves/:id/photo (admin/direction) — sert la photo d'un élève
+export async function servirPhotoEleveAdmin(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(Number(req.params.id));
+    if (!eleve || !eleve.photo_url) return res.status(404).json({ erreur: 'Aucune photo.' });
+    const chemin = path.resolve(UPLOAD_ROOT, eleve.photo_url);
+    if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
+      return res.status(400).json({ erreur: 'Chemin invalide.' });
+    }
+    return res.sendFile(chemin);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/admin/eleves/:id/photo (admin/direction, multipart) — secrétariat ajoute la photo
+export async function televerserPhotoEleveAdmin(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(Number(req.params.id));
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    if (!req.file) return res.status(400).json({ erreur: 'Photo requise (JPG ou PNG, max 5 Mo).' });
+    await mettrePhoto(eleve.id, `photos/${req.file.filename}`);
+    return res.status(201).json({ message: 'Photo enregistrée.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // POST /api/eleve/photo (session élève, multipart) — l'élève téléverse sa photo
 export async function televerserPhotoEleve(req, res, next) {
   try {
@@ -241,7 +295,8 @@ export async function listerMesNotesEleve(req, res, next) {
       anneeScolaire: req.query.anneeScolaire,
       seulementVisibles: true,
     });
-    return res.json({ notes });
+    const trimestresBloques = await trimestresBloquesModel(req.session.eleveId);
+    return res.json({ notes, trimestresBloques });
   } catch (err) {
     next(err);
   }
@@ -263,7 +318,9 @@ export async function listerPourEleve(req, res, next) {
       anneeScolaire: req.query.anneeScolaire,
       seulementVisibles: !admin, // familles : uniquement validées + publiées
     });
-    return res.json({ notes });
+    // Familles : signaler les trimestres publiés mais bloqués (non acquittés).
+    const trimestresBloques = admin ? [] : await trimestresBloquesModel(eleve.id);
+    return res.json({ notes, trimestresBloques });
   } catch (err) {
     next(err);
   }

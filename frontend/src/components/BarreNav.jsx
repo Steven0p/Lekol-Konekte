@@ -5,20 +5,22 @@ import { useAuth } from '../context/AuthContext.jsx';
 // Les liens s'étofferont au fil des lots. Lot 1 : tableau de bord seulement.
 const LIENS_PAR_ROLE = {
   parent: [
-    { to: '/', libelle: 'Tableau de bord', fin: true },
+    { to: '/tableau-de-bord', libelle: 'Tableau de bord', fin: true },
     { to: '/inscriptions', libelle: 'Inscriptions' },
     { to: '/notes', libelle: 'Notes & bulletins' },
     { to: '/paiements', libelle: 'Paiements' },
   ],
   admin: [
-    { to: '/', libelle: 'Tableau de bord', fin: true },
+    { to: '/tableau-de-bord', libelle: 'Tableau de bord', fin: true },
     { to: '/admin/inscriptions', libelle: 'Inscriptions' },
     { to: '/admin/notes', libelle: 'Notes' },
     { to: '/admin/codes-eleves', libelle: 'Codes élèves' },
+    { to: '/admin/badges', libelle: 'Badges' },
     { to: '/admin/paiements', libelle: 'Paiements' },
+    { to: '/admin/economat', libelle: 'Économat' },
   ],
   direction: [
-    { to: '/', libelle: 'Tableau de bord', fin: true },
+    { to: '/tableau-de-bord', libelle: 'Tableau de bord', fin: true },
     { to: '/direction/matieres', libelle: 'Matières' },
     { to: '/direction/publications', libelle: 'Publications' },
     { to: '/direction/tarifs', libelle: 'Tarifs' },

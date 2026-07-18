@@ -32,12 +32,13 @@ export default function EspaceEleve() {
   const { utilisateur } = useAuth();
   const [notes, setNotes] = useState(null);
   const [bulletins, setBulletins] = useState([]);
+  const [bloques, setBloques] = useState([]);
   const [telechargeId, setTelechargeId] = useState(null);
   const [erreur, setErreur] = useState('');
 
   useEffect(() => {
     Promise.all([eleveApi.mesNotes(), eleveApi.mesBulletins()])
-      .then(([n, b]) => { setNotes(n.notes); setBulletins(b.bulletins); })
+      .then(([n, b]) => { setNotes(n.notes); setBloques(n.trimestresBloques || []); setBulletins(b.bulletins); })
       .catch((e) => setErreur(e.message));
   }, []);
 
@@ -76,6 +77,14 @@ export default function EspaceEleve() {
       </div>
 
       <div className="pile pile-md">
+        {/* Trimestres bloqués (économat non réglé) */}
+        {bloques.length > 0 && (
+          <Alerte type="erreur">
+            Résultats indisponibles pour&nbsp;: {bloques.map((b) => `${LIBELLE_TRIM[b.trimestre] || b.trimestre} (${b.annee_scolaire})`).join(', ')}.
+            Veuillez régulariser votre situation auprès de l'économat.
+          </Alerte>
+        )}
+
         {/* Notes */}
         {groupes.length === 0 ? (
           <Carte titre="Mes notes">

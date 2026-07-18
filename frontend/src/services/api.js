@@ -106,9 +106,20 @@ export const adminApi = {
   // Paiements
   paiements: (statut) => request(`/admin/paiements${qs({ statut })}`),
   validationPaiement: (id, body) => request(`/paiements/${id}/validation`, { method: 'PATCH', body: json(body) }),
+  // Économat — acquittement de scolarité par trimestre
+  acquittements: (params) => request(`/admin/acquittements${qs(params)}`),
+  marquerAcquittement: (body) => request('/admin/acquittements', { method: 'POST', body: json(body) }),
+  retirerAcquittement: (body) => request('/admin/acquittements', { method: 'DELETE', body: json(body) }),
   // Codes d'accès élèves (secrétariat)
   elevesCodes: (recherche) => request(`/admin/eleves-codes${qs({ recherche })}`),
   genererCodeEleve: (id) => request(`/admin/eleves/${id}/code-acces`, { method: 'POST' }),
+  // Badges élèves (secrétariat)
+  badgeEleve: (id) => request(`/admin/eleves/${id}/badge`),
+  televerserPhotoEleve: (id, fichier) => {
+    const fd = new FormData();
+    fd.append('photo', fichier);
+    return request(`/admin/eleves/${id}/photo`, { method: 'POST', body: fd });
+  },
 };
 
 export const directionApi = {
@@ -122,6 +133,10 @@ export const directionApi = {
   tarifs: () => request('/tarifs'),
   creerTarif: (body) => request('/tarifs', { method: 'POST', body: json(body) }),
   majTarif: (id, body) => request(`/tarifs/${id}`, { method: 'PUT', body: json(body) }),
+  fraisDivers: () => request('/frais-divers'),
+  creerFrais: (body) => request('/frais-divers', { method: 'POST', body: json(body) }),
+  majFrais: (id, body) => request(`/frais-divers/${id}`, { method: 'PUT', body: json(body) }),
+  supprimerFrais: (id) => request(`/frais-divers/${id}`, { method: 'DELETE' }),
   ecole: () => request('/ecole/coordonnees'),
   majEcole: (body) => request('/ecole', { method: 'PUT', body: json(body) }),
   televerserLogo: (fichier) => {
@@ -131,11 +146,30 @@ export const directionApi = {
   },
 };
 
+// Vlog — système indépendant (propre authentification)
+export const vlogApi = {
+  publications: () => request('/vlog'),
+  adminMe: () => request('/vlog/admin/me'),
+  adminLogin: (body) => request('/vlog/admin/login', { method: 'POST', body: json(body) }),
+  adminLogout: () => request('/vlog/admin/logout', { method: 'POST' }),
+  creer: ({ titre, contenu, categorie, photo }) => {
+    const fd = new FormData();
+    fd.append('titre', titre);
+    fd.append('contenu', contenu);
+    fd.append('categorie', categorie);
+    if (photo) fd.append('photo', photo);
+    return request('/vlog', { method: 'POST', body: fd });
+  },
+  supprimer: (id) => request(`/vlog/${id}`, { method: 'DELETE' }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;
 export const urlPreuvePaiement = (id) => `${API_URL}/paiements/${id}/preuve`;
 export const urlPhotoEleve = () => `${API_URL}/eleve/photo`;
+export const urlPhotoEleveAdmin = (id) => `${API_URL}/admin/eleves/${id}/photo`;
 export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
+export const urlPhotoVlog = (id) => `${API_URL}/vlog/${id}/photo`;
 
 export { request, API_URL };

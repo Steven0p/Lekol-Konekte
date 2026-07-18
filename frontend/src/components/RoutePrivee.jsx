@@ -10,7 +10,7 @@ export default function RoutePrivee({ children, roles }) {
   if (!utilisateur) return <Navigate to="/login" replace />;
   if (roles && !roles.includes(utilisateur.role)) {
     // Rôle non autorisé → renvoi vers son propre tableau de bord
-    return <Navigate to="/" replace />;
+    return <Navigate to="/tableau-de-bord" replace />;
   }
   return children;
 }

@@ -67,6 +67,11 @@ export async function listerPourEleve(idEleve, { periode, anneeScolaire, seuleme
                        WHERE p.niveau = e.niveau
                          AND p.annee_scolaire = n.annee_scolaire
                          AND p.trimestre = n.periode)`);
+    // Économat : l'élève doit être acquitté pour ce trimestre, sinon résultats masqués.
+    conditions.push(`EXISTS (SELECT 1 FROM acquittements_scolarite a
+                       WHERE a.id_eleve = n.id_eleve
+                         AND a.annee_scolaire = n.annee_scolaire
+                         AND a.trimestre = n.periode)`);
   }
   const [rows] = await pool.query(
     `SELECT n.id, n.matiere, m.coefficient, n.periode, n.annee_scolaire,

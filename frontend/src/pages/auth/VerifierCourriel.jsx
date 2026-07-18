@@ -26,7 +26,7 @@ export default function VerifierCourriel() {
     setEnCours(true);
     try {
       await verifierCourriel({ courriel, code });
-      navigate('/');
+      navigate('/tableau-de-bord');
     } catch (err) {
       setErreur(err.message);
     } finally {

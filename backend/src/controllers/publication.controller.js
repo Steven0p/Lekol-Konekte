@@ -6,12 +6,26 @@ import { listerPourEleve as listerBulletinsEleve, listerParNiveau as listerBulle
   trouverAvecProprietaire as trouverDocument }
   from '../models/documentOfficiel.model.js';
 import { trouverAvecProprietaire as trouverEleve } from '../models/eleve.model.js';
+import { estAcquitte } from '../models/acquittement.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 
 function estAdmin(req) {
   return req.session.role === 'admin' || req.session.role === 'direction';
+}
+
+// Économat : masque aux familles les bulletins des trimestres non acquittés.
+// Les autres documents (relevés, duplicatas) ne sont pas concernés.
+async function filtrerBulletinsAcquittes(documents, idEleve) {
+  const resultat = [];
+  for (const doc of documents) {
+    if (doc.type === 'bulletin' && doc.periode && doc.annee_scolaire) {
+      if (!(await estAcquitte(idEleve, doc.annee_scolaire, doc.periode))) continue;
+    }
+    resultat.push(doc);
+  }
+  return resultat;
 }
 
 // POST /api/publications (direction)
@@ -67,7 +81,8 @@ export async function listerBulletinsNiveau(req, res, next) {
 // GET /api/eleve/mes-bulletins (session élève) — ses bulletins, lecture seule
 export async function listerMesBulletinsEleve(req, res, next) {
   try {
-    const bulletins = await listerBulletinsEleve(req.session.eleveId, 'bulletin');
+    const tous = await listerBulletinsEleve(req.session.eleveId, 'bulletin');
+    const bulletins = await filtrerBulletinsAcquittes(tous, req.session.eleveId);
     return res.json({ bulletins });
   } catch (err) {
     next(err);
@@ -82,7 +97,9 @@ export async function listerBulletins(req, res, next) {
     if (!estAdmin(req) && eleve.id_utilisateur !== req.session.userId) {
       return res.status(403).json({ erreur: 'Accès refusé.' });
     }
-    const bulletins = await listerBulletinsEleve(eleve.id, 'bulletin');
+    let bulletins = await listerBulletinsEleve(eleve.id, 'bulletin');
+    // Familles : masquer les bulletins des trimestres non acquittés (admin voit tout).
+    if (!estAdmin(req)) bulletins = await filtrerBulletinsAcquittes(bulletins, eleve.id);
     return res.json({ bulletins });
   } catch (err) {
     next(err);
@@ -97,7 +114,8 @@ export async function listerDocumentsOfficiels(req, res, next) {
     if (!estAdmin(req) && eleve.id_utilisateur !== req.session.userId) {
       return res.status(403).json({ erreur: 'Accès refusé.' });
     }
-    const documents = await listerBulletinsEleve(eleve.id); // sans type → tous
+    let documents = await listerBulletinsEleve(eleve.id); // sans type → tous
+    if (!estAdmin(req)) documents = await filtrerBulletinsAcquittes(documents, eleve.id);
     return res.json({ documents });
   } catch (err) {
     next(err);
@@ -116,6 +134,14 @@ export async function servirFichier(req, res, next) {
     if (!estAdmin(req) && !estProprietaireParent && !estEleveConcerne) {
       return res.status(403).json({ erreur: 'Accès refusé.' });
     }
+
+    // Économat : familles (parent/élève) — bulletin bloqué si le trimestre n'est pas acquitté.
+    if (!estAdmin(req) && doc.type === 'bulletin' && doc.periode && doc.annee_scolaire) {
+      if (!(await estAcquitte(doc.id_eleve, doc.annee_scolaire, doc.periode))) {
+        return res.status(403).json({ erreur: "Résultats indisponibles. Régularisez votre situation auprès de l'économat." });
+      }
+    }
+
     const chemin = path.resolve(UPLOAD_ROOT, doc.url_pdf);
     if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
       return res.status(400).json({ erreur: 'Chemin invalide.' });

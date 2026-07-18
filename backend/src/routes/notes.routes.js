@@ -3,6 +3,7 @@ import { Router } from 'express';
 import * as matiere from '../controllers/matiere.controller.js';
 import * as note from '../controllers/note.controller.js';
 import * as publication from '../controllers/publication.controller.js';
+import * as acquittement from '../controllers/acquittement.controller.js';
 import { requireAuth, requireRole, requireEleve } from '../middleware/auth.js';
 import { uploadPhoto } from '../config/upload.js';
 
@@ -25,6 +26,16 @@ router.get('/admin/eleves', requireRole('admin', 'direction'), note.listerEleves
 // Secrétariat : registre des codes d'accès élèves (consultation + génération)
 router.get('/admin/eleves-codes', requireRole('admin', 'direction'), note.listerElevesCodes);
 router.post('/admin/eleves/:id/code-acces', requireRole('admin', 'direction'), note.genererCodeAccesAdmin);
+
+// Secrétariat : badges élèves (consultation, photo, impression)
+router.get('/admin/eleves/:id/badge', requireRole('admin', 'direction'), note.badgeEleveAdmin);
+router.get('/admin/eleves/:id/photo', requireRole('admin', 'direction'), note.servirPhotoEleveAdmin);
+router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), note.televerserPhotoEleveAdmin);
+
+// Économat : acquittement de scolarité par trimestre (admin/direction)
+router.get('/admin/acquittements', requireRole('admin', 'direction'), acquittement.lister);
+router.post('/admin/acquittements', requireRole('admin', 'direction'), acquittement.marquer);
+router.delete('/admin/acquittements', requireRole('admin', 'direction'), acquittement.retirer);
 
 // Liste des enfants du parent connecté
 router.get('/mes-eleves', requireRole('parent'), note.listerMesEleves);

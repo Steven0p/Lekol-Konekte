@@ -6,6 +6,6 @@ import Chargement from './Chargement.jsx';
 export default function RoutePublique({ children }) {
   const { utilisateur, chargement } = useAuth();
   if (chargement) return <Chargement />;
-  if (utilisateur) return <Navigate to="/" replace />;
+  if (utilisateur) return <Navigate to="/tableau-de-bord" replace />;
   return children;
 }

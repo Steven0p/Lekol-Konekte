@@ -2,6 +2,15 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import RoutePrivee from './components/RoutePrivee.jsx';
 import RoutePublique from './components/RoutePublique.jsx';
 import Layout from './components/Layout.jsx';
+import PublicLayout from './components/PublicLayout.jsx';
+import Accueil from './pages/public/Accueil.jsx';
+import APropos from './pages/public/APropos.jsx';
+import Vlog from './pages/public/Vlog.jsx';
+import VlogAdmin from './pages/public/VlogAdmin.jsx';
+import Academie from './pages/public/Academie.jsx';
+import Contact from './pages/public/Contact.jsx';
+import Calendrier from './pages/public/Calendrier.jsx';
+import Support from './pages/public/Support.jsx';
 import Login from './pages/auth/Login.jsx';
 import ConnexionEleve from './pages/auth/ConnexionEleve.jsx';
 import MotDePasseOublie from './pages/auth/MotDePasseOublie.jsx';
@@ -21,7 +30,9 @@ import AdminInscriptions from './pages/admin/AdminInscriptions.jsx';
 import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
 import AdminNotes from './pages/admin/AdminNotes.jsx';
 import AdminCodesEleves from './pages/admin/AdminCodesEleves.jsx';
+import AdminBadges from './pages/admin/AdminBadges.jsx';
 import AdminPaiements from './pages/admin/AdminPaiements.jsx';
+import AdminEconomat from './pages/admin/AdminEconomat.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Tarifs from './pages/direction/Tarifs.jsx';
@@ -30,6 +41,20 @@ import Ecole from './pages/direction/Ecole.jsx';
 export default function App() {
   return (
     <Routes>
+      {/* Site public (visiteurs) — accessible à tous */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Accueil />} />
+        <Route path="/a-propos" element={<APropos />} />
+        <Route path="/vlog" element={<Vlog />} />
+        <Route path="/vlog/admin" element={<VlogAdmin />} />
+        <Route path="/academie/prescolaire" element={<Academie niveau="prescolaire" />} />
+        <Route path="/academie/primaire" element={<Academie niveau="primaire" />} />
+        <Route path="/academie/secondaire" element={<Academie niveau="secondaire" />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/calendrier" element={<Calendrier />} />
+        <Route path="/support" element={<Support />} />
+      </Route>
+
       {/* Auth (public) */}
       <Route path="/login" element={<RoutePublique><Login /></RoutePublique>} />
       <Route path="/eleve" element={<RoutePublique><ConnexionEleve /></RoutePublique>} />
@@ -45,7 +70,7 @@ export default function App() {
           </RoutePrivee>
         }
       >
-        <Route path="/" element={<TableauDeBord />} />
+        <Route path="/tableau-de-bord" element={<TableauDeBord />} />
 
         {/* Parent — Inscriptions */}
         <Route path="/inscriptions" element={<RoutePrivee roles={['parent']}><MesInscriptions /></RoutePrivee>} />
@@ -69,7 +94,9 @@ export default function App() {
         <Route path="/admin/inscriptions/:id" element={<RoutePrivee roles={['admin']}><AdminDetailInscription /></RoutePrivee>} />
         <Route path="/admin/notes" element={<RoutePrivee roles={['admin']}><AdminNotes /></RoutePrivee>} />
         <Route path="/admin/codes-eleves" element={<RoutePrivee roles={['admin']}><AdminCodesEleves /></RoutePrivee>} />
+        <Route path="/admin/badges" element={<RoutePrivee roles={['admin']}><AdminBadges /></RoutePrivee>} />
         <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
+        <Route path="/admin/economat" element={<RoutePrivee roles={['admin', 'direction']}><AdminEconomat /></RoutePrivee>} />
 
         {/* Direction */}
         <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />

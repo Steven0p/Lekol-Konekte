@@ -105,6 +105,21 @@ CREATE TABLE IF NOT EXISTS tarifs (
   date_effective DATE NOT NULL
 ) ENGINE=InnoDB;
 
+-- frais_divers : catalogue de frais géré par la direction (écolage, cantine, livres…)
+-- Liste de prix informative — indépendante du module Paiements.
+-- niveau NULL => s'applique à toutes les classes.
+CREATE TABLE IF NOT EXISTS frais_divers (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  nom            VARCHAR(120) NOT NULL,
+  niveau         VARCHAR(60)  NULL,
+  annee_scolaire VARCHAR(9)   NULL,
+  montant        DECIMAL(10,2) NOT NULL,
+  devise         ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',
+  unite          VARCHAR(40)  NULL,
+  actif          TINYINT(1) NOT NULL DEFAULT 1,
+  cree_le        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 CREATE TABLE IF NOT EXISTS paiements (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   type_frais   ENUM('inscription','releve','duplicata') NOT NULL,
@@ -117,6 +132,30 @@ CREATE TABLE IF NOT EXISTS paiements (
   valide_par   INT,
   valide_le    DATETIME,
   FOREIGN KEY (valide_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- Vlog (système indépendant : propre authentification, hors comptes école)
+-- ============================================================
+
+-- vlog_admins : identifiants dédiés à la gestion du vlog (aucun lien avec utilisateurs)
+CREATE TABLE IF NOT EXISTS vlog_admins (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  identifiant       VARCHAR(80) NOT NULL UNIQUE,
+  mot_de_passe_hash VARCHAR(255) NOT NULL,
+  cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- publications_vlog : billets publiés sur le vlog public
+CREATE TABLE IF NOT EXISTS publications_vlog (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  titre         VARCHAR(160) NOT NULL,
+  contenu       TEXT NOT NULL,
+  categorie     ENUM('actualite','photo','annonce') NOT NULL DEFAULT 'actualite',
+  photo_url     VARCHAR(500) NULL,
+  id_vlog_admin INT NULL,
+  cree_le       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_vlog_admin) REFERENCES vlog_admins(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS matieres (
@@ -153,6 +192,20 @@ CREATE TABLE IF NOT EXISTS publications_notes (
   publie_le      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_publication (niveau, annee_scolaire, trimestre),
   FOREIGN KEY (publie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- acquittements_scolarite : indique qu'un élève est « à jour » (économat) pour un trimestre.
+-- Présence d'une ligne = à jour ; absence = non payé (résultats bloqués).
+CREATE TABLE IF NOT EXISTS acquittements_scolarite (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  id_eleve       INT NOT NULL,
+  annee_scolaire VARCHAR(9) NOT NULL,
+  trimestre      ENUM('1er_trimestre','2e_trimestre','3e_trimestre') NOT NULL,
+  acquitte_par   INT NULL,
+  cree_le        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_acquittement (id_eleve, annee_scolaire, trimestre),
+  FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE,
+  FOREIGN KEY (acquitte_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS documents_officiels (

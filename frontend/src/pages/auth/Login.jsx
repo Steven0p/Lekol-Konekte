@@ -22,7 +22,7 @@ export default function Login() {
     setEnCours(true);
     try {
       await login({ courriel, motDePasse });
-      navigate('/');
+      navigate('/tableau-de-bord');
     } catch (err) {
       // Courriel non vérifié → rediriger vers l'écran de vérification
       if (err.payload?.courrielNonVerifie) {
@@ -40,6 +40,7 @@ export default function Login() {
       <PanneauMarque />
       <div className="auth-panneau">
         <form className="auth-form" onSubmit={soumettre}>
+          <Link to="/" className="auth-retour">← Retour à l'accueil</Link>
           <h2>Connexion</h2>
           <p className="sous-titre">Accédez à votre espace Lekòl Konekte.</p>
 
@@ -62,6 +63,9 @@ export default function Login() {
           </p>
           <p className="auth-lien">
             Élève ? <Link to="/eleve">Accéder avec un code</Link>
+          </p>
+          <p className="auth-lien">
+            Administrateur du vlog ? <Link to="/vlog/admin">Accéder au vlog</Link>
           </p>
         </form>
       </div>

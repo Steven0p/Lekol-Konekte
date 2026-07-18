@@ -19,9 +19,10 @@ const TYPES_AUTORISES = {
 const DEST_PREUVES = path.join(UPLOAD_ROOT, 'preuves');
 const DEST_PHOTOS = path.join(UPLOAD_ROOT, 'photos');   // photos élèves (badge)
 const DEST_LOGOS = path.join(UPLOAD_ROOT, 'logos');     // logo de l'école
+const DEST_VLOG = path.join(UPLOAD_ROOT, 'vlog');       // photos des publications du vlog
 
 // Crée les sous-dossiers si absents (conteneur / volume vierge en production)
-for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS]) {
+for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG]) {
   fs.mkdirSync(dossier, { recursive: true });
 }
 
@@ -54,3 +55,4 @@ export const uploadDocument = creerUpload(DEST);         // documents d'inscript
 export const uploadPreuve = creerUpload(DEST_PREUVES);   // preuves de paiement
 export const uploadPhoto = creerUpload(DEST_PHOTOS, imageFilter, TYPES_IMAGE);  // photo élève
 export const uploadLogo = creerUpload(DEST_LOGOS, imageFilter, TYPES_IMAGE);    // logo école
+export const uploadVlog = creerUpload(DEST_VLOG, imageFilter, TYPES_IMAGE);     // photo publication vlog

@@ -8,6 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node scripts/seed.js",
+    "seed:vlog": "node scripts/seedVlog.js",
     "build": "npm --prefix ../frontend install && npm --prefix ../frontend run build"
   },
   "dependencies": {

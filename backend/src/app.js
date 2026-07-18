@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes.js';
 import inscriptionRoutes from './routes/inscription.routes.js';
 import notesRoutes from './routes/notes.routes.js';
 import paiementRoutes from './routes/paiement.routes.js';
+import vlogRoutes from './routes/vlog.routes.js';
 import { requireAuth } from './middleware/auth.js';
 
 dotenv.config();
@@ -71,6 +72,9 @@ app.use('/api', notesRoutes);
 
 // Module Paiements
 app.use('/api', paiementRoutes);
+
+// Module Vlog (système indépendant)
+app.use('/api', vlogRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';

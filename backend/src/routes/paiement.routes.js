@@ -1,6 +1,7 @@
 // Routes du module Paiements + tarifs/école
 import { Router } from 'express';
 import * as tarif from '../controllers/tarif.controller.js';
+import * as fraisDivers from '../controllers/fraisDivers.controller.js';
 import * as paiement from '../controllers/paiement.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { uploadPreuve, uploadLogo } from '../config/upload.js';
@@ -41,6 +42,12 @@ router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
 router.post('/ecole/logo', requireRole('direction'), televerserLogoFichier, tarif.televerserLogo);
 // Logo public (le badge élève, sans compte utilisateur, doit pouvoir l'afficher)
 router.get('/ecole/logo', tarif.servirLogo);
+
+// Frais divers (catalogue géré par la direction)
+router.get('/frais-divers', requireAuth, fraisDivers.lister);
+router.post('/frais-divers', requireRole('direction'), fraisDivers.creer);
+router.put('/frais-divers/:id', requireRole('direction'), fraisDivers.mettreAJour);
+router.delete('/frais-divers/:id', requireRole('direction'), fraisDivers.supprimer);
 
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiement.creer);

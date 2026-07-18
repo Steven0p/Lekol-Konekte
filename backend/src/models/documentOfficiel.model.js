@@ -26,7 +26,7 @@ export async function listerPourEleve(idEleve, type) {
   let filtreType = '';
   if (type) { filtreType = ' AND type = ?'; params.push(type); }
   const [rows] = await pool.query(
-    `SELECT id, type, identifiant_unique, date_generation
+    `SELECT id, type, periode, annee_scolaire, identifiant_unique, date_generation
        FROM documents_officiels
       WHERE id_eleve = ?${filtreType}
       ORDER BY id DESC`,
@@ -56,7 +56,7 @@ export async function listerParNiveau(niveau, type = 'bulletin') {
 // Document + chaîne de propriété pour servir le fichier
 export async function trouverAvecProprietaire(id) {
   const [rows] = await pool.query(
-    `SELECT d.id, d.type, d.url_pdf, d.id_eleve, u.id AS id_utilisateur
+    `SELECT d.id, d.type, d.periode, d.annee_scolaire, d.url_pdf, d.id_eleve, u.id AS id_utilisateur
        FROM documents_officiels d
        JOIN eleves e ON e.id = d.id_eleve
        JOIN parents p ON p.id = e.id_parent

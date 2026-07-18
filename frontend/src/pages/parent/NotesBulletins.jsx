@@ -33,6 +33,7 @@ export default function NotesBulletins() {
   const [idEleve, setIdEleve] = useState('');
   const [notes, setNotes] = useState([]);
   const [bulletins, setBulletins] = useState([]);
+  const [bloques, setBloques] = useState([]);
   const [apercuId, setApercuId] = useState(null);
   const [telechargeId, setTelechargeId] = useState(null);
   const [genereEnCours, setGenereEnCours] = useState(false);
@@ -90,7 +91,7 @@ export default function NotesBulletins() {
     setApercuId(null);
     setChargeDetail(true);
     Promise.all([notesApi.notesEleve(idEleve), notesApi.bulletinsEleve(idEleve)])
-      .then(([n, b]) => { setNotes(n.notes); setBulletins(b.bulletins); })
+      .then(([n, b]) => { setNotes(n.notes); setBloques(n.trimestresBloques || []); setBulletins(b.bulletins); })
       .catch((e) => setErreur(e.message))
       .finally(() => setChargeDetail(false));
   }, [idEleve]);
@@ -153,6 +154,14 @@ export default function NotesBulletins() {
 
           {chargeDetail ? <Chargement /> : (
             <div className="pile pile-md" style={{ marginTop: '1rem' }}>
+              {/* Trimestres bloqués (économat non réglé) */}
+              {bloques.length > 0 && (
+                <Alerte type="erreur">
+                  Résultats indisponibles pour&nbsp;: {bloques.map((b) => `${LIBELLE_TRIM[b.trimestre] || b.trimestre} (${b.annee_scolaire})`).join(', ')}.
+                  Régularisez votre situation auprès de l'économat pour y accéder.
+                </Alerte>
+              )}
+
               {/* Notes */}
               {groupes.length === 0 ? (
                 <Carte titre="Notes">
