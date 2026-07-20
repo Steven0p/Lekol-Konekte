@@ -120,6 +120,7 @@ export async function listerAvecCode({ recherche } = {}) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.query(
     `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau, e.code_acces,
+            (e.photo_url IS NOT NULL) AS a_photo,
             u.nom AS parent_nom, u.courriel AS parent_courriel
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent

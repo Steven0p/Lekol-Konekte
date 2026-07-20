@@ -105,6 +105,11 @@ export default function PublicLayout() {
       <footer className="site-pied">
         <div className="site-pied-inner">
           <span>© {new Date().getFullYear()} Lekòl Konekte</span>
+          <nav className="site-pied-liens">
+            <Link to="/login">Accès</Link>
+            <Link to="/a-propos">À propos</Link>
+            <Link to="/contact">Contact</Link>
+          </nav>
           <span className="texte-gris">Plateforme de gestion scolaire</span>
         </div>
       </footer>

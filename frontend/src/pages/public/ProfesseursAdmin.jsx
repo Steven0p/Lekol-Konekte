@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { profsApi } from '../../services/api.js';
 import { nomComplet, experienceLibelle, AvatarProf } from './Professeurs.jsx';
-import Carte from '../../components/Carte.jsx';
-import Champ from '../../components/Champ.jsx';
-import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
+import Chargement from '../../components/Chargement.jsx';
 
 const FICHE_VIDE = {
   nom: '', prenom: '', matiere: '', fonction: '',
   diplomes: '', experienceAnnees: '', parcours: '', photo: null,
 };
+
+// Minuterie partagée pour la déconnexion automatique en quittant la page.
+let minuterieDeconnexionProfs = null;
 
 export default function ProfesseursAdmin() {
   const [admin, setAdmin] = useState(null);
@@ -49,160 +50,251 @@ function FormLogin({ onConnecte }) {
   };
 
   return (
-    <div className="site-page" style={{ maxWidth: 420, margin: '0 auto' }}>
-      <header className="site-page-entete">
+    <div className="vadm-page vadm-login">
+      <header className="vadm-entete-simple">
         <h1>Espace administrateur — Enseignants</h1>
-        <p>Connectez-vous pour gérer les fiches du corps enseignant.</p>
+        <p className="texte-gris">Connectez-vous pour gérer les fiches du corps enseignant.</p>
       </header>
-      <Carte>
+      <div className="carte vadm-login-carte">
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
-          <Champ label="Identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
-          <Champ label="Mot de passe" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
-          <div style={{ marginTop: '1rem' }}>
-            <Bouton type="submit" bloc enCours={enCours}>Se connecter</Bouton>
+          <div className="vadm-champ">
+            <label>Identifiant</label>
+            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
+          <div className="vadm-champ">
+            <label>Mot de passe</label>
+            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+          </div>
+          <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
-      </Carte>
-      <p className="vlog-admin-lien" style={{ marginTop: '1rem' }}>
-        <Link to="/professeurs" className="texte-gris">← Retour au corps enseignant</Link>
-      </p>
+      </div>
+      <p className="vadm-retour"><Link to="/professeurs" className="texte-gris">← Retour au corps enseignant</Link></p>
     </div>
   );
 }
 
+// Champs partagés (création + modification)
+function ChampsFiche({ valeurs, setV, modeEdition }) {
+  const maj = (champ) => (e) => setV({ ...valeurs, [champ]: e.target.value });
+  const majPhoto = (e) => setV({ ...valeurs, photo: e.target.files[0] || null });
+  return (
+    <>
+      <div className="ens-form-grille">
+        <div className="vadm-champ"><label>Nom</label>
+          <input value={valeurs.nom} onChange={maj('nom')} placeholder="Ex. Pierre" /></div>
+        <div className="vadm-champ"><label>Prénom</label>
+          <input value={valeurs.prenom} onChange={maj('prenom')} placeholder="Ex. Marie" /></div>
+        <div className="vadm-champ"><label>Matière / discipline</label>
+          <input value={valeurs.matiere} onChange={maj('matiere')} placeholder="Ex. Mathématiques" /></div>
+        <div className="vadm-champ"><label>Fonction / titre</label>
+          <input value={valeurs.fonction} onChange={maj('fonction')} placeholder="Ex. Professeur titulaire" /></div>
+        <div className="vadm-champ"><label>Années d'expérience</label>
+          <input type="number" min="0" value={valeurs.experienceAnnees} onChange={maj('experienceAnnees')} placeholder="Ex. 8" /></div>
+        <div className="vadm-champ"><label>{modeEdition ? 'Nouvelle photo (opt.)' : 'Photo (optionnel)'}</label>
+          <div className="vadm-fichier">
+            <label className="vadm-fichier-btn">Choisir un fichier
+              <input type="file" accept="image/png,image/jpeg" onChange={majPhoto} hidden /></label>
+            <span className="vadm-fichier-nom">{valeurs.photo ? valeurs.photo.name : 'Aucun fichier'}</span>
+          </div>
+        </div>
+      </div>
+      <div className="vadm-champ"><label>Formation & diplômes</label>
+        <textarea rows={2} value={valeurs.diplomes} onChange={maj('diplomes')}
+          placeholder="Ex. Licence en sciences de l'éducation, Université d'État d'Haïti" /></div>
+      <div className="vadm-champ"><label>Parcours (biographie)</label>
+        <textarea rows={3} value={valeurs.parcours} onChange={maj('parcours')}
+          placeholder="Décrivez le parcours professionnel, les établissements, les réalisations…" /></div>
+    </>
+  );
+}
+
+function donneesDe(f) {
+  return {
+    nom: f.nom.trim(), prenom: f.prenom.trim(), matiere: f.matiere.trim(), fonction: f.fonction.trim(),
+    diplomes: f.diplomes.trim(),
+    experienceAnnees: f.experienceAnnees === '' ? '' : String(f.experienceAnnees).trim(),
+    parcours: f.parcours.trim(), photo: f.photo,
+  };
+}
+
 // ---------- Panneau de gestion ----------
 function PanneauAdmin({ admin, onLogout }) {
-  const [professeurs, setProfesseurs] = useState([]);
+  const [professeurs, setProfesseurs] = useState(null); // null = chargement
   const [form, setForm] = useState(FICHE_VIDE);
-  const [editionId, setEditionId] = useState(null); // null = création, sinon id en cours d'édition
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
 
+  const [edition, setEdition] = useState(null);        // prof en modification (modal)
+  const [editForm, setEditForm] = useState(FICHE_VIDE);
+  const [suppression, setSuppression] = useState(null); // prof à supprimer
+  const [modalEnCours, setModalEnCours] = useState(false);
+  const [erreurModal, setErreurModal] = useState('');
+
   const charger = () => profsApi.liste().then((d) => setProfesseurs(d.professeurs)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
 
-  const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
-  const majPhoto = (e) => setForm({ ...form, photo: e.target.files[0] || null });
-
-  const reinitialiser = () => { setForm(FICHE_VIDE); setEditionId(null); };
-
-  const commencerEdition = (p) => {
-    setEditionId(p.id);
-    setForm({
-      nom: p.nom || '', prenom: p.prenom || '', matiere: p.matiere || '',
-      fonction: p.fonction || '', diplomes: p.diplomes || '',
-      experienceAnnees: p.experience_annees ?? '', parcours: p.parcours || '', photo: null,
-    });
-    setMsg(''); setErreur('');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const soumettre = async (e) => {
-    e.preventDefault();
-    setErreur(''); setMsg(''); setEnCours(true);
-    const donnees = {
-      nom: form.nom.trim(),
-      prenom: form.prenom.trim(),
-      matiere: form.matiere.trim(),
-      fonction: form.fonction.trim(),
-      diplomes: form.diplomes.trim(),
-      experienceAnnees: form.experienceAnnees === '' ? '' : String(form.experienceAnnees).trim(),
-      parcours: form.parcours.trim(),
-      photo: form.photo,
+  // Déconnexion automatique dès qu'on quitte la page d'administration.
+  useEffect(() => {
+    if (minuterieDeconnexionProfs) { clearTimeout(minuterieDeconnexionProfs); minuterieDeconnexionProfs = null; }
+    return () => {
+      minuterieDeconnexionProfs = setTimeout(() => {
+        profsApi.adminLogout().catch(() => {});
+        minuterieDeconnexionProfs = null;
+      }, 100);
     };
+  }, []);
+
+  const ajouter = async (e) => {
+    e.preventDefault();
+    setErreur(''); setMsg('');
+    if (!form.nom.trim()) { setErreur('Le nom est requis.'); return; }
+    setEnCours(true);
     try {
-      if (editionId) {
-        await profsApi.modifier(editionId, donnees);
-        setMsg('Fiche mise à jour.');
-      } else {
-        await profsApi.creer(donnees);
-        setMsg('Professeur ajouté.');
-      }
-      reinitialiser();
+      await profsApi.creer(donneesDe(form));
+      setMsg('✅ Professeur ajouté.'); setForm(FICHE_VIDE);
       charger();
-    } catch (err) { setErreur(err.message); }
+    } catch (err) { setErreur('❌ ' + err.message); }
     finally { setEnCours(false); }
   };
 
-  const supprimer = async (p) => {
-    if (!window.confirm(`Supprimer la fiche de « ${nomComplet(p)} » ?`)) return;
-    setErreur(''); setMsg('');
+  const ouvrirEdition = (p) => {
+    setEdition(p);
+    setEditForm({
+      nom: p.nom || '', prenom: p.prenom || '', matiere: p.matiere || '', fonction: p.fonction || '',
+      diplomes: p.diplomes || '', experienceAnnees: p.experience_annees ?? '', parcours: p.parcours || '', photo: null,
+    });
+    setErreurModal('');
+  };
+
+  const enregistrerEdition = async () => {
+    setErreurModal('');
+    if (!editForm.nom.trim()) { setErreurModal('Le nom est requis.'); return; }
+    setModalEnCours(true);
     try {
-      await profsApi.supprimer(p.id);
-      if (editionId === p.id) reinitialiser();
-      setMsg('Fiche supprimée.');
-      charger();
-    } catch (err) { setErreur(err.message); }
+      await profsApi.modifier(edition.id, donneesDe(editForm));
+      setEdition(null); setMsg('✅ Fiche mise à jour.'); charger();
+    } catch (err) { setErreurModal('❌ ' + err.message); }
+    finally { setModalEnCours(false); }
+  };
+
+  const confirmerSuppression = async () => {
+    setModalEnCours(true); setErreurModal('');
+    try {
+      await profsApi.supprimer(suppression.id);
+      setSuppression(null); setMsg('🗑️ Fiche supprimée.'); charger();
+    } catch (err) { setErreurModal('❌ ' + err.message); }
+    finally { setModalEnCours(false); }
   };
 
   const seDeconnecter = async () => {
     try { await profsApi.adminLogout(); } finally { onLogout(); }
   };
 
+  const initiale = (admin.identifiant || '?').charAt(0).toUpperCase();
+  const liste = professeurs || [];
+
   return (
-    <div className="site-page">
-      <header className="site-page-entete rangee entre" style={{ alignItems: 'flex-start' }}>
+    <div className="vadm-page">
+      <header className="vadm-entete">
         <div>
           <h1>Espace administrateur — Enseignants</h1>
-          <p>Connecté en tant que <strong>{admin.identifiant}</strong>. Créez et gérez les fiches du corps enseignant.</p>
+          <p className="texte-gris">Créez et gérez les fiches du corps enseignant.</p>
         </div>
-        <Bouton type="button" variante="fantome" onClick={seDeconnecter}>Se déconnecter</Bouton>
+        <div className="vadm-user">
+          <div className="vadm-avatar" aria-hidden="true">{initiale}</div>
+          <div className="vadm-user-info">
+            <span className="vadm-user-nom">{admin.identifiant}</span>
+            <span className="vadm-user-sous">Connecté</span>
+          </div>
+          <button type="button" className="vadm-deco" onClick={seDeconnecter}>Se déconnecter</button>
+        </div>
       </header>
 
-      <Carte titre={editionId ? 'Modifier la fiche' : 'Nouvelle fiche professeur'}>
-        {erreur && <Alerte type="erreur">{erreur}</Alerte>}
-        {msg && <Alerte type="info">{msg}</Alerte>}
-        <form onSubmit={soumettre}>
-          <div className="prof-form-grille">
-            <Champ label="Nom" value={form.nom} onChange={maj('nom')} required placeholder="Ex. Pierre" />
-            <Champ label="Prénom" value={form.prenom} onChange={maj('prenom')} placeholder="Ex. Marie" />
-            <Champ label="Matière / discipline" value={form.matiere} onChange={maj('matiere')} placeholder="Ex. Mathématiques" />
-            <Champ label="Fonction / titre" value={form.fonction} onChange={maj('fonction')} placeholder="Ex. Professeur titulaire" />
-            <Champ label="Années d'expérience" type="number" min="0" value={form.experienceAnnees} onChange={maj('experienceAnnees')} placeholder="Ex. 8" />
-            <Champ label={editionId ? 'Nouvelle photo (optionnel)' : 'Photo (optionnel)'} type="file" accept="image/png,image/jpeg" onChange={majPhoto} />
-          </div>
-          <Champ label="Formation & diplômes" enfant={
-            <textarea rows={2} value={form.diplomes} onChange={maj('diplomes')}
-              placeholder="Ex. Licence en sciences de l'éducation, Université d'État d'Haïti" />
-          } />
-          <Champ label="Parcours (biographie)" enfant={
-            <textarea rows={4} value={form.parcours} onChange={maj('parcours')}
-              placeholder="Décrivez le parcours professionnel, les établissements, les réalisations…" />
-          } />
-          <div className="rangee" style={{ gap: '.75rem', flexWrap: 'wrap' }}>
-            <Bouton type="submit" enCours={enCours}>{editionId ? 'Enregistrer' : 'Ajouter'}</Bouton>
-            {editionId && <Bouton type="button" variante="fantome" onClick={reinitialiser}>Annuler</Bouton>}
-          </div>
-        </form>
-      </Carte>
+      <div className="ens-admin-grille">
+        {/* Formulaire */}
+        <section className="carte">
+          <div className="ens-carte-titre">✏️ Nouvelle fiche professeur</div>
+          {erreur && <Alerte type="erreur">{erreur}</Alerte>}
+          {msg && <Alerte type="info">{msg}</Alerte>}
+          <form onSubmit={ajouter}>
+            <ChampsFiche valeurs={form} setV={setForm} modeEdition={false} />
+            <button type="submit" className="eco-batch-btn eco-batch-ok" style={{ width: '100%' }} disabled={enCours}>
+              {enCours ? 'Ajout…' : 'Ajouter'}
+            </button>
+          </form>
+        </section>
 
-      <div style={{ marginTop: '1rem' }}>
-        <Carte titre={`Professeurs (${professeurs.length})`}>
-          {professeurs.length === 0 ? (
-            <p className="texte-gris">Aucun professeur.</p>
+        {/* Liste */}
+        <section className="carte">
+          <div className="ens-carte-titre">👨‍🏫 Professeurs ({liste.length})</div>
+          {!professeurs ? (
+            <Chargement texte="Chargement des professeurs…" />
+          ) : liste.length === 0 ? (
+            <div className="insc-vide" style={{ boxShadow: 'none' }}>
+              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <p>Aucune fiche pour le moment.</p>
+            </div>
           ) : (
             <div className="prof-admin-liste">
-              {professeurs.map((p) => (
+              {liste.map((p) => (
                 <article key={p.id} className="prof-admin-item">
                   <AvatarProf prof={p} classe="prof-photo-sm" />
                   <div className="prof-admin-infos">
                     <h3 className="prof-nom">{nomComplet(p)}</h3>
-                    <p className="texte-gris">
-                      {[p.matiere, p.fonction, experienceLibelle(p.experience_annees)].filter(Boolean).join(' · ') || '—'}
-                    </p>
+                    <p>{[p.matiere, p.fonction, experienceLibelle(p.experience_annees)].filter(Boolean).join(' · ') || '—'}</p>
                   </div>
                   <div className="prof-admin-actions">
-                    <Bouton type="button" variante="secondaire" sm onClick={() => commencerEdition(p)}>Modifier</Bouton>
-                    <Bouton type="button" variante="fantome" sm onClick={() => supprimer(p)}>Supprimer</Bouton>
+                    <button type="button" className="mat-modifier" onClick={() => ouvrirEdition(p)}>Modifier</button>
+                    <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(p); setErreurModal(''); }}>Supprimer</button>
                   </div>
                 </article>
               ))}
             </div>
           )}
-        </Carte>
+        </section>
       </div>
+
+      <footer className="vadm-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
+
+      {/* Modale : modifier */}
+      {edition && (
+        <div className="prof-modal-fond" onClick={() => !modalEnCours && setEdition(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()} style={{ maxWidth: 640 }}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setEdition(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '1rem' }}>Modifier la fiche — {nomComplet(edition)}</h2>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <ChampsFiche valeurs={editForm} setV={setEditForm} modeEdition />
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setEdition(null)} disabled={modalEnCours}>Annuler</button>
+              <button type="button" className="mat-modifier" onClick={enregistrerEdition} disabled={modalEnCours}>
+                {modalEnCours ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : supprimer */}
+      {suppression && (
+        <div className="prof-modal-fond" onClick={() => !modalEnCours && setSuppression(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setSuppression(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Supprimer la fiche</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              Voulez-vous vraiment supprimer <strong>{nomComplet(suppression)}</strong> ?
+            </p>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setSuppression(null)} disabled={modalEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={confirmerSuppression} disabled={modalEnCours}>
+                {modalEnCours ? 'Suppression…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

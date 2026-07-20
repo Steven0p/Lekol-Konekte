@@ -67,6 +67,21 @@ export default function Login() {
           <p className="auth-lien">
             Administrateur du vlog ? <Link to="/vlog/admin">Accéder au vlog</Link>
           </p>
+
+          <div className="auth-note">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z" />
+            </svg>
+            <span>Connexion sécurisée — vos données sont chiffrées.</span>
+          </div>
+
+          <div className="auth-pied">
+            © {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.
+            <div className="auth-pied-liens">
+              <Link to="/a-propos">Politique de confidentialité</Link>
+              <Link to="/support">Conditions d'utilisation</Link>
+            </div>
+          </div>
         </form>
       </div>
     </div>

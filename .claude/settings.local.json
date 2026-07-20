@@ -174,7 +174,30 @@
       "Bash(curl -s -b /tmp/pc.txt -X POST http://localhost:4000/api/professeurs -F nom=Jean -F prenom=Marie -F matiere=Mathématiques -F 'fonction=Professeur titulaire' -F experienceAnnees=8 -F 'diplomes=Licence en sciences de l'\\\\''éducation' -F 'parcours=15 ans dans l'\\\\''enseignement secondaire.')",
       "Bash(curl -s -b /tmp/pc.txt -X PUT http://localhost:4000/api/professeurs/1 -F 'fonction=Coordonnateur pédagogique' -F experienceAnnees=10)",
       "Bash(curl -s -b /tmp/pc.txt -X DELETE http://localhost:4000/api/professeurs/1)",
-      "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/professeurs -F nom=Test)"
+      "Bash(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:4000/api/professeurs -F nom=Test)",
+      "Bash(git commit -m ' *)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:4000/api/health)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(command -v chromium-cli)",
+      "PowerShell(Start-Process \"http://localhost:5173/\")",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/inscriptions\")",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/codes-eleves\")",
+      "Bash(node --check ../backend/src/models/eleve.model.js)",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/badges\")",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/paiements\")",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/economat\")",
+      "PowerShell(Start-Process \"http://localhost:5173/tableau-de-bord\")",
+      "PowerShell(Start-Process \"http://localhost:5173/admin/notes\")",
+      "PowerShell(Start-Process \"http://localhost:5173/direction/matieres\")",
+      "PowerShell(Start-Process \"http://localhost:5173/direction/publications\")",
+      "PowerShell(Start-Process \"http://localhost:5173/direction/tarifs\")",
+      "PowerShell(Start-Process \"http://localhost:5173/direction/ecole\")",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 4 http://localhost:4000/api/health)",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\\\\n\" --max-time 4 http://localhost:5173/)",
+      "PowerShell(Start-Process \"http://localhost:5173/vlog/admin\")",
+      "PowerShell(Start-Process \"http://localhost:5173/vlog\")",
+      "PowerShell(Start-Process \"http://localhost:5173/professeurs\")",
+      "PowerShell(Start-Process \"http://localhost:5173/professeurs/admin\")"
     ]
   }
 }

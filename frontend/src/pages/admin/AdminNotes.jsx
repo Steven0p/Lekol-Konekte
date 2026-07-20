@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../services/api.js';
-import Carte from '../../components/Carte.jsx';
-import Champ from '../../components/Champ.jsx';
-import Bouton from '../../components/Bouton.jsx';
-import Badge from '../../components/Badge.jsx';
 import Alerte from '../../components/Alerte.jsx';
+import Chargement from '../../components/Chargement.jsx';
+
+const PAR_PAGE = 15;
 
 const TRIMESTRES = [
   { valeur: '1er_trimestre', libelle: '1er trimestre' },
@@ -12,175 +11,319 @@ const TRIMESTRES = [
   { valeur: '3e_trimestre', libelle: '3e trimestre' },
 ];
 
-function LigneNote({ note, onMaj, onValider, onSupprimer }) {
-  const [valeur, setValeur] = useState(String(note.valeur));
-  const [enCours, setEnCours] = useState(false);
-
-  const enregistrer = async () => {
-    setEnCours(true);
-    try { await onMaj(note.id, { valeur: Number(valeur) }); }
-    finally { setEnCours(false); }
-  };
-
-  return (
-    <tr>
-      <td>{note.eleve_nom}</td>
-      <td>{note.matiere}</td>
-      <td>{note.coefficient != null ? Number(note.coefficient).toFixed(2) : '—'}</td>
-      <td>
-        <input type="number" min="0" max="100" step="0.01" value={valeur}
-          onChange={(e) => setValeur(e.target.value)}
-          style={{ width: 80, padding: '.35rem .5rem', border: '1px solid var(--gris-bordure)', borderRadius: 8 }} />
-      </td>
-      <td><Badge statut={note.statut_validation} /></td>
-      <td>
-        <div className="rangee" style={{ gap: '.5rem', flexWrap: 'wrap' }}>
-          <Bouton sm variante="secondaire" onClick={enregistrer} enCours={enCours}>Enregistrer</Bouton>
-          {note.statut_validation === 'saisie' && (
-            <Bouton sm variante="secondaire" onClick={() => onValider(note.id)}>Valider</Bouton>
-          )}
-          <Bouton sm variante="secondaire" onClick={() => onSupprimer(note.id)}>Supprimer</Bouton>
-        </div>
-      </td>
-    </tr>
-  );
+function anneesScolaires() {
+  const a = new Date().getFullYear();
+  return [a - 1, a, a + 1].map((y) => `${y}-${y + 1}`);
 }
 
 export default function AdminNotes() {
+  const [niveaux, setNiveaux] = useState([]);
   const [niveau, setNiveau] = useState('');
   const [periode, setPeriode] = useState('1er_trimestre');
   const [annee, setAnnee] = useState('2026-2027');
+
   const [eleves, setEleves] = useState([]);
   const [matieres, setMatieres] = useState([]);
   const [notes, setNotes] = useState([]);
+  const [chargement, setChargement] = useState(false);
+  const [page, setPage] = useState(1);
+
   const [form, setForm] = useState({ idEleve: '', idMatiere: '', valeur: '' });
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
 
-  const chargerReferentiels = () => {
+  // Modales
+  const [edition, setEdition] = useState(null);       // note en cours de modification
+  const [editVal, setEditVal] = useState('');
+  const [suppression, setSuppression] = useState(null); // note à supprimer
+  const [batch, setBatch] = useState(null);            // 'valider' | 'supprimer'
+  const [modalEnCours, setModalEnCours] = useState(false);
+  const [erreurModal, setErreurModal] = useState('');
+
+  const formRef = useRef(null);
+
+  // Niveaux (dropdown dynamique)
+  useEffect(() => {
+    adminApi.elevesCodes('')
+      .then((d) => setNiveaux([...new Set(d.eleves.map((e) => e.niveau).filter(Boolean))].sort()))
+      .catch(() => {});
+  }, []);
+
+  // Référentiels (élèves + matières) quand le niveau change
+  useEffect(() => {
     if (!niveau) { setEleves([]); setMatieres([]); return; }
     adminApi.eleves(niveau).then((d) => setEleves(d.eleves)).catch((e) => setErreur(e.message));
     adminApi.matieres(niveau).then((d) => setMatieres(d.matieres)).catch((e) => setErreur(e.message));
-  };
+  }, [niveau]);
+
   const chargerNotes = () => {
     if (!niveau) { setNotes([]); return; }
+    setChargement(true);
     adminApi.notes({ niveau, periode, anneeScolaire: annee })
-      .then((d) => setNotes(d.notes)).catch((e) => setErreur(e.message));
+      .then((d) => setNotes(d.notes))
+      .catch((e) => setErreur(e.message))
+      .finally(() => setChargement(false));
   };
-
-  useEffect(chargerReferentiels, [niveau]);
   useEffect(chargerNotes, [niveau, periode, annee]);
+  useEffect(() => { setPage(1); }, [niveau, periode, annee]);
 
   const majForm = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
+
+  const nbPages = Math.max(1, Math.ceil(notes.length / PAR_PAGE));
+  const pageCourante = Math.min(page, nbPages);
+  const visibles = notes.slice((pageCourante - 1) * PAR_PAGE, pageCourante * PAR_PAGE);
 
   const saisir = async (e) => {
     e.preventDefault();
     setErreur(''); setMsg('');
     if (!form.idEleve || !form.idMatiere) { setErreur('Choisissez un élève et une matière.'); return; }
+    const val = Number(form.valeur);
+    if (form.valeur === '' || Number.isNaN(val) || val < 0 || val > 100) { setErreur('La note doit être comprise entre 0 et 100.'); return; }
     setEnCours(true);
     try {
       await adminApi.creerNote({
         idEleve: Number(form.idEleve), idMatiere: Number(form.idMatiere),
-        periode, anneeScolaire: annee, valeur: Number(form.valeur),
+        periode, anneeScolaire: annee, valeur: val,
       });
       setMsg('Note saisie.');
       setForm({ ...form, valeur: '' });
       chargerNotes();
-    } catch (err) {
-      setErreur(err.message);
-    } finally {
-      setEnCours(false);
-    }
+    } catch (err) { setErreur(err.message); }
+    finally { setEnCours(false); }
   };
 
-  const valider = async (idNote) => {
+  const valider = async (id) => {
     setErreur('');
-    try { await adminApi.validerNote(idNote); chargerNotes(); }
+    try { await adminApi.validerNote(id); chargerNotes(); }
     catch (err) { setErreur(err.message); }
   };
 
-  const majNote = async (idNote, body) => {
-    setErreur(''); setMsg('');
-    try { await adminApi.majNote(idNote, body); setMsg('Note mise à jour.'); chargerNotes(); }
-    catch (err) { setErreur(err.message); }
+  const enregistrerEdition = async () => {
+    const val = Number(editVal);
+    setErreurModal('');
+    if (editVal === '' || Number.isNaN(val) || val < 0 || val > 100) { setErreurModal('La note doit être comprise entre 0 et 100.'); return; }
+    setModalEnCours(true);
+    try {
+      await adminApi.majNote(edition.id, { valeur: val });
+      setEdition(null); setMsg('Note mise à jour.'); chargerNotes();
+    } catch (err) { setErreurModal(err.message); }
+    finally { setModalEnCours(false); }
   };
 
-  const supprimerNote = async (idNote) => {
-    if (!window.confirm('Supprimer cette note ? Cette action est définitive.')) return;
-    setErreur(''); setMsg('');
-    try { await adminApi.supprimerNote(idNote); setMsg('Note supprimée.'); chargerNotes(); }
-    catch (err) { setErreur(err.message); }
+  const confirmerSuppression = async () => {
+    setModalEnCours(true); setErreurModal('');
+    try {
+      await adminApi.supprimerNote(suppression.id);
+      setSuppression(null); setMsg('Note supprimée.'); chargerNotes();
+    } catch (err) { setErreurModal(err.message); }
+    finally { setModalEnCours(false); }
   };
+
+  const confirmerBatch = async () => {
+    setModalEnCours(true); setErreurModal('');
+    try {
+      if (batch === 'valider') {
+        await Promise.all(notes.filter((n) => n.statut_validation === 'saisie').map((n) => adminApi.validerNote(n.id)));
+      } else {
+        await Promise.all(notes.map((n) => adminApi.supprimerNote(n.id)));
+      }
+      setBatch(null); chargerNotes();
+    } catch (err) { setErreurModal(err.message); setBatch(null); }
+    finally { setModalEnCours(false); }
+  };
+
+  const reinitialiser = () => { setNiveau(''); setPeriode('1er_trimestre'); setAnnee('2026-2027'); };
+  const allerAuFormulaire = () => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   return (
-    <div>
+    <div className="insc-page notes-page">
       <div className="page-entete">
         <h1>Saisie des notes</h1>
         <p>Saisissez et validez les notes par niveau, matière et trimestre.</p>
       </div>
 
-      <Carte>
-        <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <Champ label="Niveau (classe)" value={niveau} onChange={(e) => setNiveau(e.target.value)} placeholder="ex. 6e année" />
-          <Champ label="Trimestre" enfant={
-            <select value={periode} onChange={(e) => setPeriode(e.target.value)}>
-              {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
-            </select>
-          } />
-          <Champ label="Année scolaire" value={annee} onChange={(e) => setAnnee(e.target.value)} />
-        </div>
-      </Carte>
+      {/* Filtres */}
+      <div className="insc-barre">
+        <select value={niveau} onChange={(e) => setNiveau(e.target.value)} aria-label="Niveau">
+          <option value="">Choisir un niveau…</option>
+          {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
+        </select>
+        <select value={periode} onChange={(e) => setPeriode(e.target.value)} aria-label="Trimestre">
+          {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
+        </select>
+        <select value={annee} onChange={(e) => setAnnee(e.target.value)} aria-label="Année scolaire">
+          {anneesScolaires().map((a) => <option key={a} value={a}>{a}</option>)}
+        </select>
+        <button type="button" className="insc-btn-reinit" onClick={reinitialiser} disabled={!niveau}>Réinitialiser</button>
+      </div>
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
 
       {!niveau ? (
-        <Carte style={{ marginTop: '1rem' }}><p className="texte-gris">Saisissez un niveau pour commencer.</p></Carte>
+        <div className="insc-vide">
+          <div className="insc-vide-ico" aria-hidden="true">📝</div>
+          <p>Sélectionnez un niveau pour commencer la saisie.</p>
+        </div>
       ) : (
         <>
-          <Carte titre="Nouvelle note" style={{ marginTop: '1rem' }}>
-            <form onSubmit={saisir}>
-              {msg && <Alerte type="info">{msg}</Alerte>}
-              <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                <Champ label="Élève" enfant={
-                  <select value={form.idEleve} onChange={majForm('idEleve')}>
-                    <option value="">— Choisir —</option>
-                    {eleves.map((el) => <option key={el.id} value={el.id}>{el.nom}</option>)}
-                  </select>
-                } />
-                <Champ label="Matière" enfant={
-                  <select value={form.idMatiere} onChange={majForm('idMatiere')}>
-                    <option value="">— Choisir —</option>
-                    {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom} (coef {Number(m.coefficient).toFixed(2)})</option>)}
-                  </select>
-                } />
-                <Champ label="Note /100" type="number" min="0" max="100" step="0.01"
-                  value={form.valeur} onChange={majForm('valeur')} style={{ maxWidth: 120 }} />
-                <div style={{ marginBottom: '1rem' }}><Bouton type="submit" enCours={enCours}>Saisir</Bouton></div>
+          {/* Nouvelle note */}
+          <div className="notes-section-titre" ref={formRef}>Nouvelle note</div>
+          <div className="carte">
+            {msg && <Alerte type="info">{msg}</Alerte>}
+            <form onSubmit={saisir} className="notes-form-grille">
+              <div className="notes-champ">
+                <label>Élève</label>
+                <select value={form.idEleve} onChange={majForm('idEleve')}>
+                  <option value="">— Choisir —</option>
+                  {eleves.map((el) => <option key={el.id} value={el.id}>{el.nom}</option>)}
+                </select>
               </div>
-              {eleves.length === 0 && <p className="texte-gris">Aucun élève pour ce niveau.</p>}
-              {matieres.length === 0 && <p className="texte-gris">Aucune matière configurée pour ce niveau (voir Direction).</p>}
+              <div className="notes-champ">
+                <label>Matière</label>
+                <select value={form.idMatiere} onChange={majForm('idMatiere')}>
+                  <option value="">— Choisir —</option>
+                  {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom} (coef {Number(m.coefficient).toFixed(2)})</option>)}
+                </select>
+              </div>
+              <div className="notes-champ">
+                <label>Note /100</label>
+                <input type="number" min="0" max="100" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 110 }} />
+              </div>
+              <button type="submit" className="notes-saisir" disabled={enCours}>{enCours ? 'Saisie…' : 'Saisir'}</button>
             </form>
-          </Carte>
-
-          <div style={{ marginTop: '1rem' }}>
-            <Carte titre="Notes saisies">
-              {notes.length === 0 ? <p className="texte-gris">Aucune note pour ce filtre.</p> : (
-                <div className="tableau-enveloppe">
-                  <table className="tableau">
-                    <thead><tr><th>Élève</th><th>Matière</th><th>Coef.</th><th>Note</th><th>Statut</th><th></th></tr></thead>
-                    <tbody>
-                      {notes.map((n) => (
-                        <LigneNote key={n.id} note={n} onMaj={majNote}
-                          onValider={valider} onSupprimer={supprimerNote} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Carte>
+            {eleves.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucun élève pour ce niveau.</p>}
+            {matieres.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucune matière configurée pour ce niveau (voir Direction).</p>}
           </div>
+
+          {/* Notes saisies */}
+          <div className="notes-section-titre">Notes saisies</div>
+          {chargement ? (
+            <Chargement texte="Chargement des notes…" />
+          ) : notes.length === 0 ? (
+            <div className="insc-vide">
+              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <p>Aucune note saisie pour ce trimestre.</p>
+              <button type="button" className="notes-saisir" onClick={allerAuFormulaire}>Saisir une note</button>
+            </div>
+          ) : (
+            <>
+              <div className="tableau-enveloppe">
+                <table className="tableau insc-tableau">
+                  <thead>
+                    <tr><th>Élève</th><th>Matière</th><th>Coef.</th><th>Note</th><th>Statut</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody>
+                    {visibles.map((n) => (
+                      <tr key={n.id}>
+                        <td className="insc-nom">{n.eleve_nom}</td>
+                        <td>{n.matiere}</td>
+                        <td>{n.coefficient != null ? Number(n.coefficient).toFixed(2) : '—'}</td>
+                        <td className="notes-note-val">{Number(n.valeur).toFixed(2)}</td>
+                        <td>
+                          <span className={`insc-badge ${n.statut_validation === 'validee' ? 'insc-badge-vert' : 'insc-badge-or'}`}>
+                            {n.statut_validation === 'validee' ? 'Validée' : 'En attente'}
+                          </span>
+                        </td>
+                        <td>
+                          {n.statut_validation === 'saisie' && (
+                            <button type="button" className="paie-btn paie-valider" onClick={() => valider(n.id)}>Valider</button>
+                          )}
+                          <button type="button" className="paie-btn paie-details" onClick={() => { setEdition(n); setEditVal(String(n.valeur)); setErreurModal(''); }}>Modifier</button>
+                          <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(n); setErreurModal(''); }}>Supprimer</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="eco-batch">
+                <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => { setBatch('valider'); setErreurModal(''); }}>✓ Valider toutes les notes</button>
+                <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => { setBatch('supprimer'); setErreurModal(''); }}>✕ Supprimer toutes les notes</button>
+              </div>
+
+              {nbPages > 1 && (
+                <nav className="insc-pagination" aria-label="Pagination">
+                  <button type="button" onClick={() => setPage(pageCourante - 1)} disabled={pageCourante === 1}>‹ Précédent</button>
+                  {Array.from({ length: nbPages }, (_, k) => k + 1).map((n) => (
+                    <button key={n} type="button" className={n === pageCourante ? 'actif' : ''}
+                      aria-current={n === pageCourante ? 'page' : undefined} onClick={() => setPage(n)}>{n}</button>
+                  ))}
+                  <button type="button" onClick={() => setPage(pageCourante + 1)} disabled={pageCourante === nbPages}>Suivant ›</button>
+                </nav>
+              )}
+
+              <p className="insc-compte">{notes.length} note{notes.length > 1 ? 's' : ''} · page {pageCourante}/{nbPages}</p>
+            </>
+          )}
         </>
+      )}
+
+      <footer className="insc-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
+
+      {/* Modale : modifier une note */}
+      {edition && (
+        <div className="prof-modal-fond" onClick={() => !modalEnCours && setEdition(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setEdition(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.5rem' }}>Modifier la note</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1rem' }}>{edition.eleve_nom} — {edition.matiere}</p>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <div className="notes-modal-champ">
+              <label>Note /100</label>
+              <input type="number" min="0" max="100" step="0.01" value={editVal} onChange={(e) => setEditVal(e.target.value)} autoFocus />
+            </div>
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setEdition(null)} disabled={modalEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-valider" onClick={enregistrerEdition} disabled={modalEnCours}>
+                {modalEnCours ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : supprimer une note */}
+      {suppression && (
+        <div className="prof-modal-fond" onClick={() => !modalEnCours && setSuppression(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setSuppression(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Supprimer la note</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              Voulez-vous vraiment supprimer la note de <strong>{suppression.eleve_nom}</strong> en <strong>{suppression.matiere}</strong> ? Cette action est définitive.
+            </p>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setSuppression(null)} disabled={modalEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={confirmerSuppression} disabled={modalEnCours}>
+                {modalEnCours ? 'Suppression…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : action en masse */}
+      {batch && (
+        <div className="prof-modal-fond" onClick={() => !modalEnCours && setBatch(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setBatch(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>{batch === 'valider' ? 'Valider toutes les notes' : 'Supprimer toutes les notes'}</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              {batch === 'valider'
+                ? 'Toutes les notes « en attente » de ce filtre seront validées.'
+                : 'Toutes les notes affichées pour ce filtre seront supprimées définitivement.'}
+            </p>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setBatch(null)} disabled={modalEnCours}>Annuler</button>
+              <button type="button" className={`eco-batch-btn ${batch === 'valider' ? 'eco-batch-ok' : 'eco-batch-non'}`} onClick={confirmerBatch} disabled={modalEnCours}>
+                {modalEnCours ? 'Traitement…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { profsApi, urlPhotoProf } from '../../services/api.js';
-import PagePublique from './PagePublique.jsx';
 
 // Nom complet lisible (prénom + nom)
 export function nomComplet(p) {
@@ -54,38 +53,46 @@ export default function Professeurs() {
   }, [selection]);
 
   return (
-    <PagePublique
-      titre="Corps enseignant"
-      intro="Rencontrez nos enseignants : leur discipline, leur formation et leur parcours au service de la réussite des élèves."
-    >
+    <div className="vpub">
+      <section className="ens-hero">
+        <h1>Corps enseignant</h1>
+        <p>Rencontrez nos enseignants : leur discipline, leur formation et leur parcours au service de la réussite des élèves.</p>
+      </section>
+
       {erreur && <p className="texte-gris">{erreur}</p>}
 
-      {!erreur && !chargement && professeurs.length === 0 && (
-        <div className="carte site-placeholder">
-          <p className="texte-gris">Aucun professeur publié pour le moment. Revenez bientôt !</p>
+      {chargement ? (
+        <div className="prof-grille">
+          {[0, 1, 2].map((i) => <div key={i} className="ens-skeleton" />)}
+        </div>
+      ) : professeurs.length === 0 ? (
+        <div className="vpub-vide">
+          <div className="vpub-vide-ico" aria-hidden="true">📭</div>
+          <p>Aucun professeur publié pour le moment.</p>
+          <p className="texte-gris">Revenez bientôt !</p>
+        </div>
+      ) : (
+        <div className="prof-grille">
+          {professeurs.map((p) => (
+            <button key={p.id} type="button" className="carte prof-carte" onClick={() => setSelection(p)}>
+              <AvatarProf prof={p} />
+              <div className="prof-corps">
+                <h3 className="prof-nom">{nomComplet(p)}</h3>
+                {p.matiere && <p className="prof-matiere">{p.matiere}</p>}
+                {p.fonction && <span className="prof-badge">{p.fonction}</span>}
+                <span className="prof-voir">Voir le profil →</span>
+              </div>
+            </button>
+          ))}
         </div>
       )}
 
-      <div className="prof-grille">
-        {professeurs.map((p) => (
-          <button key={p.id} type="button" className="carte prof-carte" onClick={() => setSelection(p)}>
-            <AvatarProf prof={p} />
-            <div className="prof-corps">
-              <h3 className="prof-nom">{nomComplet(p)}</h3>
-              {p.matiere && <p className="prof-matiere">{p.matiere}</p>}
-              {p.fonction && <span className="prof-badge">{p.fonction}</span>}
-              <span className="prof-voir">Voir le profil →</span>
-            </div>
-          </button>
-        ))}
-      </div>
-
       {selection && <FenetreProf prof={selection} onFermer={() => setSelection(null)} />}
 
-      <p className="vlog-admin-lien">
-        <Link to="/professeurs/admin" className="texte-gris">Espace administrateur</Link>
+      <p className="vpub-admin-lien">
+        <Link to="/professeurs/admin" className="texte-gris">🔐 Espace administrateur</Link>
       </p>
-    </PagePublique>
+    </div>
   );
 }
 

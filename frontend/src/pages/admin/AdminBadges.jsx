@@ -1,36 +1,45 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi, urlPhotoEleveAdmin, urlLogoEcole } from '../../services/api.js';
-import Carte from '../../components/Carte.jsx';
 import CarteBadge from '../../components/CarteBadge.jsx';
-import Champ from '../../components/Champ.jsx';
-import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 
 export default function AdminBadges() {
+  const [tous, setTous] = useState(null);   // null = chargement
   const [recherche, setRecherche] = useState('');
-  const [eleves, setEleves] = useState(null);
+  const [selectionId, setSelectionId] = useState(null);
   const [badge, setBadge] = useState(null);
   const [version, setVersion] = useState(0);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
   const fichierRef = useRef(null);
 
-  const charger = (r) => {
-    adminApi.elevesCodes(r).then((d) => setEleves(d.eleves)).catch((e) => setErreur(e.message));
-  };
-  useEffect(() => { charger(''); }, []);
+  useEffect(() => {
+    adminApi.elevesCodes('')
+      .then((d) => setTous(d.eleves))
+      .catch((e) => setErreur(e.message));
+  }, []);
 
-  const rechercher = (e) => {
-    e.preventDefault();
-    setEleves(null);
-    charger(recherche);
-  };
+  // Statistiques (photo)
+  const stats = useMemo(() => {
+    const base = tous || [];
+    const avec = base.filter((e) => e.a_photo).length;
+    return { total: base.length, avec, sans: base.length - avec };
+  }, [tous]);
 
-  const voirBadge = async (id) => {
-    setErreur('');
+  // Filtrage en direct
+  const filtres = useMemo(() => {
+    if (!tous) return [];
+    const q = recherche.trim().toLowerCase();
+    if (!q) return tous;
+    return tous.filter((e) =>
+      `${e.nom || ''} ${e.niveau || ''} ${e.code_acces || ''}`.toLowerCase().includes(q));
+  }, [tous, recherche]);
+
+  const voirBadge = async (el) => {
+    setErreur(''); setSelectionId(el.id);
     try {
-      const d = await adminApi.badgeEleve(id);
+      const d = await adminApi.badgeEleve(el.id);
       setBadge(d.badge);
       setVersion((v) => v + 1);
     } catch (e) {
@@ -41,12 +50,12 @@ export default function AdminBadges() {
   const envoyerPhoto = async (e) => {
     const fichier = e.target.files?.[0];
     if (!fichier || !badge) return;
-    setErreur('');
-    setEnCours(true);
+    setErreur(''); setEnCours(true);
     try {
       await adminApi.televerserPhotoEleve(badge.id, fichier);
       setVersion((v) => v + 1);
       setBadge((b) => ({ ...b, aPhoto: true }));
+      setTous((prev) => prev.map((el) => (el.id === badge.id ? { ...el, a_photo: 1 } : el)));
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -55,68 +64,92 @@ export default function AdminBadges() {
     }
   };
 
+  const reinitialiser = () => setRecherche('');
+
   return (
-    <div>
+    <div className="insc-page badges-page">
       <div className="page-entete no-print">
         <h1>Badges élèves</h1>
         <p>Recherchez un élève, ajoutez sa photo si besoin, puis imprimez son badge.</p>
       </div>
 
+      {/* Résumé */}
+      <div className="insc-resume no-print">
+        <span className="insc-stat"><strong>{stats.total}</strong> Total</span>
+        <span className="insc-stat insc-stat-vert"><strong>{stats.avec}</strong> Avec photo</span>
+        <span className="insc-stat insc-stat-rouge"><strong>{stats.sans}</strong> Sans photo</span>
+      </div>
+
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
 
-      <div className="grille grille-2 no-print" style={{ alignItems: 'start' }}>
-        <Carte titre="Élèves">
-          <form onSubmit={rechercher}>
-            <div className="rangee" style={{ gap: '.75rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <Champ label="Rechercher" value={recherche}
-                onChange={(e) => setRecherche(e.target.value)} placeholder="nom, niveau, code…" />
-              <div style={{ marginBottom: '1rem' }}><Bouton type="submit" variante="secondaire">Rechercher</Bouton></div>
+      <div className="badges-layout">
+        {/* Colonne gauche : recherche + liste */}
+        <div className="badges-col-liste no-print">
+          <div className="insc-barre" style={{ marginBottom: 0 }}>
+            <div className="insc-recherche">
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 1 0-.7.7l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z" />
+              </svg>
+              <input value={recherche} onChange={(e) => setRecherche(e.target.value)}
+                placeholder="Rechercher (nom, niveau, code)…" aria-label="Rechercher" />
             </div>
-          </form>
-          {!eleves ? <Chargement /> : eleves.length === 0 ? (
-            <p className="texte-gris">Aucun élève trouvé.</p>
+            <button type="button" className="insc-btn-reinit" onClick={reinitialiser} disabled={!recherche}>
+              Réinitialiser
+            </button>
+          </div>
+
+          {!tous ? (
+            <Chargement texte="Chargement des élèves…" />
+          ) : filtres.length === 0 ? (
+            <div className="insc-vide">
+              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <p>Aucun élève trouvé.</p>
+              {recherche && <button type="button" className="insc-btn-reinit" onClick={reinitialiser}>Réinitialiser la recherche</button>}
+            </div>
           ) : (
-            <div className="tableau-enveloppe">
-              <table className="tableau">
-                <thead><tr><th>Élève</th><th>Niveau</th><th></th></tr></thead>
-                <tbody>
-                  {eleves.map((el) => (
-                    <tr key={el.id}>
-                      <td style={{ fontWeight: 600 }}>{el.nom}</td>
-                      <td>{el.niveau || '—'}</td>
-                      <td>
-                        <Bouton sm variante="secondaire" onClick={() => voirBadge(el.id)}>Voir le badge</Bouton>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="badges-liste">
+              {filtres.map((el) => (
+                <button key={el.id} type="button"
+                  className={`badges-item ${selectionId === el.id ? 'actif' : ''}`}
+                  onClick={() => voirBadge(el)}>
+                  <span className="badges-item-info">
+                    <span className="badges-item-nom">{el.nom}</span>
+                    <span className="badges-item-niv">{el.niveau || '—'}</span>
+                  </span>
+                  <span className={`badges-dot ${el.a_photo ? 'ok' : 'non'}`}
+                    title={el.a_photo ? 'Avec photo' : 'Sans photo'} aria-hidden="true" />
+                </button>
+              ))}
             </div>
           )}
-        </Carte>
+        </div>
 
+        {/* Colonne droite : badge à imprimer */}
         <div>
           {badge ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+            <div className="badges-apercu">
               <CarteBadge badge={badge}
                 photoSrc={badge.aPhoto ? `${urlPhotoEleveAdmin(badge.id)}?v=${version}` : null}
                 logoSrc={`${urlLogoEcole()}?v=${version}`} />
-              <Carte className="no-print" style={{ width: 340 }}>
+              <div className="badges-actions no-print">
                 <input ref={fichierRef} type="file" accept="image/png,image/jpeg" onChange={envoyerPhoto} hidden />
-                <div className="rangee" style={{ gap: '.75rem', flexWrap: 'wrap' }}>
-                  <Bouton variante="secondaire" onClick={() => fichierRef.current?.click()} enCours={enCours}>
-                    {badge.aPhoto ? 'Changer la photo' : 'Ajouter la photo'}
-                  </Bouton>
-                  <Bouton onClick={() => window.print()}>Imprimer</Bouton>
-                </div>
-                <p className="texte-gris" style={{ marginTop: '.6rem', fontSize: '.82rem' }}>Photo JPG ou PNG, max 5 Mo.</p>
-              </Carte>
+                <button type="button" className="badges-btn-photo" onClick={() => fichierRef.current?.click()} disabled={enCours}>
+                  {enCours ? 'Envoi…' : (badge.aPhoto ? 'Changer la photo' : 'Ajouter la photo')}
+                </button>
+                <button type="button" className="badges-btn-imprimer" onClick={() => window.print()}>Imprimer</button>
+                <p className="badges-hint">Photo JPG ou PNG, max 5 Mo.</p>
+              </div>
             </div>
           ) : (
-            <Carte className="no-print"><p className="texte-gris">Sélectionnez un élève pour afficher son badge.</p></Carte>
+            <div className="insc-vide no-print">
+              <div className="insc-vide-ico" aria-hidden="true">🪪</div>
+              <p>Sélectionnez un élève pour afficher son badge.</p>
+            </div>
           )}
         </div>
       </div>
+
+      <footer className="insc-pied no-print">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
     </div>
   );
 }
