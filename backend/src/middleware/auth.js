@@ -36,3 +36,11 @@ export function requireVlogAdmin(req, res, next) {
   }
   next();
 }
+
+// Exige une session « admin du corps enseignant » (système indépendant, hors comptes école)
+export function requireProfsAdmin(req, res, next) {
+  if (!req.session || !req.session.profsAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin enseignants requise.' });
+  }
+  next();
+}

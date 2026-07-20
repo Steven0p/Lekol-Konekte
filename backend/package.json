@@ -9,6 +9,7 @@
     "dev": "node --watch src/server.js",
     "seed": "node scripts/seed.js",
     "seed:vlog": "node scripts/seedVlog.js",
+    "seed:profs": "node scripts/seedProfs.js",
     "build": "npm --prefix ../frontend install && npm --prefix ../frontend run build"
   },
   "dependencies": {

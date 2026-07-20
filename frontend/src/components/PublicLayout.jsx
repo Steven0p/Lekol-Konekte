@@ -67,6 +67,7 @@ export default function PublicLayout() {
             <NavLink to="/" end className="site-lien">Accueil</NavLink>
             <NavLink to="/a-propos" className="site-lien">À propos</NavLink>
             <NavLink to="/vlog" className="site-lien">Vlog</NavLink>
+            <NavLink to="/professeurs" className="site-lien">Enseignants</NavLink>
 
             {Object.entries(MENUS).map(([cle, m]) => (
               <div key={cle} className={`site-dropdown ${ouvert === cle ? 'ouvert' : ''}`}>

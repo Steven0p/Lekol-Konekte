@@ -7,6 +7,8 @@ import Accueil from './pages/public/Accueil.jsx';
 import APropos from './pages/public/APropos.jsx';
 import Vlog from './pages/public/Vlog.jsx';
 import VlogAdmin from './pages/public/VlogAdmin.jsx';
+import Professeurs from './pages/public/Professeurs.jsx';
+import ProfesseursAdmin from './pages/public/ProfesseursAdmin.jsx';
 import Academie from './pages/public/Academie.jsx';
 import Contact from './pages/public/Contact.jsx';
 import Calendrier from './pages/public/Calendrier.jsx';
@@ -47,6 +49,8 @@ export default function App() {
         <Route path="/a-propos" element={<APropos />} />
         <Route path="/vlog" element={<Vlog />} />
         <Route path="/vlog/admin" element={<VlogAdmin />} />
+        <Route path="/professeurs" element={<Professeurs />} />
+        <Route path="/professeurs/admin" element={<ProfesseursAdmin />} />
         <Route path="/academie/prescolaire" element={<Academie niveau="prescolaire" />} />
         <Route path="/academie/primaire" element={<Academie niveau="primaire" />} />
         <Route path="/academie/secondaire" element={<Academie niveau="secondaire" />} />
