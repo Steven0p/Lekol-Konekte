@@ -191,6 +191,17 @@ export const profsApi = {
   supprimer: (id) => request(`/professeurs/${id}`, { method: 'DELETE' }),
 };
 
+// Page « À propos » — système indépendant (propre authentification)
+export const aproposApi = {
+  sections: () => request('/apropos'),
+  adminMe: () => request('/apropos/admin/me'),
+  adminLogin: (body) => request('/apropos/admin/login', { method: 'POST', body: json(body) }),
+  adminLogout: () => request('/apropos/admin/logout', { method: 'POST' }),
+  creer: (body) => request('/apropos', { method: 'POST', body: json(body) }),
+  modifier: (id, body) => request(`/apropos/${id}`, { method: 'PUT', body: json(body) }),
+  supprimer: (id) => request(`/apropos/${id}`, { method: 'DELETE' }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;

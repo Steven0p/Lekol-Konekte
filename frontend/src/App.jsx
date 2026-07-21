@@ -5,6 +5,7 @@ import Layout from './components/Layout.jsx';
 import PublicLayout from './components/PublicLayout.jsx';
 import Accueil from './pages/public/Accueil.jsx';
 import APropos from './pages/public/APropos.jsx';
+import AProposAdmin from './pages/public/AProposAdmin.jsx';
 import Vlog from './pages/public/Vlog.jsx';
 import VlogAdmin from './pages/public/VlogAdmin.jsx';
 import Professeurs from './pages/public/Professeurs.jsx';
@@ -47,6 +48,7 @@ export default function App() {
       <Route element={<PublicLayout />}>
         <Route path="/" element={<Accueil />} />
         <Route path="/a-propos" element={<APropos />} />
+        <Route path="/a-propos/admin" element={<AProposAdmin />} />
         <Route path="/vlog" element={<Vlog />} />
         <Route path="/vlog/admin" element={<VlogAdmin />} />
         <Route path="/professeurs" element={<Professeurs />} />

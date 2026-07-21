@@ -1310,6 +1310,18 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .vpub-admin-lien { margin: 2rem 0 .5rem; text-align: center; font-size: .9rem; }
 .vpub-admin-lien a:hover { color: #1A365D; }
 
+/* ---------- Page « À propos » (public) ---------- */
+.apropos-liste { display: flex; flex-direction: column; gap: 1.25rem; }
+.apropos-section { padding: 1.5rem 1.75rem; border-left: 4px solid #D69E2E; }
+.apropos-section-titre {
+  color: #1A365D; font-size: 1.25rem; font-weight: 800; margin: 0 0 .6rem;
+}
+.apropos-section-texte { color: #2D3748; line-height: 1.7; margin: 0; white-space: pre-line; }
+.apropos-admin-lien { margin: 2.25rem 0 .5rem; text-align: center; font-size: .9rem; }
+.apropos-admin-lien a:hover { color: #1A365D; }
+/* Section en cours d'édition dans l'admin */
+.vadm-item-actif { border: 1.5px solid #D69E2E; box-shadow: 0 0 0 3px rgba(214, 158, 46, .15); }
+
 /* État vide */
 .vpub-vide {
   text-align: center; padding: 3.5rem 1.5rem; background: #fff;

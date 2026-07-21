@@ -44,3 +44,11 @@ export function requireProfsAdmin(req, res, next) {
   }
   next();
 }
+
+// Exige une session « admin de la page À propos » (système indépendant, hors comptes école)
+export function requireAproposAdmin(req, res, next) {
+  if (!req.session || !req.session.aproposAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin À propos requise.' });
+  }
+  next();
+}
