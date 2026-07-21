@@ -197,6 +197,7 @@ export const aproposApi = {
   adminMe: () => request('/apropos/admin/me'),
   adminLogin: (body) => request('/apropos/admin/login', { method: 'POST', body: json(body) }),
   adminLogout: () => request('/apropos/admin/logout', { method: 'POST' }),
+  redactionIA: (body) => request('/apropos/redaction-ia', { method: 'POST', body: json(body) }),
   creer: (body) => request('/apropos', { method: 'POST', body: json(body) }),
   modifier: (id, body) => request(`/apropos/${id}`, { method: 'PUT', body: json(body) }),
   supprimer: (id) => request(`/apropos/${id}`, { method: 'DELETE' }),

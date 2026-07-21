@@ -82,6 +82,9 @@ function PanneauAdmin({ admin, onLogout }) {
   const [enCours, setEnCours] = useState(false);
   const [suppression, setSuppression] = useState(null);
   const [suppEnCours, setSuppEnCours] = useState(false);
+  const [sujetIA, setSujetIA] = useState('');
+  const [iaEnCours, setIaEnCours] = useState(false);
+  const [erreurIA, setErreurIA] = useState('');
 
   const charger = () => aproposApi.sections().then((d) => setSections(d.sections)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
@@ -145,6 +148,19 @@ function PanneauAdmin({ admin, onLogout }) {
     finally { setSuppEnCours(false); }
   };
 
+  // Assistant IA : rédige un brouillon (titre + contenu) à partir d'une idée.
+  const genererIA = async () => {
+    setErreurIA(''); setMsg('');
+    if (!sujetIA.trim()) { setErreurIA('Décrivez le sujet à rédiger.'); return; }
+    setIaEnCours(true);
+    try {
+      const d = await aproposApi.redactionIA({ sujet: sujetIA.trim() });
+      setForm((f) => ({ ...f, titre: d.titre || f.titre, contenu: d.contenu || f.contenu }));
+      setMsg('Brouillon généré par l\'IA. Relisez et ajustez avant de publier.');
+    } catch (err) { setErreurIA(err.message); }
+    finally { setIaEnCours(false); }
+  };
+
   const seDeconnecter = async () => {
     try { await aproposApi.adminLogout(); } finally { onLogout(); }
   };
@@ -176,6 +192,18 @@ function PanneauAdmin({ admin, onLogout }) {
           </div>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           {msg && <Alerte type="info">{msg}</Alerte>}
+
+          {/* Assistant IA — rédige un brouillon à partir d'une idée */}
+          <div className="vadm-ia">
+            <div className="vadm-ia-titre"><Icone nom="comment" /> Assistant IA</div>
+            {erreurIA && <Alerte type="erreur">{erreurIA}</Alerte>}
+            <textarea rows={2} value={sujetIA} onChange={(e) => setSujetIA(e.target.value)}
+              placeholder="Décrivez l'idée en quelques mots (ex. notre histoire depuis 2010, notre approche pédagogique)…" />
+            <button type="button" className="vadm-ia-btn" onClick={genererIA} disabled={iaEnCours}>
+              {iaEnCours ? 'Génération…' : 'Générer avec l\'IA'}
+            </button>
+            <p className="vadm-info">L'IA remplit le titre et le contenu ci-dessous. Relisez toujours avant de publier.</p>
+          </div>
 
           <form onSubmit={soumettre}>
             <div className="vadm-champ">

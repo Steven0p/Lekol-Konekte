@@ -10,6 +10,9 @@ router.post('/apropos/admin/login', apropos.adminLogin);
 router.post('/apropos/admin/logout', apropos.adminLogout);
 router.get('/apropos/admin/me', apropos.adminMe);
 
+// Assistant IA (rédaction) — admin À propos uniquement
+router.post('/apropos/redaction-ia', requireAproposAdmin, apropos.redactionIA);
+
 // Sections
 router.get('/apropos', apropos.lister);                                  // public
 router.post('/apropos', requireAproposAdmin, apropos.creer);             // admin À propos

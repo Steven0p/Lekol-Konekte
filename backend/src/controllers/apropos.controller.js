@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 import * as sectionModel from '../models/apropos.model.js';
 import * as adminModel from '../models/aproposAdmin.model.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 // ---------- Authentification admin À propos ----------
 
@@ -98,6 +99,52 @@ export async function mettreAJour(req, res, next) {
     await sectionModel.mettreAJour(section.id, { titre: v.titre, contenu: v.contenu, ordre });
     return res.json({ section: { id: section.id, titre: v.titre, contenu: v.contenu, ordre } });
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/apropos/redaction-ia (admin À propos) — rédige un brouillon de section avec l'IA (Groq)
+export async function redactionIA(req, res, next) {
+  try {
+    if (!iaConfiguree()) {
+      return res.status(503).json({ erreur: "L'assistant IA n'est pas configuré (clé GROQ_API_KEY manquante côté serveur)." });
+    }
+    const sujet = (req.body.sujet || '').trim();
+    if (!sujet) return res.status(400).json({ erreur: 'Décrivez le sujet de la section.' });
+    if (sujet.length > 800) return res.status(400).json({ erreur: 'Le sujet est trop long (max 800 caractères).' });
+
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.7,
+      max_tokens: 700,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es le chargé de communication de l'école « Lekòl Konekte ». Tu rédiges une section de la page « À propos » du site de l'école (mission, valeurs, histoire, pédagogie…), destinée au grand public. Style clair, chaleureux et professionnel, en français. N'utilise pas d'emojis. N'invente pas de dates, de lieux ni de chiffres précis qui ne sont pas dans la demande. Réponds UNIQUEMENT avec un objet JSON de la forme {\"titre\": \"...\", \"contenu\": \"...\"}.",
+        },
+        {
+          role: 'user',
+          content: `Rédige une section « À propos » à partir de cette idée : "${sujet}".\n`
+            + 'Le "titre" doit être court (environ 50 caractères maximum). '
+            + 'Le "contenu" doit faire un paragraphe de 3 à 6 phrases.',
+        },
+      ],
+    });
+
+    const texte = completion.choices?.[0]?.message?.content || '';
+    let data = null;
+    try { data = JSON.parse(texte); } catch { /* repli ci-dessous */ }
+
+    if (!data || !data.contenu) {
+      return res.json({ titre: '', contenu: texte.trim() });
+    }
+    return res.json({ titre: (data.titre || '').trim(), contenu: (data.contenu || '').trim() });
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) {
+      return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
+    }
     next(err);
   }
 }
