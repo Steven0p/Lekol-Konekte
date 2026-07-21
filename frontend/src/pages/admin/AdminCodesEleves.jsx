@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 10;
 
@@ -114,7 +115,7 @@ export default function AdminCodesEleves() {
         <Chargement texte="Chargement des codes…" />
       ) : filtres.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📭</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucun code trouvé.</p>
           {filtresActifs && (
             <button type="button" className="insc-btn-reinit" onClick={reinitialiser}>Réinitialiser la recherche</button>
@@ -139,7 +140,7 @@ export default function AdminCodesEleves() {
                           <span className="code-chip">{el.code_acces}</span>
                           <button type="button" className="code-copier" onClick={() => copier(el)}
                             aria-label="Copier le code" title="Copier">
-                            {copieId === el.id ? '✓' : '📋'}
+                            {copieId === el.id ? <Icone nom="check" /> : <Icone nom="clipboard" />}
                           </button>
                         </span>
                       ) : <span className="texte-gris">— aucun —</span>}

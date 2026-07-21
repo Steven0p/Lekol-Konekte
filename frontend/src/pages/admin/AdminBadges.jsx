@@ -3,6 +3,7 @@ import { adminApi, urlPhotoEleveAdmin, urlLogoEcole } from '../../services/api.j
 import CarteBadge from '../../components/CarteBadge.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 export default function AdminBadges() {
   const [tous, setTous] = useState(null);   // null = chargement
@@ -102,7 +103,7 @@ export default function AdminBadges() {
             <Chargement texte="Chargement des élèves…" />
           ) : filtres.length === 0 ? (
             <div className="insc-vide">
-              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucun élève trouvé.</p>
               {recherche && <button type="button" className="insc-btn-reinit" onClick={reinitialiser}>Réinitialiser la recherche</button>}
             </div>
@@ -142,7 +143,7 @@ export default function AdminBadges() {
             </div>
           ) : (
             <div className="insc-vide no-print">
-              <div className="insc-vide-ico" aria-hidden="true">🪪</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="badge" size={44} /></div>
               <p>Sélectionnez un élève pour afficher son badge.</p>
             </div>
           )}

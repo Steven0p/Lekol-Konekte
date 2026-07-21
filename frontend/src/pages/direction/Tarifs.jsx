@@ -3,6 +3,7 @@ import { directionApi, adminApi } from '../../services/api.js';
 import { TYPES_FRAIS, libelleTypeFrais, montantFr, dateFr, tarifCourant } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 const aujourdHui = () => new Date().toISOString().slice(0, 10);
@@ -57,7 +58,7 @@ export default function Tarifs() {
       {msg && <Alerte type="info">{msg}</Alerte>}
 
       {/* Tarifs actuels */}
-      <div className="notes-section-titre">📋 Tarifs actuels</div>
+      <div className="notes-section-titre"><Icone nom="clipboard" /> Tarifs actuels</div>
       {!tarifs ? <Chargement texte="Chargement des tarifs…" /> : (
         <div className="tableau-enveloppe">
           <table className="tableau insc-tableau">
@@ -89,9 +90,9 @@ export default function Tarifs() {
       <AutresFrais />
 
       {/* Historique */}
-      <div className="notes-section-titre">📜 Historique des tarifs</div>
+      <div className="notes-section-titre"><Icone nom="history" /> Historique des tarifs</div>
       {!tarifs ? null : tarifs.length === 0 ? (
-        <div className="insc-vide"><div className="insc-vide-ico" aria-hidden="true">📭</div><p>Aucun tarif enregistré.</p></div>
+        <div className="insc-vide"><div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div><p>Aucun tarif enregistré.</p></div>
       ) : (
         <div className="tableau-enveloppe">
           <table className="tableau insc-tableau">
@@ -261,7 +262,7 @@ function AutresFrais() {
 
   return (
     <>
-      <div className="notes-section-titre" ref={formRef}>➕ Autres frais</div>
+      <div className="notes-section-titre" ref={formRef}><Icone nom="plus" /> Autres frais</div>
       <div className="carte">
         <p className="texte-gris" style={{ marginTop: 0 }}>
           Écolage par classe, cantine, livres… Laissez la classe vide pour un frais valable pour toutes les classes.
@@ -276,7 +277,7 @@ function AutresFrais() {
 
       {!frais ? <Chargement texte="Chargement des frais…" /> : liste.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📭</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucun frais enregistré.</p>
           <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}>Ajouter un tarif</button>
         </div>

@@ -4,6 +4,7 @@ import { inscriptionsApi, adminApi, urlDocumentSoumis } from '../../services/api
 import { dateHeureFr } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const TYPES_DOC = { acte_naissance: 'Acte de naissance', bulletin: 'Bulletin', photo: "Photo d'identité", autre: 'Autre' };
 
@@ -97,7 +98,7 @@ export default function AdminDetailInscription() {
         {/* Colonne gauche : informations */}
         <div className="traiter-col">
           <section className="traiter-carte">
-            <div className="traiter-titre">📋 Informations</div>
+            <div className="traiter-titre"><Icone nom="clipboard" /> Informations</div>
             <div className="traiter-infos traiter-infos-2">
               <Info libelle="Élève" valeur={inscription.eleve_nom} />
               <Info libelle="Niveau" valeur={inscription.niveau} />
@@ -108,9 +109,9 @@ export default function AdminDetailInscription() {
           </section>
 
           <section className="traiter-carte">
-            <div className="traiter-titre">📎 Documents</div>
+            <div className="traiter-titre"><Icone nom="attach" /> Documents</div>
             {documents.length === 0 ? (
-              <p className="texte-gris">📄 Aucun document.</p>
+              <p className="texte-gris rangee" style={{ gap: '.4rem' }}><Icone nom="file" /> Aucun document.</p>
             ) : (
               <div className="traiter-doc-liste">
                 {documents.map((d) => (
@@ -126,7 +127,7 @@ export default function AdminDetailInscription() {
           </section>
 
           <section className="traiter-carte">
-            <div className="traiter-titre">📝 Informations complémentaires</div>
+            <div className="traiter-titre"><Icone nom="edit" /> Informations complémentaires</div>
             <div className="traiter-infos traiter-infos-2">
               <Info libelle="Nom du parent" valeur={inscription.nom_parent} />
               <Info libelle="Profession du parent" valeur={inscription.profession_parent} />
@@ -141,7 +142,7 @@ export default function AdminDetailInscription() {
         {/* Colonne droite : décision + historique */}
         <div className="traiter-col">
           <section className="traiter-carte">
-            <div className="traiter-titre">🎯 Décision</div>
+            <div className="traiter-titre"><Icone nom="target" /> Décision</div>
             <div className="traiter-options">
               {ACTIONS.map((a) => (
                 <label key={a.valeur} className={`traiter-option ${statut === a.valeur ? `actif ${a.ton}` : ''}`}>
@@ -163,7 +164,7 @@ export default function AdminDetailInscription() {
           </section>
 
           <section className="traiter-carte">
-            <div className="traiter-titre">🕐 Historique</div>
+            <div className="traiter-titre"><Icone nom="history" /> Historique</div>
             {historique.length === 0 ? (
               <p className="texte-gris">Aucun changement.</p>
             ) : (

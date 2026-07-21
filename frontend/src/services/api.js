@@ -65,6 +65,7 @@ export const notesApi = {
 export const eleveApi = {
   mesNotes: () => request('/eleve/mes-notes'),
   mesBulletins: () => request('/eleve/mes-bulletins'),
+  appreciationIA: (body) => request('/eleve/appreciation-ia', { method: 'POST', body: json(body) }),
   badge: () => request('/eleve/badge'),
   televerserPhoto: (fichier) => {
     const fd = new FormData();
@@ -161,6 +162,7 @@ export const vlogApi = {
     return request('/vlog', { method: 'POST', body: fd });
   },
   supprimer: (id) => request(`/vlog/${id}`, { method: 'DELETE' }),
+  redactionIA: (body) => request('/vlog/redaction-ia', { method: 'POST', body: json(body) }),
 };
 
 // Corps enseignant — système indépendant (propre authentification)

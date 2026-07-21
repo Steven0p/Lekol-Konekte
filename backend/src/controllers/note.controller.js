@@ -11,8 +11,14 @@ import { findParentIdByUserId } from '../models/user.model.js';
 import { existe as publicationExiste } from '../models/publication.model.js';
 import { trimestresBloques as trimestresBloquesModel } from '../models/acquittement.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
+const LIBELLE_TRIMESTRE = {
+  '1er_trimestre': '1er trimestre',
+  '2e_trimestre': '2e trimestre',
+  '3e_trimestre': '3e trimestre',
+};
 
 function estAdmin(req) {
   return req.session.role === 'admin' || req.session.role === 'direction';
@@ -298,6 +304,69 @@ export async function listerMesNotesEleve(req, res, next) {
     const trimestresBloques = await trimestresBloquesModel(req.session.eleveId);
     return res.json({ notes, trimestresBloques });
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/eleve/appreciation-ia (session élève) — appréciation/critique IA d'un trimestre
+export async function appreciationIaEleve(req, res, next) {
+  try {
+    if (!iaConfiguree()) {
+      return res.status(503).json({ erreur: "L'assistant IA n'est pas configuré (clé GROQ_API_KEY manquante côté serveur)." });
+    }
+    const periode = TRIMESTRES.includes(req.body.periode) ? req.body.periode : null;
+    const anneeScolaire = (req.body.anneeScolaire || '').trim();
+    if (!periode || !anneeScolaire) {
+      return res.status(400).json({ erreur: 'Trimestre ou année scolaire invalide.' });
+    }
+
+    // On récupère les notes côté serveur (uniquement validées, publiées et non bloquées).
+    const notes = await noteModel.listerPourEleve(req.session.eleveId, {
+      periode, anneeScolaire, seulementVisibles: true,
+    });
+    if (!notes.length) {
+      return res.status(400).json({ erreur: 'Aucune note disponible pour ce trimestre.' });
+    }
+
+    // Moyenne pondérée + lignes de contexte pour l'IA.
+    let sommePond = 0, sommeCoef = 0;
+    const lignes = notes.map((n) => {
+      const c = Number(n.coefficient) || 1;
+      sommePond += Number(n.valeur) * c;
+      sommeCoef += c;
+      return `- ${n.matiere} : ${Number(n.valeur).toFixed(2)}/100 (coefficient ${c})`;
+    });
+    const moyenne = sommeCoef ? (sommePond / sommeCoef) : 0;
+
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.6,
+      max_tokens: 600,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es un conseiller pédagogique bienveillant de l'école « Lekòl Konekte ». Tu rédiges une appréciation de bulletin en français, adressée à l'élève et à ses parents. Sois encourageant, honnête et constructif : souligne les points forts, identifie les matières à améliorer, et donne 1 ou 2 conseils concrets. N'utilise pas d'emojis. Base-toi UNIQUEMENT sur les notes fournies, n'invente aucun chiffre. Réponds en 3 à 5 phrases, sans titre ni liste.",
+        },
+        {
+          role: 'user',
+          content: `Voici les résultats de l'élève pour le ${LIBELLE_TRIMESTRE[periode]} (année ${anneeScolaire}).\n`
+            + `Moyenne pondérée : ${moyenne.toFixed(2)}/100.\n`
+            + `Notes par matière :\n${lignes.join('\n')}\n\n`
+            + 'Rédige une appréciation globale du bulletin.',
+        },
+      ],
+    });
+
+    const appreciation = (completion.choices?.[0]?.message?.content || '').trim();
+    if (!appreciation) {
+      return res.status(502).json({ erreur: "L'assistant IA n'a pas pu générer d'appréciation." });
+    }
+    return res.json({ appreciation, moyenne: Math.round(moyenne * 100) / 100 });
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) {
+      return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
+    }
     next(err);
   }
 }

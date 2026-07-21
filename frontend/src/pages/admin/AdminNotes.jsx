@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 
@@ -162,7 +163,7 @@ export default function AdminNotes() {
 
       {!niveau ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📝</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="edit" size={44} /></div>
           <p>Sélectionnez un niveau pour commencer la saisie.</p>
         </div>
       ) : (
@@ -202,7 +203,7 @@ export default function AdminNotes() {
             <Chargement texte="Chargement des notes…" />
           ) : notes.length === 0 ? (
             <div className="insc-vide">
-              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune note saisie pour ce trimestre.</p>
               <button type="button" className="notes-saisir" onClick={allerAuFormulaire}>Saisir une note</button>
             </div>
@@ -239,8 +240,8 @@ export default function AdminNotes() {
               </div>
 
               <div className="eco-batch">
-                <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => { setBatch('valider'); setErreurModal(''); }}>✓ Valider toutes les notes</button>
-                <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => { setBatch('supprimer'); setErreurModal(''); }}>✕ Supprimer toutes les notes</button>
+                <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => { setBatch('valider'); setErreurModal(''); }}><Icone nom="check" /> Valider toutes les notes</button>
+                <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => { setBatch('supprimer'); setErreurModal(''); }}><Icone nom="close" /> Supprimer toutes les notes</button>
               </div>
 
               {nbPages > 1 && (

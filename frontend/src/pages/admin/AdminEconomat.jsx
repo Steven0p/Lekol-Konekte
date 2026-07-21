@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 
@@ -123,14 +124,14 @@ export default function AdminEconomat() {
       {/* États */}
       {!niveau ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">🎓</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="school" size={44} /></div>
           <p>Sélectionnez un niveau pour afficher les élèves.</p>
         </div>
       ) : charge ? (
         <Chargement texte="Chargement des élèves…" />
       ) : eleves.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📭</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucun élève trouvé pour ce niveau.</p>
           <button type="button" className="insc-btn-reinit" onClick={() => setNiveau('')}>Changer de niveau</button>
         </div>
@@ -168,10 +169,10 @@ export default function AdminEconomat() {
           {/* Actions en masse */}
           <div className="eco-batch">
             <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => setBatch('marquer')}>
-              ✓ Marquer tous à jour
+              <Icone nom="check" /> Marquer tous à jour
             </button>
             <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => setBatch('reinit')}>
-              ✕ Réinitialiser tous
+              <Icone nom="close" /> Réinitialiser tous
             </button>
           </div>
 

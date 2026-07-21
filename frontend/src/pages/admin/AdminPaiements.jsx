@@ -3,6 +3,7 @@ import { adminApi, urlPreuvePaiement } from '../../services/api.js';
 import { libelleTypeFrais, montantFr, dateFr } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 10;
 
@@ -126,7 +127,7 @@ export default function AdminPaiements() {
         <Chargement texte="Chargement des paiements…" />
       ) : filtres.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📭</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucun paiement trouvé.</p>
           {filtresActifs && <button type="button" className="insc-btn-reinit" onClick={reinitialiser}>Réinitialiser les filtres</button>}
         </div>
@@ -226,7 +227,7 @@ export default function AdminPaiements() {
             )}
             {confirmation.paiement.preuve_url && (
               <p style={{ marginBottom: '.75rem' }}>
-                <a href={urlPreuvePaiement(confirmation.paiement.id)} target="_blank" rel="noreferrer">Voir la preuve téléversée ↗</a>
+                <a href={urlPreuvePaiement(confirmation.paiement.id)} target="_blank" rel="noreferrer">Voir la preuve téléversée</a>
               </p>
             )}
 

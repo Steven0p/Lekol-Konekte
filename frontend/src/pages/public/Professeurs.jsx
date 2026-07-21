@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { profsApi, urlPhotoProf } from '../../services/api.js';
+import Icone from '../../components/Icone.jsx';
 
 // Nom complet lisible (prénom + nom)
 export function nomComplet(p) {
@@ -67,7 +68,7 @@ export default function Professeurs() {
         </div>
       ) : professeurs.length === 0 ? (
         <div className="vpub-vide">
-          <div className="vpub-vide-ico" aria-hidden="true">📭</div>
+          <div className="vpub-vide-ico" aria-hidden="true"><Icone nom="inbox" size={48} /></div>
           <p>Aucun professeur publié pour le moment.</p>
           <p className="texte-gris">Revenez bientôt !</p>
         </div>
@@ -90,7 +91,7 @@ export default function Professeurs() {
       {selection && <FenetreProf prof={selection} onFermer={() => setSelection(null)} />}
 
       <p className="vpub-admin-lien">
-        <Link to="/professeurs/admin" className="texte-gris">🔐 Espace administrateur</Link>
+        <Link to="/professeurs/admin" className="texte-gris"><Icone nom="lock" /> Espace administrateur</Link>
       </p>
     </div>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { vlogApi, urlPhotoVlog } from '../../services/api.js';
 import { dateFr } from '../../utils/libelles.js';
+import Icone from '../../components/Icone.jsx';
 
 export const CATEGORIES_VLOG = {
   actualite: 'Actualité',
@@ -94,7 +95,7 @@ export default function Vlog() {
         </div>
       ) : publications.length === 0 ? (
         <div className="vpub-vide">
-          <div className="vpub-vide-ico" aria-hidden="true">📭</div>
+          <div className="vpub-vide-ico" aria-hidden="true"><Icone nom="inbox" size={48} /></div>
           <p>Aucune actualité pour le moment.</p>
           <p className="texte-gris">Revenez bientôt !</p>
         </div>
@@ -110,7 +111,7 @@ export default function Vlog() {
               <p className="vpub-texte">{p.contenu}</p>
               {p.photo_url && <img className="vpub-photo" src={urlPhotoVlog(p.id)} alt={p.titre} loading="lazy" />}
               <button type="button" className="vpub-partager" onClick={() => ouvrirPartage(p)}>
-                <span aria-hidden="true">↗</span> Partager
+<Icone nom="share" /> Partager
               </button>
             </article>
           ))}
@@ -118,7 +119,7 @@ export default function Vlog() {
       )}
 
       <p className="vpub-admin-lien">
-        <Link to="/vlog/admin" className="texte-gris">🔐 Espace administrateur</Link>
+        <Link to="/vlog/admin" className="texte-gris"><Icone nom="lock" /> Espace administrateur</Link>
       </p>
 
       {/* Modale de partage */}

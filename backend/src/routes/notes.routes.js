@@ -46,6 +46,8 @@ router.post('/eleves/:id/code-acces', requireRole('parent'), note.genererCodeAcc
 // Espace élève (connexion par code) — lecture seule
 router.get('/eleve/mes-notes', requireEleve, note.listerMesNotesEleve);
 router.get('/eleve/mes-bulletins', requireEleve, publication.listerMesBulletinsEleve);
+// Appréciation IA d'un trimestre (critique du bulletin/résultats)
+router.post('/eleve/appreciation-ia', requireEleve, note.appreciationIaEleve);
 
 // Espace élève — badge & photo
 router.get('/eleve/badge', requireEleve, note.badgeEleve);

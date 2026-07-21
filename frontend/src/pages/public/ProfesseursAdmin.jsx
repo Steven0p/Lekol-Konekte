@@ -4,6 +4,7 @@ import { profsApi } from '../../services/api.js';
 import { nomComplet, experienceLibelle, AvatarProf } from './Professeurs.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const FICHE_VIDE = {
   nom: '', prenom: '', matiere: '', fonction: '',
@@ -153,9 +154,9 @@ function PanneauAdmin({ admin, onLogout }) {
     setEnCours(true);
     try {
       await profsApi.creer(donneesDe(form));
-      setMsg('✅ Professeur ajouté.'); setForm(FICHE_VIDE);
+      setMsg('Professeur ajouté.'); setForm(FICHE_VIDE);
       charger();
-    } catch (err) { setErreur('❌ ' + err.message); }
+    } catch (err) { setErreur(err.message); }
     finally { setEnCours(false); }
   };
 
@@ -174,8 +175,8 @@ function PanneauAdmin({ admin, onLogout }) {
     setModalEnCours(true);
     try {
       await profsApi.modifier(edition.id, donneesDe(editForm));
-      setEdition(null); setMsg('✅ Fiche mise à jour.'); charger();
-    } catch (err) { setErreurModal('❌ ' + err.message); }
+      setEdition(null); setMsg('Fiche mise à jour.'); charger();
+    } catch (err) { setErreurModal(err.message); }
     finally { setModalEnCours(false); }
   };
 
@@ -183,8 +184,8 @@ function PanneauAdmin({ admin, onLogout }) {
     setModalEnCours(true); setErreurModal('');
     try {
       await profsApi.supprimer(suppression.id);
-      setSuppression(null); setMsg('🗑️ Fiche supprimée.'); charger();
-    } catch (err) { setErreurModal('❌ ' + err.message); }
+      setSuppression(null); setMsg('Fiche supprimée.'); charger();
+    } catch (err) { setErreurModal(err.message); }
     finally { setModalEnCours(false); }
   };
 
@@ -215,7 +216,7 @@ function PanneauAdmin({ admin, onLogout }) {
       <div className="ens-admin-grille">
         {/* Formulaire */}
         <section className="carte">
-          <div className="ens-carte-titre">✏️ Nouvelle fiche professeur</div>
+          <div className="ens-carte-titre"><Icone nom="edit" /> Nouvelle fiche professeur</div>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           {msg && <Alerte type="info">{msg}</Alerte>}
           <form onSubmit={ajouter}>
@@ -228,12 +229,12 @@ function PanneauAdmin({ admin, onLogout }) {
 
         {/* Liste */}
         <section className="carte">
-          <div className="ens-carte-titre">👨‍🏫 Professeurs ({liste.length})</div>
+          <div className="ens-carte-titre"><Icone nom="users" /> Professeurs ({liste.length})</div>
           {!professeurs ? (
             <Chargement texte="Chargement des professeurs…" />
           ) : liste.length === 0 ? (
             <div className="insc-vide" style={{ boxShadow: 'none' }}>
-              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune fiche pour le moment.</p>
             </div>
           ) : (

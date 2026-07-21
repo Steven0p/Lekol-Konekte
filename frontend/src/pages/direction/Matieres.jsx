@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { directionApi, adminApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 
@@ -138,7 +139,7 @@ export default function Matieres() {
             <Chargement texte="Chargement des matières…" />
           ) : matieres.length === 0 ? (
             <div className="insc-vide">
-              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune matière configurée pour ce niveau.</p>
               <button type="button" className="eco-batch-btn eco-batch-ok" onClick={allerAuFormulaire}>Ajouter une matière</button>
             </div>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { directionApi, urlLogoEcole } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 export default function Ecole() {
   const [form, setForm] = useState(null);
@@ -39,8 +40,8 @@ export default function Ecole() {
     setErreur(''); setMsg('');
     if (!form.nom.trim()) { setErreur("Le nom de l'école est requis."); return; }
     setEnCours(true);
-    try { await directionApi.majEcole(form); setMsg('✅ Coordonnées enregistrées avec succès.'); }
-    catch (err) { setErreur('❌ ' + err.message); }
+    try { await directionApi.majEcole(form); setMsg('Coordonnées enregistrées avec succès.'); }
+    catch (err) { setErreur(err.message); }
     finally { setEnCours(false); }
   };
 
@@ -58,8 +59,8 @@ export default function Ecole() {
     try {
       await directionApi.televerserLogo(fichier);
       setALogo(true); setVersion((v) => v + 1);
-      setMsg('✅ Logo enregistré.'); setModalLogo(false); setFichier(null); setApercu('');
-    } catch (err) { setErreurLogo('❌ ' + err.message); }
+      setMsg('Logo enregistré.'); setModalLogo(false); setFichier(null); setApercu('');
+    } catch (err) { setErreurLogo(err.message); }
     finally { setLogoEnCours(false); }
   };
 
@@ -79,19 +80,19 @@ export default function Ecole() {
       <div className="traiter-grille">
         {/* Formulaire */}
         <section className="traiter-carte">
-          <div className="traiter-titre">📝 Informations de l'école</div>
+          <div className="traiter-titre"><Icone nom="edit" /> Informations de l'école</div>
           <form onSubmit={enregistrer}>
             <div className="ecole-champ">
-              <label>🏫 Nom de l'école</label>
+              <label><Icone nom="school" /> Nom de l'école</label>
               <input value={form.nom} onChange={maj('nom')} placeholder="ex. FDSE" />
             </div>
             <div className="ecole-champ">
-              <label>🏦 Coordonnées bancaires</label>
+              <label><Icone nom="bank" /> Coordonnées bancaires</label>
               <textarea rows={2} value={form.coordonneesBancaires} onChange={maj('coordonneesBancaires')}
                 placeholder="Banque, numéro de compte… (ex. BUH 999)" />
             </div>
             <div className="ecole-champ">
-              <label>📱 Coordonnées MonCash</label>
+              <label><Icone nom="phone" /> Coordonnées MonCash</label>
               <input value={form.coordonneesMoncash} onChange={maj('coordonneesMoncash')} placeholder="ex. 509 49177804" />
             </div>
             <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
@@ -102,14 +103,14 @@ export default function Ecole() {
 
         {/* Logo */}
         <section className="traiter-carte ecole-logo-carte">
-          <div className="traiter-titre">🖼️ Logo de l'école</div>
+          <div className="traiter-titre"><Icone nom="image" /> Logo de l'école</div>
           <p className="texte-gris" style={{ marginBottom: '1rem' }}>Le logo apparaît sur les badges des élèves.</p>
           <div className="ecole-logo-preview">
             {aLogo ? (
               <img src={`${urlLogoEcole()}?v=${version}`} alt="Logo de l'école" />
             ) : (
               <div className="ecole-logo-vide">
-                <div className="ico" aria-hidden="true">🏫</div>
+                <div className="ico" aria-hidden="true"><Icone nom="school" size={40} /></div>
                 <p>Aucun logo</p>
               </div>
             )}
@@ -141,7 +142,7 @@ export default function Ecole() {
                 <img src={apercu} alt="Aperçu" className="ecole-drop-preview" />
               ) : (
                 <>
-                  <div style={{ fontSize: '2rem' }} aria-hidden="true">📤</div>
+                  <div aria-hidden="true" style={{ color: '#A0AEC0' }}><Icone nom="upload" size={32} /></div>
                   <p>Cliquez ou déposez une image ici</p>
                 </>
               )}

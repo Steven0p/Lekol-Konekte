@@ -3,6 +3,7 @@ import { directionApi, adminApi, urlDocumentOfficiel } from '../../services/api.
 import { dateHeureFr } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 const dateCourte = (s) => (s ? new Date(s).toLocaleDateString('fr-FR') : '');
@@ -127,7 +128,7 @@ export default function Publications() {
       {msg && <Alerte type="info">{msg}</Alerte>}
 
       {/* Formulaire de publication */}
-      <div className="notes-section-titre" ref={formRef}>📤 Publier un niveau / trimestre</div>
+      <div className="notes-section-titre" ref={formRef}><Icone nom="upload" /> Publier un niveau / trimestre</div>
       <div className="carte">
         <form onSubmit={ouvrirConfirmation} className="notes-form-grille">
           <div className="notes-champ">
@@ -156,7 +157,7 @@ export default function Publications() {
       </div>
 
       {/* Publications effectuées */}
-      <div className="notes-section-titre">📋 Publications effectuées</div>
+      <div className="notes-section-titre"><Icone nom="clipboard" /> Publications effectuées</div>
       {derniere && (
         <p className="pub-derniere">✓ Dernière publication : {libTrim(derniere.trimestre)} — {derniere.niveau} ({dateHeureFr(derniere.publie_le)})</p>
       )}
@@ -164,7 +165,7 @@ export default function Publications() {
         <Chargement texte="Chargement des publications…" />
       ) : liste.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📭</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucune publication effectuée.</p>
           <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}>Effectuer une publication</button>
         </div>
@@ -204,7 +205,7 @@ export default function Publications() {
       )}
 
       {/* Bulletins générés */}
-      <div className="notes-section-titre" ref={bulletinsRef}>📥 Bulletins générés</div>
+      <div className="notes-section-titre" ref={bulletinsRef}><Icone nom="download" /> Bulletins générés</div>
       <div className="insc-barre">
         <select value={niveauBulletins} onChange={(e) => { setNiveauBulletins(e.target.value); chargerBulletins(e.target.value); }} aria-label="Filtrer par niveau">
           <option value="">Tous les niveaux</option>
@@ -214,7 +215,7 @@ export default function Publications() {
       </div>
       {bulletins.length === 0 ? (
         <div className="insc-vide">
-          <div className="insc-vide-ico" aria-hidden="true">📄</div>
+          <div className="insc-vide-ico" aria-hidden="true"><Icone nom="file" size={44} /></div>
           <p>Aucun bulletin généré pour ce filtre. Publiez un niveau/trimestre ci-dessus (les notes doivent être validées).</p>
         </div>
       ) : (
@@ -251,8 +252,8 @@ export default function Publications() {
               Voulez-vous vraiment publier les notes de <strong>{form.niveau}</strong> — <strong>{libTrim(form.trimestre)}</strong> ({form.anneeScolaire}) ? Les bulletins seront générés et les parents notifiés.
             </p>
             <div className="pub-stats">
-              <span className="pub-stat">📊 <strong>{statsModal ? (statsModal.eleves ?? '—') : '…'}</strong> élèves</span>
-              <span className="pub-stat">📝 <strong>{statsModal ? (statsModal.matieres ?? '—') : '…'}</strong> matières</span>
+              <span className="pub-stat"><Icone nom="users" /> <strong>{statsModal ? (statsModal.eleves ?? '—') : '…'}</strong> élèves</span>
+              <span className="pub-stat"><Icone nom="chart" /> <strong>{statsModal ? (statsModal.matieres ?? '—') : '…'}</strong> matières</span>
             </div>
             <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="insc-btn-reinit" onClick={() => setConfirme(false)} disabled={enCours}>Annuler</button>

@@ -23,6 +23,9 @@ router.post('/vlog/admin/login', vlog.adminLogin);
 router.post('/vlog/admin/logout', vlog.adminLogout);
 router.get('/vlog/admin/me', vlog.adminMe);
 
+// Assistant IA (rédaction) — admin vlog uniquement
+router.post('/vlog/redaction-ia', requireVlogAdmin, vlog.redactionIA);
+
 // Publications
 router.get('/vlog', vlog.lister);                                   // public
 router.get('/vlog/:id/photo', vlog.servirPhoto);                    // public

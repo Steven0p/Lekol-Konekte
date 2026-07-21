@@ -5,6 +5,7 @@ import { dateFr } from '../../utils/libelles.js';
 import { CATEGORIES_VLOG } from './Vlog.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const PUBLICATION_VIDE = { titre: '', contenu: '', categorie: 'actualite', photo: null };
 
@@ -83,6 +84,9 @@ function PanneauAdmin({ admin, onLogout }) {
   const [enCours, setEnCours] = useState(false);
   const [suppression, setSuppression] = useState(null);
   const [suppEnCours, setSuppEnCours] = useState(false);
+  const [sujetIA, setSujetIA] = useState('');
+  const [iaEnCours, setIaEnCours] = useState(false);
+  const [erreurIA, setErreurIA] = useState('');
 
   const charger = () => vlogApi.publications().then((d) => setPublications(d.publications)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
@@ -109,11 +113,11 @@ function PanneauAdmin({ admin, onLogout }) {
     setEnCours(true);
     try {
       await vlogApi.creer({ titre: form.titre.trim(), contenu: form.contenu.trim(), categorie: form.categorie, photo: form.photo });
-      setMsg('✅ Publication créée avec succès.');
+      setMsg('Publication créée avec succès.');
       setForm(PUBLICATION_VIDE);
       e.target.reset();
       charger();
-    } catch (err) { setErreur('❌ ' + err.message); }
+    } catch (err) { setErreur(err.message); }
     finally { setEnCours(false); }
   };
 
@@ -121,11 +125,24 @@ function PanneauAdmin({ admin, onLogout }) {
     setSuppEnCours(true); setErreur(''); setMsg('');
     try {
       await vlogApi.supprimer(suppression.id);
-      setMsg('🗑️ Publication supprimée.');
+      setMsg('Publication supprimée.');
       setSuppression(null);
       charger();
-    } catch (err) { setErreur('❌ ' + err.message); }
+    } catch (err) { setErreur(err.message); }
     finally { setSuppEnCours(false); }
+  };
+
+  // Assistant IA : rédige un brouillon (titre + message) à partir d'une idée.
+  const genererIA = async () => {
+    setErreurIA(''); setMsg('');
+    if (!sujetIA.trim()) { setErreurIA('Décrivez le sujet à rédiger.'); return; }
+    setIaEnCours(true);
+    try {
+      const d = await vlogApi.redactionIA({ sujet: sujetIA.trim(), categorie: form.categorie });
+      setForm((f) => ({ ...f, titre: d.titre || f.titre, contenu: d.contenu || f.contenu }));
+      setMsg('Brouillon généré par l\'IA. Relisez et ajustez avant de publier.');
+    } catch (err) { setErreurIA(err.message); }
+    finally { setIaEnCours(false); }
   };
 
   const seDeconnecter = async () => {
@@ -154,9 +171,22 @@ function PanneauAdmin({ admin, onLogout }) {
       <div className="vadm-grille">
         {/* Formulaire */}
         <section className="carte vadm-form-carte">
-          <div className="vadm-carte-titre">✏️ Nouvelle publication</div>
+          <div className="vadm-carte-titre"><Icone nom="edit" /> Nouvelle publication</div>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           {msg && <Alerte type="info">{msg}</Alerte>}
+
+          {/* Assistant IA — rédige un brouillon à partir d'une idée */}
+          <div className="vadm-ia">
+            <div className="vadm-ia-titre"><Icone nom="comment" /> Assistant IA</div>
+            {erreurIA && <Alerte type="erreur">{erreurIA}</Alerte>}
+            <textarea rows={2} value={sujetIA} onChange={(e) => setSujetIA(e.target.value)}
+              placeholder="Décrivez l'idée en quelques mots (ex. reprise des cours lundi prochain)…" />
+            <button type="button" className="vadm-ia-btn" onClick={genererIA} disabled={iaEnCours}>
+              {iaEnCours ? 'Génération…' : 'Générer avec l\'IA'}
+            </button>
+            <p className="vadm-info">L'IA remplit le titre et le message ci-dessous. Relisez toujours avant de publier.</p>
+          </div>
+
           <form onSubmit={publier}>
             <div className="vadm-champ">
               <label>Titre</label>
@@ -175,7 +205,7 @@ function PanneauAdmin({ admin, onLogout }) {
               </select>
             </div>
             <div className="vadm-champ">
-              <label>📎 Photo (optionnel)</label>
+              <label><Icone nom="attach" /> Photo (optionnel)</label>
               <div className="vadm-fichier">
                 <label className="vadm-fichier-btn">
                   Choisir un fichier
@@ -193,12 +223,12 @@ function PanneauAdmin({ admin, onLogout }) {
 
         {/* Liste */}
         <section className="carte vadm-liste-carte">
-          <div className="vadm-carte-titre">📋 Publications</div>
+          <div className="vadm-carte-titre"><Icone nom="clipboard" /> Publications</div>
           {!publications ? (
             <Chargement texte="Chargement des publications…" />
           ) : publications.length === 0 ? (
             <div className="insc-vide" style={{ boxShadow: 'none' }}>
-              <div className="insc-vide-ico" aria-hidden="true">📭</div>
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune publication pour le moment.</p>
               <p className="texte-gris">Créez votre première publication !</p>
             </div>
@@ -213,7 +243,7 @@ function PanneauAdmin({ admin, onLogout }) {
                   <h3>{p.titre}</h3>
                   <p className="vadm-item-texte">{p.contenu}</p>
                   {p.photo_url && <img className="vadm-item-photo" src={urlPhotoVlog(p.id)} alt={p.titre} loading="lazy" />}
-                  <button type="button" className="paie-btn paie-rejeter" onClick={() => setSuppression(p)}>🗑 Supprimer</button>
+                  <button type="button" className="paie-btn paie-rejeter" onClick={() => setSuppression(p)}><Icone nom="trash" /> Supprimer</button>
                 </article>
               ))}
             </div>

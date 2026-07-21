@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { eleveApi, urlDocumentOfficiel } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import Carte from '../../components/Carte.jsx';
-import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
-import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const LIBELLE_TRIM = {
   '1er_trimestre': '1er trimestre',
@@ -35,6 +33,9 @@ export default function EspaceEleve() {
   const [bloques, setBloques] = useState([]);
   const [telechargeId, setTelechargeId] = useState(null);
   const [erreur, setErreur] = useState('');
+  const [apprecs, setApprecs] = useState({});   // { cle: texte } — appréciations IA générées
+  const [apprecEnCours, setApprecEnCours] = useState(null); // clé en cours
+  const [apprecErreur, setApprecErreur] = useState({});     // { cle: message }
 
   useEffect(() => {
     Promise.all([eleveApi.mesNotes(), eleveApi.mesBulletins()])
@@ -43,92 +44,137 @@ export default function EspaceEleve() {
   }, []);
 
   const telecharger = async (id) => {
-    setErreur('');
-    setTelechargeId(id);
+    setErreur(''); setTelechargeId(id);
     try {
       const res = await fetch(urlDocumentOfficiel(id), { credentials: 'include' });
       if (!res.ok) throw new Error('Téléchargement impossible.');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `bulletin-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      a.href = url; a.download = `bulletin-${id}.pdf`;
+      document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
-    } catch (e) {
-      setErreur(e.message);
+    } catch (e) { setErreur(e.message); }
+    finally { setTelechargeId(null); }
+  };
+
+  // Demande à l'IA une appréciation du trimestre (points forts, matières à améliorer, conseils).
+  const genererAppreciation = async (g) => {
+    const cle = `${g.annee}||${g.periode}`;
+    setApprecEnCours(cle);
+    setApprecErreur((e) => ({ ...e, [cle]: '' }));
+    try {
+      const d = await eleveApi.appreciationIA({ periode: g.periode, anneeScolaire: g.annee });
+      setApprecs((a) => ({ ...a, [cle]: d.appreciation }));
+    } catch (err) {
+      setApprecErreur((e) => ({ ...e, [cle]: err.message }));
     } finally {
-      setTelechargeId(null);
+      setApprecEnCours(null);
     }
   };
 
-  if (erreur) return <Alerte type="erreur">{erreur}</Alerte>;
-  if (!notes) return <Chargement />;
-
-  const groupes = grouperNotes(notes);
+  const groupes = notes ? grouperNotes(notes) : [];
 
   return (
-    <div>
-      <div className="page-entete">
-        <h1>Mes résultats</h1>
+    <div className="insc-page res-page">
+      <section className="res-hero">
+        <h1><Icone nom="chart" /> Mes résultats</h1>
         <p>Bonjour {utilisateur?.nom}{utilisateur?.niveau ? ` — ${utilisateur.niveau}` : ''}. Consultez vos notes et bulletins.</p>
-      </div>
+      </section>
 
-      <div className="pile pile-md">
-        {/* Trimestres bloqués (économat non réglé) */}
-        {bloques.length > 0 && (
-          <Alerte type="erreur">
-            Résultats indisponibles pour&nbsp;: {bloques.map((b) => `${LIBELLE_TRIM[b.trimestre] || b.trimestre} (${b.annee_scolaire})`).join(', ')}.
+      {erreur && <Alerte type="erreur">{erreur}</Alerte>}
+
+      {/* Alerte économat (trimestres bloqués) */}
+      {bloques.length > 0 && (
+        <div className="res-alerte">
+          <span className="res-alerte-ico" aria-hidden="true"><Icone nom="warning" /></span>
+          <span>
+            Résultats indisponibles pour : {bloques.map((b) => `${LIBELLE_TRIM[b.trimestre] || b.trimestre} (${b.annee_scolaire})`).join(', ')}.
             Veuillez régulariser votre situation auprès de l'économat.
-          </Alerte>
-        )}
+          </span>
+        </div>
+      )}
 
-        {/* Notes */}
-        {groupes.length === 0 ? (
-          <Carte titre="Mes notes">
-            <p className="texte-gris">Aucune note publiée pour l'instant.</p>
-          </Carte>
-        ) : groupes.map((g) => (
-          <Carte key={`${g.annee}-${g.periode}`} titre={`${LIBELLE_TRIM[g.periode] || g.periode} — ${g.annee}`}>
-            <div className="tableau-enveloppe">
-              <table className="tableau">
-                <thead><tr><th>Matière</th><th>Note /100</th><th>Coefficient</th></tr></thead>
-                <tbody>
-                  {g.notes.map((n) => (
-                    <tr key={n.id}>
-                      <td>{n.matiere}</td>
-                      <td>{Number(n.valeur).toFixed(2)}</td>
-                      <td>{Number(n.coefficient || 1).toFixed(2)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {!notes ? (
+        <div className="pile pile-md">
+          <div className="ens-skeleton" />
+          <div className="ens-skeleton" style={{ height: 140 }} />
+        </div>
+      ) : (
+        <>
+          {/* Notes par trimestre */}
+          {groupes.length === 0 ? (
+            <div className="insc-vide">
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
+              <p>Aucune note publiée pour l'instant.</p>
             </div>
-            <p style={{ marginTop: '.75rem', fontWeight: 700 }}>
-              Moyenne pondérée : {g.moyenne.toFixed(2)} / 100
-            </p>
-          </Carte>
-        ))}
+          ) : groupes.map((g) => (
+            <div key={`${g.annee}-${g.periode}`} className="res-bloc">
+              <div className="notes-section-titre">{LIBELLE_TRIM[g.periode] || g.periode} — {g.annee}</div>
+              <div className="tableau-enveloppe">
+                <table className="tableau insc-tableau">
+                  <thead><tr><th>Matière</th><th>Note /100</th><th>Coefficient</th></tr></thead>
+                  <tbody>
+                    {g.notes.map((n) => (
+                      <tr key={n.id}>
+                        <td className="insc-nom">{n.matiere}</td>
+                        <td className="res-note">{Number(n.valeur).toFixed(2)}</td>
+                        <td>{Number(n.coefficient || 1).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="res-moyenne"><Icone nom="chart" /> Moyenne pondérée : <strong>{g.moyenne.toFixed(2)} / 100</strong></div>
 
-        {/* Bulletins */}
-        <Carte titre="Mes bulletins">
+              {/* Appréciation IA du trimestre */}
+              {(() => {
+                const cle = `${g.annee}||${g.periode}`;
+                const texte = apprecs[cle];
+                const err = apprecErreur[cle];
+                const enCours = apprecEnCours === cle;
+                return (
+                  <div className="res-ia">
+                    {texte ? (
+                      <div className="res-ia-carte">
+                        <div className="res-ia-titre"><Icone nom="comment" /> Appréciation (IA)</div>
+                        <p className="res-ia-texte">{texte}</p>
+                        <button type="button" className="res-ia-relance" onClick={() => genererAppreciation(g)} disabled={enCours}>
+                          <Icone nom="refresh" /> {enCours ? 'Régénération…' : 'Régénérer'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button type="button" className="res-ia-btn" onClick={() => genererAppreciation(g)} disabled={enCours}>
+                        <Icone nom="comment" /> {enCours ? 'Analyse en cours…' : 'Obtenir une appréciation (IA)'}
+                      </button>
+                    )}
+                    {err && <p className="res-ia-erreur">{err}</p>}
+                  </div>
+                );
+              })()}
+            </div>
+          ))}
+
+          {/* Bulletins */}
+          <div className="notes-section-titre"><Icone nom="file" /> Mes bulletins</div>
           {bulletins.length === 0 ? (
-            <p className="texte-gris">Aucun bulletin disponible.</p>
+            <div className="insc-vide">
+              <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
+              <p>Aucun bulletin disponible.</p>
+            </div>
           ) : (
             <div className="tableau-enveloppe">
-              <table className="tableau">
-                <thead><tr><th>Document</th><th>Généré le</th><th></th></tr></thead>
+              <table className="tableau insc-tableau">
+                <thead><tr><th>Document</th><th>Généré le</th><th>Actions</th></tr></thead>
                 <tbody>
                   {bulletins.map((b) => (
                     <tr key={b.id}>
-                      <td>Bulletin</td>
+                      <td className="insc-nom">Bulletin</td>
                       <td>{dateFr(b.date_generation)}</td>
                       <td>
-                        <Bouton sm onClick={() => telecharger(b.id)} enCours={telechargeId === b.id}>
-                          Télécharger
-                        </Bouton>
+                        <button type="button" className="mat-modifier" onClick={() => telecharger(b.id)} disabled={telechargeId === b.id}>
+                          {telechargeId === b.id ? 'Téléchargement…' : <><Icone nom="download" /> Télécharger</>}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -136,8 +182,10 @@ export default function EspaceEleve() {
               </table>
             </div>
           )}
-        </Carte>
-      </div>
+        </>
+      )}
+
+      <footer className="insc-pied">© {new Date().getFullYear()} Lekòl Konekte. Plateforme de gestion scolaire.</footer>
     </div>
   );
 }

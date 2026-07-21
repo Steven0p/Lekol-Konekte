@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { adminApi } from '../../services/api.js';
+import Icone from '../../components/Icone.jsx';
 
 // Icônes des fonctions (SVG en ligne, couleur héritée via currentColor)
 const IcoInscriptions = () => (
@@ -45,7 +46,7 @@ const SECTIONS = [
 function Badge({ compte }) {
   if (compte === null || compte === undefined) return null; // inconnu (chargement / non applicable)
   if (compte > 0) return <span className="tdb-badge tdb-badge-rouge">{compte}</span>;
-  return <span className="tdb-badge tdb-badge-vert" aria-label="À jour">✓</span>;
+  return <span className="tdb-badge tdb-badge-vert" aria-label="À jour"><Icone nom="check" size={14} /></span>;
 }
 
 export default function TableauAdmin() {
