@@ -52,3 +52,11 @@ export function requireAproposAdmin(req, res, next) {
   }
   next();
 }
+
+// Exige une session « admin de la section Académie » (système indépendant, hors comptes école)
+export function requireAcademieAdmin(req, res, next) {
+  if (!req.session || !req.session.academieAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin Académie requise.' });
+  }
+  next();
+}

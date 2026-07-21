@@ -11,6 +11,7 @@ import VlogAdmin from './pages/public/VlogAdmin.jsx';
 import Professeurs from './pages/public/Professeurs.jsx';
 import ProfesseursAdmin from './pages/public/ProfesseursAdmin.jsx';
 import Academie from './pages/public/Academie.jsx';
+import AcademieAdmin from './pages/public/AcademieAdmin.jsx';
 import Contact from './pages/public/Contact.jsx';
 import Calendrier from './pages/public/Calendrier.jsx';
 import Support from './pages/public/Support.jsx';
@@ -53,6 +54,7 @@ export default function App() {
         <Route path="/vlog/admin" element={<VlogAdmin />} />
         <Route path="/professeurs" element={<Professeurs />} />
         <Route path="/professeurs/admin" element={<ProfesseursAdmin />} />
+        <Route path="/academie/admin" element={<AcademieAdmin />} />
         <Route path="/academie/prescolaire" element={<Academie niveau="prescolaire" />} />
         <Route path="/academie/primaire" element={<Academie niveau="primaire" />} />
         <Route path="/academie/secondaire" element={<Academie niveau="secondaire" />} />

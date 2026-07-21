@@ -11,6 +11,7 @@
     "seed:vlog": "node scripts/seedVlog.js",
     "seed:profs": "node scripts/seedProfs.js",
     "seed:apropos": "node scripts/seedApropos.js",
+    "seed:academie": "node scripts/seedAcademie.js",
     "build": "npm --prefix ../frontend install && npm --prefix ../frontend run build"
   },
   "dependencies": {

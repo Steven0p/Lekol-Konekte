@@ -15,6 +15,7 @@ import paiementRoutes from './routes/paiement.routes.js';
 import vlogRoutes from './routes/vlog.routes.js';
 import professeurRoutes from './routes/professeur.routes.js';
 import aproposRoutes from './routes/apropos.routes.js';
+import academieRoutes from './routes/academie.routes.js';
 import { requireAuth } from './middleware/auth.js';
 
 dotenv.config();
@@ -83,6 +84,9 @@ app.use('/api', professeurRoutes);
 
 // Module « À propos » (système indépendant)
 app.use('/api', aproposRoutes);
+
+// Module « Académie » (système indépendant)
+app.use('/api', academieRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';

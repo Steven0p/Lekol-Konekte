@@ -203,6 +203,18 @@ export const aproposApi = {
   supprimer: (id) => request(`/apropos/${id}`, { method: 'DELETE' }),
 };
 
+// Section « Académie » — système indépendant (propre authentification)
+export const academieApi = {
+  sections: (niveau) => request(`/academie${qs({ niveau })}`),
+  adminMe: () => request('/academie/admin/me'),
+  adminLogin: (body) => request('/academie/admin/login', { method: 'POST', body: json(body) }),
+  adminLogout: () => request('/academie/admin/logout', { method: 'POST' }),
+  redactionIA: (body) => request('/academie/redaction-ia', { method: 'POST', body: json(body) }),
+  creer: (body) => request('/academie', { method: 'POST', body: json(body) }),
+  modifier: (id, body) => request(`/academie/${id}`, { method: 'PUT', body: json(body) }),
+  supprimer: (id) => request(`/academie/${id}`, { method: 'DELETE' }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;

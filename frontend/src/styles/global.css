@@ -1322,6 +1322,16 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 /* Section en cours d'édition dans l'admin */
 .vadm-item-actif { border: 1.5px solid #D69E2E; box-shadow: 0 0 0 3px rgba(214, 158, 46, .15); }
 
+/* Filtre par niveau (admin Académie) */
+.acad-filtre { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.acad-filtre-btn {
+  border: 1px solid #E2E8F0; background: #fff; color: #4A5568;
+  border-radius: 999px; padding: .35rem .9rem; font-size: .85rem; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.acad-filtre-btn:hover { border-color: #1A365D; color: #1A365D; }
+.acad-filtre-btn.actif { background: #1A365D; border-color: #1A365D; color: #fff; }
+
 /* État vide */
 .vpub-vide {
   text-align: center; padding: 3.5rem 1.5rem; background: #fff;
