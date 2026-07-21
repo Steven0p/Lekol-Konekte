@@ -43,6 +43,8 @@ export default function AdminDetailInscription() {
   const [msg, setMsg] = useState('');
   const [confirme, setConfirme] = useState(false);   // modale de confirmation
   const [enCours, setEnCours] = useState(false);
+  const [iaEnCours, setIaEnCours] = useState(false); // génération IA du message
+  const [erreurIA, setErreurIA] = useState('');
 
   const charger = () => {
     inscriptionsApi.detail(id).then(setData).catch((e) => setErreur(e.message));
@@ -60,6 +62,20 @@ export default function AdminDetailInscription() {
       setErreur(err.message); setConfirme(false);
     } finally {
       setEnCours(false);
+    }
+  };
+
+  // Rédige le message au parent avec l'IA, selon la décision choisie.
+  const genererMessage = async () => {
+    setErreurIA('');
+    setIaEnCours(true);
+    try {
+      const d = await adminApi.messageParentIA(id, { decision: statut, precision: commentaire || undefined });
+      setCommentaire(d.message || '');
+    } catch (err) {
+      setErreurIA(err.message);
+    } finally {
+      setIaEnCours(false);
     }
   };
 
@@ -152,9 +168,16 @@ export default function AdminDetailInscription() {
                 </label>
               ))}
             </div>
-            <textarea className="traiter-commentaire" rows={3} value={commentaire}
+            <div className="traiter-msg-tete">
+              <span className="traiter-msg-libelle">Message au parent (optionnel)</span>
+              <button type="button" className="traiter-ia-btn" onClick={genererMessage} disabled={iaEnCours || enCours}>
+                <Icone nom="comment" /> {iaEnCours ? 'Rédaction…' : 'Rédiger avec l\'IA'}
+              </button>
+            </div>
+            {erreurIA && <Alerte type="erreur">{erreurIA}</Alerte>}
+            <textarea className="traiter-commentaire" rows={4} value={commentaire}
               onChange={(e) => setCommentaire(e.target.value)}
-              placeholder="Message au parent (optionnel) — envoyé avec la décision…" />
+              placeholder="Message au parent (optionnel) — envoyé avec la décision. Vous pouvez le rédiger avec l'IA puis l'ajuster…" />
             <button type="button" className="traiter-appliquer" onClick={() => setConfirme(true)} disabled={enCours}>
               Appliquer
             </button>

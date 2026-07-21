@@ -16,8 +16,18 @@ import {
 import { listerPourEntite } from '../models/historique.model.js';
 import { changerStatut } from '../services/inscription.service.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 const TYPES_DOCUMENT = ['acte_naissance', 'bulletin', 'photo', 'autre'];
+
+// Décisions possibles + libellé humain pour l'assistant IA
+const DECISIONS_IA = {
+  accepte: 'accepter le dossier',
+  complement_demande: 'demander des documents ou informations complémentaires',
+  refuse: 'refuser le dossier',
+};
+// Documents attendus (pour repérer les manquants lors d'un complément)
+const DOCS_ATTENDUS = { acte_naissance: 'acte de naissance', bulletin: 'bulletin', photo: "photo d'identité" };
 
 function estAdmin(req) {
   return req.session.role === 'admin' || req.session.role === 'direction';
@@ -173,6 +183,66 @@ export async function listerAdmin(req, res, next) {
     const dossiers = await listerTout({ statut: req.query.statut, niveau: req.query.niveau });
     return res.json({ inscriptions: dossiers });
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/inscriptions/:id/message-ia (admin/direction) — rédige le message au parent avec l'IA (Groq)
+export async function messageParentIA(req, res, next) {
+  try {
+    if (!iaConfiguree()) {
+      return res.status(503).json({ erreur: "L'assistant IA n'est pas configuré (clé GROQ_API_KEY manquante côté serveur)." });
+    }
+    const decision = DECISIONS_IA[req.body.decision] ? req.body.decision : null;
+    if (!decision) return res.status(400).json({ erreur: 'Décision invalide.' });
+    const precision = (req.body.precision || '').trim().slice(0, 500);
+
+    const inscription = await trouverAvecProprietaire(Number(req.params.id));
+    if (!inscription) return res.status(404).json({ erreur: 'Inscription introuvable.' });
+
+    // Contexte : documents déjà soumis → repérer les manquants pour un complément
+    const documents = await listerParInscription(inscription.id);
+    const typesSoumis = new Set(documents.map((d) => d.type));
+    const manquants = Object.entries(DOCS_ATTENDUS)
+      .filter(([type]) => !typesSoumis.has(type))
+      .map(([, libelle]) => libelle);
+
+    const contexte = [
+      `Élève : ${inscription.eleve_nom || 'l\'élève'}`,
+      inscription.niveau ? `Niveau demandé : ${inscription.niveau}` : null,
+      inscription.annee_scolaire ? `Année scolaire : ${inscription.annee_scolaire}` : null,
+      inscription.parent_nom ? `Parent : ${inscription.parent_nom}` : null,
+      decision === 'complement_demande' && manquants.length ? `Documents manquants : ${manquants.join(', ')}` : null,
+      precision ? `Précisions du secrétariat : ${precision}` : null,
+    ].filter(Boolean).join('\n');
+
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.6,
+      max_tokens: 500,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es la secrétaire de l'école « Lekòl Konekte ». Tu rédiges un message court, poli et professionnel adressé au parent d'un élève, en français, au sujet du dossier d'inscription. Style courtois et bienveillant. Commence par « Bonjour, » et termine par « L'administration de Lekòl Konekte ». N'utilise pas d'emojis. N'invente aucune date, montant ni information absente du contexte fourni. Réponds uniquement avec le texte du message, sans objet ni en-tête.",
+        },
+        {
+          role: 'user',
+          content: `Rédige un message pour ${DECISIONS_IA[decision]}.\n\nContexte :\n${contexte}\n\n`
+            + (decision === 'accepte' ? "Annonce l'acceptation et invite le parent à finaliser l'inscription (paiement)."
+              : decision === 'complement_demande' ? 'Demande poliment de fournir les documents ou informations manquants.'
+              : 'Annonce le refus avec tact et respect, en restant bref.'),
+        },
+      ],
+    });
+
+    const message = (completion.choices?.[0]?.message?.content || '').trim();
+    if (!message) return res.status(502).json({ erreur: "L'assistant IA n'a pas pu générer de message." });
+    return res.json({ message });
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) {
+      return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
+    }
     next(err);
   }
 }

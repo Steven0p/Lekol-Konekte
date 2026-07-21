@@ -10,6 +10,7 @@ import {
   servirFichier,
   listerAdmin,
   changerStatutCtrl,
+  messageParentIA,
 } from '../controllers/inscription.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { uploadDocument } from '../config/upload.js';
@@ -46,5 +47,6 @@ router.get('/documents-soumis/:id/fichier', requireAuth, servirFichier);
 // Admin / direction
 router.get('/admin/inscriptions', requireRole('admin', 'direction'), listerAdmin);
 router.patch('/inscriptions/:id/statut', requireRole('admin', 'direction'), changerStatutCtrl);
+router.post('/inscriptions/:id/message-ia', requireRole('admin', 'direction'), messageParentIA);
 
 export default router;

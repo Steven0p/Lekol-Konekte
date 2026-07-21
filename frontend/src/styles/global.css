@@ -1372,6 +1372,19 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .traiter-option.actif.vert { border-color: #38A169; background: #F0FFF4; }
 .traiter-option.actif.or { border-color: #D69E2E; background: #FFFBEB; }
 .traiter-option.actif.rouge { border-color: #E53E3E; background: #FFF5F5; }
+.traiter-msg-tete {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  margin-bottom: .5rem; flex-wrap: wrap;
+}
+.traiter-msg-libelle { color: #4A5568; font-size: .9rem; font-weight: 600; }
+.traiter-ia-btn {
+  display: inline-flex; align-items: center; gap: .45rem;
+  background: #fff; color: #B7791F; border: 1.5px dashed #D69E2E;
+  border-radius: 8px; padding: .4rem .8rem; font-weight: 700; font-size: .85rem; cursor: pointer;
+  transition: background .15s;
+}
+.traiter-ia-btn:hover:not(:disabled) { background: #FFFBEB; }
+.traiter-ia-btn:disabled { opacity: .6; cursor: not-allowed; }
 .traiter-commentaire {
   width: 100%; padding: .7rem; border: 1px solid #E2E8F0; border-radius: 8px; font: inherit;
   color: #2D3748; resize: vertical;

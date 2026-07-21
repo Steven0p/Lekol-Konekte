@@ -96,6 +96,7 @@ export const adminApi = {
   // Inscriptions
   inscriptions: (params) => request(`/admin/inscriptions${qs(params)}`),
   changerStatutInscription: (id, body) => request(`/inscriptions/${id}/statut`, { method: 'PATCH', body: json(body) }),
+  messageParentIA: (id, body) => request(`/inscriptions/${id}/message-ia`, { method: 'POST', body: json(body) }),
   // Notes
   eleves: (niveau) => request(`/admin/eleves${qs({ niveau })}`),
   matieres: (niveau) => request(`/matieres${qs({ niveau })}`),
