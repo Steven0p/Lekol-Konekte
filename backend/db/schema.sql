@@ -312,3 +312,23 @@ CREATE TABLE IF NOT EXISTS academie_sections (
   FOREIGN KEY (id_academie_admin) REFERENCES academie_admins(id) ON DELETE SET NULL,
   INDEX idx_academie_niveau (niveau, ordre)
 ) ENGINE=InnoDB;
+
+-- examens_admins : identifiants dédiés à la gestion des « Examens passés »
+CREATE TABLE IF NOT EXISTS examens_admins (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  identifiant       VARCHAR(80) NOT NULL UNIQUE,
+  mot_de_passe_hash VARCHAR(255) NOT NULL,
+  cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
+-- examens : photos de feuilles d'examen, classées par niveau (texte libre)
+CREATE TABLE IF NOT EXISTS examens (
+  id               INT AUTO_INCREMENT PRIMARY KEY,
+  niveau           VARCHAR(60) NOT NULL,
+  titre            VARCHAR(160) NULL,
+  photo_url        VARCHAR(500) NOT NULL,
+  id_examens_admin INT NULL,
+  cree_le          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_examens_admin) REFERENCES examens_admins(id) ON DELETE SET NULL,
+  INDEX idx_examens_niveau (niveau)
+) ENGINE=InnoDB;

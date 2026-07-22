@@ -21,9 +21,10 @@ const DEST_PHOTOS = path.join(UPLOAD_ROOT, 'photos');   // photos élèves (badg
 const DEST_LOGOS = path.join(UPLOAD_ROOT, 'logos');     // logo de l'école
 const DEST_VLOG = path.join(UPLOAD_ROOT, 'vlog');       // photos des publications du vlog
 const DEST_PROFS = path.join(UPLOAD_ROOT, 'professeurs'); // photos des fiches du corps enseignant
+const DEST_EXAMENS = path.join(UPLOAD_ROOT, 'examens'); // photos des feuilles d'examen
 
 // Crée les sous-dossiers si absents (conteneur / volume vierge en production)
-for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS]) {
+for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS, DEST_EXAMENS]) {
   fs.mkdirSync(dossier, { recursive: true });
 }
 
@@ -58,3 +59,4 @@ export const uploadPhoto = creerUpload(DEST_PHOTOS, imageFilter, TYPES_IMAGE);  
 export const uploadLogo = creerUpload(DEST_LOGOS, imageFilter, TYPES_IMAGE);    // logo école
 export const uploadVlog = creerUpload(DEST_VLOG, imageFilter, TYPES_IMAGE);     // photo publication vlog
 export const uploadProf = creerUpload(DEST_PROFS, imageFilter, TYPES_IMAGE);    // photo fiche professeur
+export const uploadExamen = creerUpload(DEST_EXAMENS, imageFilter, TYPES_IMAGE); // photo feuille d'examen

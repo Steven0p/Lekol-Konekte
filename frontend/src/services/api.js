@@ -218,6 +218,22 @@ export const academieApi = {
   supprimer: (id) => request(`/academie/${id}`, { method: 'DELETE' }),
 };
 
+// Examens passés — système indépendant (propre authentification)
+export const examensApi = {
+  lister: (niveau) => request(`/examens${qs({ niveau })}`),
+  adminMe: () => request('/examens/admin/me'),
+  adminLogin: (body) => request('/examens/admin/login', { method: 'POST', body: json(body) }),
+  adminLogout: () => request('/examens/admin/logout', { method: 'POST' }),
+  creer: ({ niveau, titre, photo }) => {
+    const fd = new FormData();
+    fd.append('niveau', niveau);
+    if (titre) fd.append('titre', titre);
+    fd.append('photo', photo);
+    return request('/examens', { method: 'POST', body: fd });
+  },
+  supprimer: (id) => request(`/examens/${id}`, { method: 'DELETE' }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;
@@ -227,5 +243,6 @@ export const urlPhotoEleveAdmin = (id) => `${API_URL}/admin/eleves/${id}/photo`;
 export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
 export const urlPhotoVlog = (id) => `${API_URL}/vlog/${id}/photo`;
 export const urlPhotoProf = (id) => `${API_URL}/professeurs/${id}/photo`;
+export const urlPhotoExamen = (id) => `${API_URL}/examens/${id}/photo`;
 
 export { request, API_URL };

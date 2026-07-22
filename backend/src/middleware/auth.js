@@ -60,3 +60,11 @@ export function requireAcademieAdmin(req, res, next) {
   }
   next();
 }
+
+// Exige une session « admin des examens passés » (système indépendant, hors comptes école)
+export function requireExamensAdmin(req, res, next) {
+  if (!req.session || !req.session.examensAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin Examens requise.' });
+  }
+  next();
+}

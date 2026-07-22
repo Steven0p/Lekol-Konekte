@@ -12,6 +12,8 @@ import Professeurs from './pages/public/Professeurs.jsx';
 import ProfesseursAdmin from './pages/public/ProfesseursAdmin.jsx';
 import Academie from './pages/public/Academie.jsx';
 import AcademieAdmin from './pages/public/AcademieAdmin.jsx';
+import Examens from './pages/public/Examens.jsx';
+import ExamensAdmin from './pages/public/ExamensAdmin.jsx';
 import Contact from './pages/public/Contact.jsx';
 import Calendrier from './pages/public/Calendrier.jsx';
 import Support from './pages/public/Support.jsx';
@@ -55,6 +57,8 @@ export default function App() {
         <Route path="/professeurs" element={<Professeurs />} />
         <Route path="/professeurs/admin" element={<ProfesseursAdmin />} />
         <Route path="/academie/admin" element={<AcademieAdmin />} />
+        <Route path="/examens" element={<Examens />} />
+        <Route path="/examens/admin" element={<ExamensAdmin />} />
         <Route path="/academie/prescolaire" element={<Academie niveau="prescolaire" />} />
         <Route path="/academie/primaire" element={<Academie niveau="primaire" />} />
         <Route path="/academie/secondaire" element={<Academie niveau="secondaire" />} />

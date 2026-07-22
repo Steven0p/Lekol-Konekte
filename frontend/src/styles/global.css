@@ -1384,6 +1384,43 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .acad-filtre-btn:hover { border-color: #1A365D; color: #1A365D; }
 .acad-filtre-btn.actif { background: #1A365D; border-color: #1A365D; color: #fff; }
 
+/* ---------- Examens passés (galerie publique) ---------- */
+.examens-groupe { margin-bottom: 2rem; }
+.examens-grille {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; margin-top: .75rem;
+}
+.examens-carte {
+  display: flex; flex-direction: column; background: #fff; border: 1px solid #E2E8F0; border-radius: 12px;
+  overflow: hidden; cursor: pointer; padding: 0; text-align: left; transition: box-shadow .15s, transform .15s;
+}
+.examens-carte:hover { box-shadow: 0 8px 22px rgba(26, 54, 93, .14); transform: translateY(-2px); }
+.examens-carte img { width: 100%; height: 200px; object-fit: cover; background: #EDF2F7; display: block; }
+.examens-carte-info { padding: .6rem .75rem; display: flex; flex-direction: column; gap: .15rem; }
+.examens-carte-titre { font-weight: 700; color: #1A365D; font-size: .9rem; }
+.examens-carte-date { font-size: .78rem; color: #A0AEC0; }
+
+/* Lightbox (aperçu en grand) */
+.examens-lightbox {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, .82); z-index: 1000;
+  display: grid; place-items: center; padding: 1.5rem;
+}
+.examens-lightbox figure { margin: 0; max-width: 92vw; max-height: 90vh; text-align: center; }
+.examens-lightbox img { max-width: 92vw; max-height: 80vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.examens-lightbox figcaption { color: #fff; margin-top: .75rem; font-weight: 600; }
+.examens-lightbox-fermer {
+  position: absolute; top: 1rem; right: 1.25rem; background: none; border: none; color: #fff;
+  font-size: 2.4rem; line-height: 1; cursor: pointer;
+}
+
+/* Admin examens — liste */
+.examens-admin-liste { display: flex; flex-direction: column; gap: .85rem; }
+.examens-admin-item {
+  display: flex; align-items: center; gap: .9rem; border: 1px solid #E2E8F0; border-radius: 10px; padding: .6rem;
+}
+.examens-admin-item img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: #EDF2F7; flex-shrink: 0; }
+.examens-admin-item-info { flex: 1; display: flex; flex-direction: column; gap: .3rem; min-width: 0; }
+.examens-admin-item-titre { margin: 0; color: #2D3748; font-size: .88rem; }
+
 /* État vide */
 .vpub-vide {
   text-align: center; padding: 3.5rem 1.5rem; background: #fff;
