@@ -15,9 +15,11 @@ const LIBELLE_TRIMESTRE = {
 };
 
 // Génère le PDF et l'écrit sur le disque. Retourne { urlPdf, identifiantUnique }.
-export async function genererBulletinPDF({ eleve, niveau, trimestre, anneeScolaire, lignes, moyenne, ecoleNom }) {
+// moyenneAnnuelle / moyennesTrimestres : renseignés uniquement au 3e trimestre
+// (bilan de fin d'année). moyennesTrimestres = { '1er_trimestre', '2e_trimestre', '3e_trimestre' }.
+export async function genererBulletinPDF({ eleve, niveau, trimestre, anneeScolaire, lignes, moyenne, ecoleNom, moyenneAnnuelle = null, moyennesTrimestres = null }) {
   const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]); // A4
+  let page = pdf.addPage([595, 842]); // A4
   const police = await pdf.embedFont(StandardFonts.Helvetica);
   const policeGras = await pdf.embedFont(StandardFonts.HelveticaBold);
   const noir = rgb(0.1, 0.1, 0.1);
@@ -66,7 +68,27 @@ export async function genererBulletinPDF({ eleve, niveau, trimestre, anneeScolai
   y -= 6;
   page.drawLine({ start: { x: marge, y }, end: { x: 545, y }, thickness: 1, color: gris });
   y -= 22;
-  texte(`Moyenne générale (pondérée) : ${moyenne.toFixed(2)} / 100`, marge, y, 13, true);
+  texte(`Moyenne du trimestre (pondérée) : ${moyenne.toFixed(2)} / 100`, marge, y, 13, true);
+
+  // Bilan annuel — affiché uniquement quand le 3e trimestre est terminé.
+  if (trimestre === '3e_trimestre' && moyenneAnnuelle != null) {
+    const fmt = (v) => (v == null ? '—' : Number(v).toFixed(2));
+    const mt = moyennesTrimestres || {};
+    y -= 34;
+    if (y < 140) { y = 800; page = pdf.addPage([595, 842]); }
+    const marine = rgb(0.10, 0.21, 0.36);
+    page.drawRectangle({ x: marge, y: y - 96, width: 495, height: 108, color: rgb(0.93, 0.97, 1) });
+    texte('Bilan de fin d\'année', marge + 12, y, 13, true, marine);
+    y -= 22;
+    texte(`Moyenne 1er trimestre : ${fmt(mt['1er_trimestre'])} / 100`, marge + 12, y); y -= 16;
+    texte(`Moyenne 2e trimestre : ${fmt(mt['2e_trimestre'])} / 100`, marge + 12, y); y -= 16;
+    texte(`Moyenne 3e trimestre : ${fmt(mt['3e_trimestre'])} / 100`, marge + 12, y); y -= 22;
+    texte(`Moyenne générale annuelle : ${Number(moyenneAnnuelle).toFixed(2)} / 100`, marge + 12, y, 14, true, marine);
+    const admis = Number(moyenneAnnuelle) >= 50;
+    texte(`Décision : ${admis ? 'Admis(e) en classe supérieure' : 'Ajourné(e)'}`, marge + 300, y, 11, true,
+      admis ? rgb(0.13, 0.55, 0.13) : rgb(0.72, 0.11, 0.11));
+    y -= 12;
+  }
 
   // Pied de page
   const identifiantUnique = crypto.randomBytes(16).toString('hex');

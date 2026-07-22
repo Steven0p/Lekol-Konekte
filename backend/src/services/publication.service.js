@@ -46,8 +46,29 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection })
     if (!notes.length) { nbSansNotes += 1; continue; }
 
     const { lignes, moyenneGenerale } = calculerMoyenne(notes);
+
+    // Bilan de fin d'année : au 3e trimestre, on calcule la moyenne générale annuelle
+    // (moyenne des moyennes des trimestres disponibles pour cet élève).
+    let moyenneAnnuelle = null;
+    let moyennesTrimestres = null;
+    if (trimestre === '3e_trimestre') {
+      const trims = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
+      moyennesTrimestres = {};
+      for (const tr of trims) {
+        const nt = tr === '3e_trimestre'
+          ? notes
+          : await notesValideesPourBulletin(eleve.id, tr, anneeScolaire);
+        moyennesTrimestres[tr] = nt.length ? calculerMoyenne(nt).moyenneGenerale : null;
+      }
+      const dispo = trims.map((t) => moyennesTrimestres[t]).filter((v) => v != null);
+      moyenneAnnuelle = dispo.length
+        ? Math.round((dispo.reduce((a, b) => a + b, 0) / dispo.length) * 100) / 100
+        : null;
+    }
+
     const { urlPdf, identifiantUnique } = await genererBulletinPDF({
       eleve, niveau, trimestre, anneeScolaire, lignes, moyenne: moyenneGenerale, ecoleNom,
+      moyenneAnnuelle, moyennesTrimestres,
     });
 
     await creerDocumentOfficiel({
@@ -57,16 +78,22 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection })
 
     // Notification au parent (ne bloque pas la publication en cas d'échec)
     const libelle = LIBELLE_TRIMESTRE[trimestre] || trimestre;
+    const bilanTexte = moyenneAnnuelle != null
+      ? `\nMoyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.` : '';
+    const bilanHtml = moyenneAnnuelle != null
+      ? `<p>Moyenne générale annuelle : <strong>${moyenneAnnuelle.toFixed(2)}/100</strong>.</p>` : '';
     try {
       await envoyerCourriel({
         to: eleve.parent_courriel,
         subject: `Lekòl Konekte — bulletin ${libelle} disponible`,
         text: `Bonjour ${eleve.parent_nom},\n\nLe bulletin du ${libelle} (année ${anneeScolaire}) ` +
-              `de ${eleve.nom} est disponible dans votre compte.\nMoyenne générale : ${moyenneGenerale.toFixed(2)}/100.`,
+              `de ${eleve.nom} est disponible dans votre compte.\nMoyenne du trimestre : ${moyenneGenerale.toFixed(2)}/100.` +
+              bilanTexte,
         html: `<p>Bonjour ${eleve.parent_nom},</p>` +
               `<p>Le bulletin du <strong>${libelle}</strong> (année ${anneeScolaire}) de ` +
               `<strong>${eleve.nom}</strong> est disponible dans votre compte.</p>` +
-              `<p>Moyenne générale : <strong>${moyenneGenerale.toFixed(2)}/100</strong>.</p>`,
+              `<p>Moyenne du trimestre : <strong>${moyenneGenerale.toFixed(2)}/100</strong>.</p>` +
+              bilanHtml,
       });
     } catch (err) {
       console.error('Notification bulletin échouée :', err.message);
