@@ -40,6 +40,7 @@ router.put('/tarifs/:id', requireRole('direction'), tarif.mettreAJourTarif);
 router.put('/ecole', requireRole('direction'), tarif.definirEcole);
 router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
 router.post('/ecole/logo', requireRole('direction'), televerserLogoFichier, tarif.televerserLogo);
+router.delete('/ecole/logo', requireRole('direction'), tarif.supprimerLogo);
 // Logo public (le badge élève, sans compte utilisateur, doit pouvoir l'afficher)
 router.get('/ecole/logo', tarif.servirLogo);
 

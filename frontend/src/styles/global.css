@@ -1133,6 +1133,7 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .ecole-logo-vide { color: #A0AEC0; }
 .ecole-logo-vide .ico { font-size: 2.5rem; }
 .ecole-info { color: #A0AEC0; font-size: .78rem; margin-top: .6rem; }
+.ecole-logo-supprimer { width: 100%; margin-top: .6rem; justify-content: center; }
 
 /* Zone de dépôt du logo (modale) */
 .ecole-drop {

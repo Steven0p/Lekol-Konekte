@@ -146,6 +146,7 @@ export const directionApi = {
     fd.append('logo', fichier);
     return request('/ecole/logo', { method: 'POST', body: fd });
   },
+  supprimerLogo: () => request('/ecole/logo', { method: 'DELETE' }),
 };
 
 // Vlog — système indépendant (propre authentification)

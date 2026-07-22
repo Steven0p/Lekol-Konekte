@@ -18,6 +18,8 @@ export default function Ecole() {
   const [apercu, setApercu] = useState('');
   const [logoEnCours, setLogoEnCours] = useState(false);
   const [erreurLogo, setErreurLogo] = useState('');
+  const [confirmSupp, setConfirmSupp] = useState(false); // modale de suppression du logo
+  const [suppEnCours, setSuppEnCours] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -62,6 +64,16 @@ export default function Ecole() {
       setMsg('Logo enregistré.'); setModalLogo(false); setFichier(null); setApercu('');
     } catch (err) { setErreurLogo(err.message); }
     finally { setLogoEnCours(false); }
+  };
+
+  const supprimerLogo = async () => {
+    setErreur(''); setMsg(''); setSuppEnCours(true);
+    try {
+      await directionApi.supprimerLogo();
+      setALogo(false); setVersion((v) => v + 1);
+      setMsg('Logo supprimé.'); setConfirmSupp(false);
+    } catch (err) { setErreur(err.message); setConfirmSupp(false); }
+    finally { setSuppEnCours(false); }
   };
 
   if (erreur && !form) return <div className="insc-page"><Alerte type="erreur">{erreur}</Alerte></div>;
@@ -118,6 +130,11 @@ export default function Ecole() {
           <button type="button" className="traiter-appliquer" onClick={ouvrirModal}>
             {aLogo ? 'Changer le logo' : 'Ajouter un logo'}
           </button>
+          {aLogo && (
+            <button type="button" className="paie-btn paie-rejeter ecole-logo-supprimer" onClick={() => setConfirmSupp(true)}>
+              <Icone nom="trash" /> Supprimer le logo
+            </button>
+          )}
           <p className="ecole-info">JPG ou PNG, max 5 Mo.</p>
         </section>
       </div>
@@ -153,6 +170,25 @@ export default function Ecole() {
               <button type="button" className="insc-btn-reinit" onClick={fermerModal} disabled={logoEnCours}>Annuler</button>
               <button type="button" className="mat-modifier" onClick={televerser} disabled={logoEnCours || !fichier}>
                 {logoEnCours ? 'Upload…' : 'Upload'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : confirmer la suppression du logo */}
+      {confirmSupp && (
+        <div className="prof-modal-fond" onClick={() => !suppEnCours && setConfirmSupp(false)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setConfirmSupp(false)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Supprimer le logo</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              Voulez-vous vraiment supprimer le logo de l'école ? Il n'apparaîtra plus sur les badges des élèves.
+            </p>
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setConfirmSupp(false)} disabled={suppEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={supprimerLogo} disabled={suppEnCours}>
+                {suppEnCours ? 'Suppression…' : 'Confirmer'}
               </button>
             </div>
           </div>

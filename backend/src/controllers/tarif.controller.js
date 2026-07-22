@@ -1,5 +1,6 @@
 // Contrôleur Tarifs + École
 import path from 'path';
+import fs from 'fs/promises';
 import * as tarifModel from '../models/tarif.model.js';
 import * as ecoleModel from '../models/ecole.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
@@ -98,6 +99,24 @@ export async function televerserLogo(req, res, next) {
     if (!req.file) return res.status(400).json({ erreur: 'Logo requis (JPG ou PNG, max 5 Mo).' });
     await ecoleModel.mettreLogo(`logos/${req.file.filename}`);
     return res.status(201).json({ message: 'Logo enregistré.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/ecole/logo (direction) — supprime le logo de l'école
+export async function supprimerLogo(req, res, next) {
+  try {
+    const ecole = await ecoleModel.obtenir();
+    if (!ecole || !ecole.logo_url) return res.status(404).json({ erreur: 'Aucun logo à supprimer.' });
+
+    // Supprime le fichier physique (au mieux : on n'échoue pas si absent)
+    const chemin = path.resolve(UPLOAD_ROOT, ecole.logo_url);
+    if (chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
+      await fs.unlink(chemin).catch(() => {});
+    }
+    await ecoleModel.mettreLogo(null);
+    return res.json({ message: 'Logo supprimé.' });
   } catch (err) {
     next(err);
   }
