@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { adminApi } from '../../services/api.js';
+import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -21,7 +22,7 @@ function anneesScolaires() {
 export default function AdminEconomat() {
   const [niveaux, setNiveaux] = useState([]);       // liste déroulante dynamique
   const [niveau, setNiveau] = useState('');
-  const [annee, setAnnee] = useState('2026-2027');
+  const [annee, setAnnee] = useState(anneeScolaireCourante());
   const [trimestre, setTrimestre] = useState('1er_trimestre');
 
   const [eleves, setEleves] = useState([]);
@@ -86,7 +87,7 @@ export default function AdminEconomat() {
     finally { setBatchEnCours(false); }
   };
 
-  const reinitialiser = () => { setNiveau(''); setAnnee('2026-2027'); setTrimestre('1er_trimestre'); };
+  const reinitialiser = () => { setNiveau(''); setAnnee(anneeScolaireCourante()); setTrimestre('1er_trimestre'); };
 
   return (
     <div className="insc-page eco-page">

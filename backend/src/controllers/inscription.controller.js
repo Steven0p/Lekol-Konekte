@@ -17,6 +17,7 @@ import { listerPourEntite } from '../models/historique.model.js';
 import { changerStatut } from '../services/inscription.service.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { anneeScolaireCourante } from '../utils/dates.js';
 
 const TYPES_DOCUMENT = ['acte_naissance', 'bulletin', 'photo', 'autre'];
 
@@ -41,7 +42,8 @@ export async function creer(req, res, next) {
 
     const eleveNom = (req.body.eleveNom || '').trim();
     const elevePrenom = (req.body.elevePrenom || '').trim();
-    const anneeScolaire = (req.body.anneeScolaire || '').trim();
+    // Année scolaire : automatique (année courante) si non fournie.
+    const anneeScolaire = (req.body.anneeScolaire || '').trim() || anneeScolaireCourante();
     const niveau = (req.body.niveau || '').trim();
     const dateNaissance = req.body.dateNaissance || null;
 
@@ -53,8 +55,8 @@ export async function creer(req, res, next) {
     const ancienneClasse = t(req.body.ancienneClasse);
     const raisonChoix = t(req.body.raisonChoix);
 
-    if (!eleveNom || !anneeScolaire) {
-      return res.status(400).json({ erreur: "Le nom de l'élève et l'année scolaire sont requis." });
+    if (!eleveNom) {
+      return res.status(400).json({ erreur: "Le nom de l'élève est requis." });
     }
 
     const { idInscription, idEleve } = await creerInscription({

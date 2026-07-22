@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { adminApi } from '../../services/api.js';
+import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -21,7 +22,7 @@ export default function AdminNotes() {
   const [niveaux, setNiveaux] = useState([]);
   const [niveau, setNiveau] = useState('');
   const [periode, setPeriode] = useState('1er_trimestre');
-  const [annee, setAnnee] = useState('2026-2027');
+  const [annee, setAnnee] = useState(anneeScolaireCourante());
 
   const [eleves, setEleves] = useState([]);
   const [matieres, setMatieres] = useState([]);
@@ -134,7 +135,7 @@ export default function AdminNotes() {
     finally { setModalEnCours(false); }
   };
 
-  const reinitialiser = () => { setNiveau(''); setPeriode('1er_trimestre'); setAnnee('2026-2027'); };
+  const reinitialiser = () => { setNiveau(''); setPeriode('1er_trimestre'); setAnnee(anneeScolaireCourante()); };
   const allerAuFormulaire = () => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
   return (

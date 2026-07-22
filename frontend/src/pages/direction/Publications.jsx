@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { directionApi, adminApi, urlDocumentOfficiel } from '../../services/api.js';
-import { dateHeureFr } from '../../utils/libelles.js';
+import { dateHeureFr, anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -22,7 +22,7 @@ function anneesScolaires() {
 
 export default function Publications() {
   const [niveaux, setNiveaux] = useState([]);
-  const [form, setForm] = useState({ niveau: '', anneeScolaire: '2026-2027', trimestre: '1er_trimestre' });
+  const [form, setForm] = useState({ niveau: '', anneeScolaire: anneeScolaireCourante(), trimestre: '1er_trimestre' });
 
   const [publications, setPublications] = useState(null); // null = chargement
   const [bulletins, setBulletins] = useState([]);

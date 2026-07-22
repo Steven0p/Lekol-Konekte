@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { inscriptionsApi } from '../../services/api.js';
+import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -9,7 +10,7 @@ import Alerte from '../../components/Alerte.jsx';
 export default function NouvelleInscription() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: '',
+    eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
     nomParent: '', professionParent: '', telephoneParent: '',
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
