@@ -92,9 +92,8 @@ function Recto({ badge, photoSrc, logoSrc }) {
       </div>
 
       <div style={{ padding: '0 1.15rem .5rem' }}>
-        <Ligne libelle="Nom du parent" valeur={badge.nomParent} />
         <Ligne libelle="Classe" valeur={badge.niveau} />
-        <Ligne libelle="Session" valeur={badge.anneeScolaire} />
+        <Ligne libelle="Année académique" valeur={badge.anneeScolaire} />
         <Ligne libelle="N° étudiant" valeur={badge.nisu} mono />
         <Ligne libelle="Groupe sanguin" valeur={badge.groupeSanguin} />
       </div>
@@ -109,6 +108,12 @@ function Recto({ badge, photoSrc, logoSrc }) {
 
 // ---------- Verso ----------
 function Verso({ badge, logoSrc }) {
+  // Lien unique vers les résultats de l'élève : le scan ouvre l'espace élève,
+  // connecté automatiquement grâce à son code d'accès.
+  const origine = typeof window !== 'undefined' ? window.location.origin : '';
+  const lienResultats = badge.nisu
+    ? `${origine}/eleve?code=${encodeURIComponent(badge.nisu)}`
+    : origine || 'Lekòl Konekte';
   return (
     <div className="badge-face" style={{
       width: 320, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
@@ -126,11 +131,8 @@ function Verso({ badge, logoSrc }) {
       </div>
       <Vague />
 
-      <div style={{ padding: '.35rem 1.15rem .5rem' }}>
-        <Ligne libelle="Contact" valeur={badge.contactParent} />
-        <Ligne libelle="Date de naissance" valeur={dateCourte(badge.dateNaissance)} />
-
-        <div style={{ display: 'flex', gap: '.5rem', margin: '.55rem 0' }}>
+      <div style={{ padding: '.55rem 1.15rem .5rem' }}>
+        <div style={{ display: 'flex', gap: '.5rem', margin: '.15rem 0 .55rem' }}>
           <div style={{ flex: 1, background: '#EBF8FF', border: `1px solid ${MARINE}`, borderRadius: 8, padding: '.4rem .5rem', textAlign: 'center' }}>
             <div style={{ fontSize: '.6rem', color: '#718096', fontWeight: 700 }}>ÉMISSION</div>
             <div style={{ fontSize: '.78rem', fontWeight: 800, color: MARINE }}>{dateCourte(badge.dateEmission)}</div>
@@ -141,11 +143,14 @@ function Verso({ badge, logoSrc }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', placeItems: 'center', padding: '.35rem 0' }}>
+        <div style={{ display: 'grid', placeItems: 'center', padding: '.2rem 0' }}>
           <div style={{ padding: 6, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8 }}>
-            <QRCodeSVG value={String(badge.nisu || badge.id || 'LK')} size={92} level="M" fgColor={MARINE} />
+            <QRCodeSVG value={lienResultats} size={104} level="M" fgColor={MARINE} />
           </div>
-          <div style={{ fontSize: '.62rem', color: '#A0AEC0', marginTop: 4, fontFamily: 'monospace', letterSpacing: '.5px' }}>
+          <div style={{ fontSize: '.66rem', color: MARINE, marginTop: 5, fontWeight: 700 }}>
+            Scannez pour accéder aux résultats
+          </div>
+          <div style={{ fontSize: '.62rem', color: '#A0AEC0', marginTop: 1, fontFamily: 'monospace', letterSpacing: '.5px' }}>
             {badge.nisu || '—'}
           </div>
         </div>
