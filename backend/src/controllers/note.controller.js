@@ -5,7 +5,7 @@ import * as matiereModel from '../models/matiere.model.js';
 import { trouverAvecProprietaire as trouverEleve, listerParParent as listerElevesParent,
   listerTous as listerTousEleves, listerAvecCode, genererCodeAcces, appartientAuParent,
   trouverParId as trouverEleveParId, mettrePhoto, derniereAnneeScolaire,
-  assurerEmissionBadge, infosParent, mettreInfosBadge }
+  assurerEmissionBadge, mettreInfosBadge }
   from '../models/eleve.model.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
@@ -213,24 +213,28 @@ function ajouterAns(v, n) {
 }
 
 // Construit le contenu complet du badge (carte ID recto/verso) pour un élève.
+// Les champs « badge_* » sont des surcharges saisies par le secrétariat : si
+// présentes elles priment, sinon le badge retombe sur la valeur automatique.
 async function construireBadge(eleve) {
-  const anneeScolaire = await derniereAnneeScolaire(eleve.id);
+  const anneeAuto = await derniereAnneeScolaire(eleve.id);
   const ecole = await obtenirEcole();
-  const parent = await infosParent(eleve.id);
   const dateEmission = isoDate(await assurerEmissionBadge(eleve.id));
   const dateExpiration = ajouterAns(dateEmission, 1); // expire 1 an après l'émission
+
+  const nom = eleve.badge_nom || eleve.nom;
+  const prenom = eleve.badge_prenom || eleve.prenom || '';
+  const niveau = eleve.badge_classe || eleve.niveau;
+  const anneeScolaire = eleve.badge_annee || anneeAuto;
+
   return {
     id: eleve.id,
-    nom: eleve.nom,
-    prenom: eleve.prenom || '',
-    niveau: eleve.niveau,
+    nom,
+    prenom,
+    niveau,
     anneeScolaire,
     nisu: eleve.code_acces,
     aPhoto: !!eleve.photo_url,
-    dateNaissance: isoDate(eleve.date_naissance),
     groupeSanguin: eleve.groupe_sanguin || null,
-    nomParent: parent.nom_parent || null,
-    contactParent: parent.telephone_parent || null,
     dateEmission,
     dateExpiration,
     ecoleNom: ecole?.nom || 'Lekòl Konekte',
@@ -238,6 +242,22 @@ async function construireBadge(eleve) {
     ecoleTelephone: ecole?.telephone || null,
     ecoleCourriel: ecole?.courriel || null,
     ecoleALogo: !!(ecole && ecole.logo_url),
+    // Valeurs brutes de surcharge (pour préremplir le formulaire de modification)
+    modif: {
+      groupeSanguin: eleve.groupe_sanguin || '',
+      badgeNom: eleve.badge_nom || '',
+      badgePrenom: eleve.badge_prenom || '',
+      badgeClasse: eleve.badge_classe || '',
+      badgeAnnee: eleve.badge_annee || '',
+      badgeEmisLe: isoDate(eleve.badge_emis_le) || '',
+    },
+    // Valeurs automatiques (affichées en indication/placeholder dans le formulaire)
+    auto: {
+      nom: eleve.nom || '',
+      prenom: eleve.prenom || '',
+      niveau: eleve.niveau || '',
+      anneeScolaire: anneeAuto || '',
+    },
   };
 }
 
@@ -263,17 +283,37 @@ export async function badgeEleveAdmin(req, res, next) {
   }
 }
 
-// PATCH /api/admin/eleves/:id/badge-infos (admin/direction) — groupe sanguin
+// PATCH /api/admin/eleves/:id/badge-infos (admin/direction) — surcharges du badge
 export async function majInfosBadgeEleve(req, res, next) {
   try {
     const eleve = await trouverEleveParId(Number(req.params.id));
     if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
-    let groupeSanguin = (req.body.groupeSanguin || '').trim().toUpperCase();
+
+    const t = (v) => (v == null ? '' : String(v)).trim();
+    const groupeSanguin = t(req.body.groupeSanguin).toUpperCase();
     if (groupeSanguin && !/^(A|B|AB|O)[+-]$/.test(groupeSanguin)) {
       return res.status(400).json({ erreur: 'Groupe sanguin invalide (ex. A+, O-, AB+).' });
     }
-    await mettreInfosBadge(eleve.id, { groupeSanguin: groupeSanguin || null });
-    return res.json({ message: 'Informations du badge mises à jour.', groupeSanguin: groupeSanguin || null });
+    const badgeAnnee = t(req.body.badgeAnnee);
+    if (badgeAnnee && !/^\d{4}-\d{4}$/.test(badgeAnnee)) {
+      return res.status(400).json({ erreur: 'Année académique invalide (ex. 2025-2026).' });
+    }
+    const badgeEmisLe = t(req.body.badgeEmisLe);
+    if (badgeEmisLe && !/^\d{4}-\d{2}-\d{2}$/.test(badgeEmisLe)) {
+      return res.status(400).json({ erreur: "Date d'émission invalide." });
+    }
+
+    await mettreInfosBadge(eleve.id, {
+      groupeSanguin,
+      badgeNom: t(req.body.badgeNom),
+      badgePrenom: t(req.body.badgePrenom),
+      badgeClasse: t(req.body.badgeClasse),
+      badgeAnnee,
+      badgeEmisLe,
+    });
+
+    const maj = await trouverEleveParId(eleve.id);
+    return res.json({ badge: await construireBadge(maj) });
   } catch (err) {
     next(err);
   }

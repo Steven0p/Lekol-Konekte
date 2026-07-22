@@ -13,8 +13,8 @@ export default function AdminBadges() {
   const [version, setVersion] = useState(0);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
-  const [groupeSaisi, setGroupeSaisi] = useState('');
-  const [sangEnCours, setSangEnCours] = useState(false);
+  const [modif, setModif] = useState(null);   // surcharges saisies pour le badge
+  const [modEnCours, setModEnCours] = useState(false);
   const [msg, setMsg] = useState('');
   const fichierRef = useRef(null);
 
@@ -45,23 +45,26 @@ export default function AdminBadges() {
     try {
       const d = await adminApi.badgeEleve(el.id);
       setBadge(d.badge);
-      setGroupeSaisi(d.badge.groupeSanguin || '');
+      setModif(d.badge.modif);
       setVersion((v) => v + 1);
     } catch (e) {
       setErreur(e.message);
     }
   };
 
-  const enregistrerGroupe = async () => {
+  const majModif = (champ) => (e) => setModif((m) => ({ ...m, [champ]: e.target.value }));
+
+  const enregistrerModif = async () => {
     if (!badge) return;
-    setErreur(''); setMsg(''); setSangEnCours(true);
+    setErreur(''); setMsg(''); setModEnCours(true);
     try {
-      const d = await adminApi.majInfosBadge(badge.id, { groupeSanguin: groupeSaisi });
-      setBadge((b) => ({ ...b, groupeSanguin: d.groupeSanguin }));
-      setGroupeSaisi(d.groupeSanguin || '');
-      setMsg('Groupe sanguin enregistré.');
+      const d = await adminApi.majInfosBadge(badge.id, modif);
+      setBadge(d.badge);
+      setModif(d.badge.modif);
+      setVersion((v) => v + 1);
+      setMsg('Badge mis à jour.');
     } catch (err) { setErreur(err.message); }
-    finally { setSangEnCours(false); }
+    finally { setModEnCours(false); }
   };
 
   const envoyerPhoto = async (e) => {
@@ -150,19 +153,47 @@ export default function AdminBadges() {
                 logoSrc={`${urlLogoEcole()}?v=${version}`} />
               <div className="badges-actions no-print">
                 {msg && <Alerte type="info">{msg}</Alerte>}
-                {/* Groupe sanguin */}
-                <div className="badges-sang">
-                  <label>Groupe sanguin</label>
-                  <div className="badges-sang-ligne">
-                    <select value={groupeSaisi} onChange={(e) => setGroupeSaisi(e.target.value)}>
-                      <option value="">—</option>
-                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => <option key={g} value={g}>{g}</option>)}
-                    </select>
-                    <button type="button" className="mat-modifier" onClick={enregistrerGroupe} disabled={sangEnCours}>
-                      {sangEnCours ? 'Enregistrement…' : 'Enregistrer'}
+
+                {/* Modification du badge (surcharge — n'affecte pas la fiche élève) */}
+                {modif && (
+                  <div className="badges-modif">
+                    <div className="badges-modif-titre"><Icone nom="edit" /> Modifier le badge</div>
+                    <p className="badges-modif-note">Laissez un champ vide pour utiliser la valeur automatique. Ces valeurs ne concernent que le badge.</p>
+                    <div className="badges-modif-grille">
+                      <label className="badges-modif-champ">
+                        <span>Nom</span>
+                        <input value={modif.badgeNom} onChange={majModif('badgeNom')} placeholder={badge.auto?.nom || '—'} />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Prénom</span>
+                        <input value={modif.badgePrenom} onChange={majModif('badgePrenom')} placeholder={badge.auto?.prenom || '—'} />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Classe</span>
+                        <input value={modif.badgeClasse} onChange={majModif('badgeClasse')} placeholder={badge.auto?.niveau || '—'} />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Année académique</span>
+                        <input value={modif.badgeAnnee} onChange={majModif('badgeAnnee')} placeholder={badge.auto?.anneeScolaire || 'ex. 2025-2026'} />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Date d'émission</span>
+                        <input type="date" value={modif.badgeEmisLe} onChange={majModif('badgeEmisLe')} />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Groupe sanguin</span>
+                        <select value={modif.groupeSanguin} onChange={majModif('groupeSanguin')}>
+                          <option value="">—</option>
+                          {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </label>
+                    </div>
+                    <button type="button" className="mat-modifier badges-modif-btn" onClick={enregistrerModif} disabled={modEnCours}>
+                      {modEnCours ? 'Enregistrement…' : 'Enregistrer les modifications'}
                     </button>
                   </div>
-                </div>
+                )}
+
                 <input ref={fichierRef} type="file" accept="image/png,image/jpeg" onChange={envoyerPhoto} hidden />
                 <button type="button" className="badges-btn-photo" onClick={() => fichierRef.current?.click()} disabled={enCours}>
                   {enCours ? 'Envoi…' : (badge.aPhoto ? 'Changer la photo' : 'Ajouter la photo')}

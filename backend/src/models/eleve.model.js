@@ -33,7 +33,8 @@ export async function genererCodeAcces(idEleve) {
 export async function trouverParId(id) {
   const [rows] = await pool.query(
     `SELECT id, nom, prenom, niveau, id_parent, code_acces, photo_url,
-            date_naissance, groupe_sanguin, badge_emis_le
+            date_naissance, groupe_sanguin, badge_emis_le,
+            badge_nom, badge_prenom, badge_classe, badge_annee
        FROM eleves WHERE id = ? LIMIT 1`,
     [id]
   );
@@ -45,9 +46,16 @@ export async function mettrePhoto(idEleve, photoUrl) {
   await pool.query('UPDATE eleves SET photo_url = ? WHERE id = ?', [photoUrl, idEleve]);
 }
 
-// Met à jour les infos badge (groupe sanguin) — secrétariat
-export async function mettreInfosBadge(idEleve, { groupeSanguin }) {
-  await pool.query('UPDATE eleves SET groupe_sanguin = ? WHERE id = ?', [groupeSanguin || null, idEleve]);
+// Met à jour les surcharges badge (secrétariat) — n'affecte PAS la fiche officielle.
+// Une valeur vide (null) => le badge retombe sur la valeur automatique.
+export async function mettreInfosBadge(idEleve, infos) {
+  const { groupeSanguin, badgeNom, badgePrenom, badgeClasse, badgeAnnee, badgeEmisLe } = infos;
+  await pool.query(
+    `UPDATE eleves SET groupe_sanguin = ?, badge_nom = ?, badge_prenom = ?,
+            badge_classe = ?, badge_annee = ?, badge_emis_le = ? WHERE id = ?`,
+    [groupeSanguin || null, badgeNom || null, badgePrenom || null,
+      badgeClasse || null, badgeAnnee || null, badgeEmisLe || null, idEleve]
+  );
 }
 
 // Garantit une date d'émission du badge : la fixe au jour même si absente, puis la renvoie.

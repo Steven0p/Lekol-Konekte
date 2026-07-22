@@ -57,6 +57,10 @@ CREATE TABLE IF NOT EXISTS eleves (
   photo_url          VARCHAR(500),
   groupe_sanguin     VARCHAR(5),
   badge_emis_le      DATE,
+  badge_nom          VARCHAR(120),
+  badge_prenom       VARCHAR(120),
+  badge_classe       VARCHAR(60),
+  badge_annee        VARCHAR(9),
   statut_inscription ENUM('en_attente','accepte','refuse','confirmee') NOT NULL DEFAULT 'en_attente',
   FOREIGN KEY (id_parent) REFERENCES parents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
