@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS inscriptions (
   nom_parent        VARCHAR(120),
   profession_parent VARCHAR(120),
   telephone_parent  VARCHAR(40),
+  courriel_parent   VARCHAR(150),
   ancienne_ecole    VARCHAR(160),
   ancienne_classe   VARCHAR(60),
   raison_choix      VARCHAR(500),

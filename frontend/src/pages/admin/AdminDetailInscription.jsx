@@ -148,6 +148,7 @@ export default function AdminDetailInscription() {
               <Info libelle="Nom du parent" valeur={inscription.nom_parent} />
               <Info libelle="Profession du parent" valeur={inscription.profession_parent} />
               <Info libelle="Téléphone du parent" valeur={inscription.telephone_parent} />
+              <Info libelle="Courriel du parent (notifications)" valeur={inscription.courriel_parent} />
               <Info libelle="Ancienne école" valeur={inscription.ancienne_ecole} />
               <Info libelle="Dernière classe suivie" valeur={inscription.ancienne_classe} />
               <Info libelle="Raison du choix" valeur={inscription.raison_choix} />

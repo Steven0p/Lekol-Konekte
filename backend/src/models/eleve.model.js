@@ -168,12 +168,18 @@ export async function listerAvecCode({ recherche } = {}) {
 
 // Tous les élèves d'un niveau (pour la génération des bulletins)
 export async function listerParNiveau(niveau) {
+  // Le courriel de notification = celui saisi sur la dernière inscription si présent,
+  // sinon le courriel du compte parent. Idem pour le nom du parent.
   const [rows] = await pool.query(
     `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau,
-            u.courriel AS parent_courriel, u.nom AS parent_nom
+            COALESCE(insc.courriel_parent, u.courriel) AS parent_courriel,
+            COALESCE(insc.nom_parent, u.nom) AS parent_nom
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent
        JOIN utilisateurs u ON u.id = p.id_utilisateur
+       LEFT JOIN inscriptions insc ON insc.id = (
+         SELECT id FROM inscriptions WHERE id_eleve = e.id ORDER BY id DESC LIMIT 1
+       )
       WHERE e.niveau = ?
       ORDER BY e.nom`,
     [niveau]

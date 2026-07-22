@@ -51,6 +51,10 @@ export async function creer(req, res, next) {
     const nomParent = t(req.body.nomParent);
     const professionParent = t(req.body.professionParent);
     const telephoneParent = t(req.body.telephoneParent);
+    const courrielParent = t(req.body.courrielParent);
+    if (courrielParent && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(courrielParent)) {
+      return res.status(400).json({ erreur: 'Courriel du parent invalide.' });
+    }
     const ancienneEcole = t(req.body.ancienneEcole);
     const ancienneClasse = t(req.body.ancienneClasse);
     const raisonChoix = t(req.body.raisonChoix);
@@ -61,7 +65,7 @@ export async function creer(req, res, next) {
 
     const { idInscription, idEleve } = await creerInscription({
       idParent, eleveNom, elevePrenom, dateNaissance, niveau, anneeScolaire,
-      nomParent, professionParent, telephoneParent, ancienneEcole, ancienneClasse, raisonChoix,
+      nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
 
     // Code d'accès élève généré automatiquement dès l'inscription (3 lettres du nom + chiffres)

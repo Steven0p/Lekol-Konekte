@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { inscriptionsApi } from '../../services/api.js';
 import { anneeScolaireCourante } from '../../utils/libelles.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -9,9 +10,10 @@ import Alerte from '../../components/Alerte.jsx';
 
 export default function NouvelleInscription() {
   const navigate = useNavigate();
+  const { utilisateur } = useAuth();
   const [form, setForm] = useState({
     eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
-    nomParent: '', professionParent: '', telephoneParent: '',
+    nomParent: '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
   const [erreur, setErreur] = useState('');
@@ -63,6 +65,11 @@ export default function NouvelleInscription() {
             onChange={maj('professionParent')} placeholder="ex. Commerçant(e)" />
           <Champ label="Téléphone du parent" type="tel" value={form.telephoneParent}
             onChange={maj('telephoneParent')} placeholder="ex. +509 ..." />
+          <Champ label="Courriel du parent" type="email" value={form.courrielParent}
+            onChange={maj('courrielParent')} placeholder="ex. parent@exemple.com" required />
+          <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
+            Les notifications de résultats (à chaque trimestre) seront envoyées à cette adresse.
+          </p>
 
           <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Ancienne école</h3>
           <Champ label="Nom de l'ancienne école" value={form.ancienneEcole}
