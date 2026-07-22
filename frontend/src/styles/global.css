@@ -1268,6 +1268,34 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 }
 .res-moyenne strong { font-weight: 800; }
 
+/* Bilan de fin d'année (moyenne générale annuelle) */
+.res-bilan {
+  margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid #C7D2FE; box-shadow: 0 4px 16px rgba(26, 54, 93, .10);
+}
+.res-bilan-titre {
+  display: flex; align-items: center; gap: .5rem;
+  background: linear-gradient(160deg, #1A365D 0%, #2B4C7E 100%); color: #fff;
+  padding: .75rem 1.1rem; font-weight: 800;
+}
+.res-bilan-trims { display: flex; flex-wrap: wrap; gap: .6rem; padding: 1rem 1.1rem .25rem; background: #fff; }
+.res-bilan-trim {
+  flex: 1; min-width: 120px; background: #EBF8FF; border: 1px solid #BEE3F8; border-radius: 8px;
+  padding: .5rem .7rem; display: flex; flex-direction: column; gap: .15rem;
+}
+.res-bilan-trim span { font-size: .78rem; color: #4A5568; }
+.res-bilan-trim strong { font-size: 1.1rem; color: #1A365D; }
+.res-bilan-general {
+  display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+  background: #fff; padding: .9rem 1.1rem 1.1rem; font-size: 1.05rem; color: #1A365D; font-weight: 700;
+}
+.res-bilan-general strong { font-size: 1.35rem; font-weight: 800; }
+.res-bilan-decision {
+  margin-left: auto; padding: .3rem .8rem; border-radius: 999px; font-size: .82rem; font-weight: 800;
+}
+.res-bilan-decision.ok { background: #C6F6D5; color: #22543D; }
+.res-bilan-decision.ko { background: #FED7D7; color: #822727; }
+
 /* Appréciation IA du trimestre */
 .res-ia { margin-top: .85rem; }
 .res-ia-btn {

@@ -28,6 +28,24 @@ function grouperNotes(notes) {
   });
 }
 
+// Bilan de fin d'année : moyenne générale annuelle (moyenne des trimestres),
+// affichée uniquement quand le 3e trimestre est publié pour l'année.
+function bilansAnnuels(groupes) {
+  const parAnnee = new Map();
+  for (const g of groupes) {
+    if (!parAnnee.has(g.annee)) parAnnee.set(g.annee, []);
+    parAnnee.get(g.annee).push(g);
+  }
+  const res = [];
+  for (const [annee, gs] of parAnnee) {
+    if (!gs.some((g) => g.periode === '3e_trimestre')) continue;
+    const moyenne = Math.round((gs.reduce((s, g) => s + g.moyenne, 0) / gs.length) * 100) / 100;
+    const trimestres = gs.slice().sort((a, b) => a.periode.localeCompare(b.periode));
+    res.push({ annee, moyenne, trimestres });
+  }
+  return res;
+}
+
 export default function NotesBulletins() {
   const [eleves, setEleves] = useState(null);
   const [idEleve, setIdEleve] = useState('');
@@ -100,6 +118,7 @@ export default function NotesBulletins() {
   if (!eleves) return <Chargement />;
 
   const groupes = grouperNotes(notes);
+  const bilans = bilansAnnuels(groupes);
 
   return (
     <div>
@@ -185,6 +204,32 @@ export default function NotesBulletins() {
                   </div>
                   <p style={{ marginTop: '.75rem', fontWeight: 700 }}>
                     Moyenne pondérée : {g.moyenne.toFixed(2)} / 100
+                  </p>
+                </Carte>
+              ))}
+
+              {/* Bilan de fin d'année — moyenne générale annuelle (3e trimestre publié) */}
+              {bilans.map((b) => (
+                <Carte key={`bilan-${b.annee}`} titre={`Bilan de fin d'année — ${b.annee}`}>
+                  <div className="tableau-enveloppe">
+                    <table className="tableau">
+                      <thead><tr><th>Trimestre</th><th>Moyenne /100</th></tr></thead>
+                      <tbody>
+                        {b.trimestres.map((t) => (
+                          <tr key={t.periode}>
+                            <td>{LIBELLE_TRIM[t.periode] || t.periode}</td>
+                            <td>{t.moyenne.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ marginTop: '.75rem', fontWeight: 800, fontSize: '1.05rem', color: 'var(--bleu, #1A365D)' }}>
+                    Moyenne générale annuelle : {b.moyenne.toFixed(2)} / 100
+                    {' — '}
+                    <span style={{ color: b.moyenne >= 50 ? '#2F855A' : '#C53030' }}>
+                      {b.moyenne >= 50 ? 'Admis(e)' : 'Ajourné(e)'}
+                    </span>
                   </p>
                 </Carte>
               ))}

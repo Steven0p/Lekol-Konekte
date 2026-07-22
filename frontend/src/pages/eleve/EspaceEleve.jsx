@@ -26,6 +26,24 @@ function grouperNotes(notes) {
   });
 }
 
+// Bilan de fin d'année : moyenne générale annuelle (moyenne des trimestres),
+// affichée uniquement quand le 3e trimestre est publié pour l'année.
+function bilansAnnuels(groupes) {
+  const parAnnee = new Map();
+  for (const g of groupes) {
+    if (!parAnnee.has(g.annee)) parAnnee.set(g.annee, []);
+    parAnnee.get(g.annee).push(g);
+  }
+  const res = [];
+  for (const [annee, gs] of parAnnee) {
+    if (!gs.some((g) => g.periode === '3e_trimestre')) continue;
+    const moyenne = Math.round((gs.reduce((s, g) => s + g.moyenne, 0) / gs.length) * 100) / 100;
+    const trimestres = gs.slice().sort((a, b) => a.periode.localeCompare(b.periode));
+    res.push({ annee, moyenne, trimestres });
+  }
+  return res;
+}
+
 export default function EspaceEleve() {
   const { utilisateur } = useAuth();
   const [notes, setNotes] = useState(null);
@@ -74,6 +92,7 @@ export default function EspaceEleve() {
   };
 
   const groupes = notes ? grouperNotes(notes) : [];
+  const bilans = bilansAnnuels(groupes);
 
   return (
     <div className="insc-page res-page">
@@ -152,6 +171,27 @@ export default function EspaceEleve() {
                   </div>
                 );
               })()}
+            </div>
+          ))}
+
+          {/* Bilan de fin d'année — moyenne générale annuelle (3e trimestre publié) */}
+          {bilans.map((b) => (
+            <div key={`bilan-${b.annee}`} className="res-bilan">
+              <div className="res-bilan-titre"><Icone nom="chart" /> Bilan de fin d'année — {b.annee}</div>
+              <div className="res-bilan-trims">
+                {b.trimestres.map((t) => (
+                  <div key={t.periode} className="res-bilan-trim">
+                    <span>{LIBELLE_TRIM[t.periode] || t.periode}</span>
+                    <strong>{t.moyenne.toFixed(2)}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="res-bilan-general">
+                Moyenne générale annuelle <strong>{b.moyenne.toFixed(2)} / 100</strong>
+                <span className={`res-bilan-decision ${b.moyenne >= 50 ? 'ok' : 'ko'}`}>
+                  {b.moyenne >= 50 ? 'Admis(e)' : 'Ajourné(e)'}
+                </span>
+              </div>
             </div>
           ))}
 
