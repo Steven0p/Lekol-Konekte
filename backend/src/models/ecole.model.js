@@ -19,6 +19,24 @@ export async function mettreLogo(logoUrl) {
   return res.insertId;
 }
 
+// Met à jour uniquement l'en-tête (nom, adresse, tél, courriel) — utilisé pour le badge.
+// Préserve les coordonnées bancaires / MonCash et le logo.
+export async function mettreEntete({ nom, adresse, telephone, courriel }) {
+  const existante = await obtenir();
+  if (existante) {
+    await pool.query(
+      'UPDATE ecole SET nom = ?, adresse = ?, telephone = ?, courriel = ? WHERE id = ?',
+      [nom, adresse || null, telephone || null, courriel || null, existante.id]
+    );
+    return existante.id;
+  }
+  const [res] = await pool.query(
+    'INSERT INTO ecole (nom, adresse, telephone, courriel) VALUES (?, ?, ?, ?)',
+    [nom, adresse || null, telephone || null, courriel || null]
+  );
+  return res.insertId;
+}
+
 // Crée la fiche si absente, sinon la met à jour
 export async function definir({ nom, coordonneesBancaires, coordonneesMoncash, adresse, telephone, courriel }) {
   const existante = await obtenir();

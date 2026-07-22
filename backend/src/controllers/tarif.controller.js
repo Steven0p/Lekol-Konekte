@@ -99,6 +99,26 @@ export async function coordonneesEcole(req, res, next) {
   }
 }
 
+// PUT /api/ecole-entete (admin/direction) — en-tête du badge (nom, adresse, tél, courriel)
+export async function majEnteteEcole(req, res, next) {
+  try {
+    const nom = (req.body.nom || '').trim();
+    if (!nom) return res.status(400).json({ erreur: "Le nom de l'école est requis." });
+    const adresse = (req.body.adresse || '').trim();
+    const telephone = (req.body.telephone || '').trim();
+    const courriel = (req.body.courriel || '').trim();
+    await ecoleModel.mettreEntete({ nom, adresse, telephone, courriel });
+    return res.json({
+      nom,
+      adresse: adresse || null,
+      telephone: telephone || null,
+      courriel: courriel || null,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // POST /api/ecole/logo (direction, multipart) — téléverse le logo de l'école
 export async function televerserLogo(req, res, next) {
   try {

@@ -15,6 +15,8 @@ export default function AdminBadges() {
   const [erreur, setErreur] = useState('');
   const [modif, setModif] = useState(null);   // surcharges saisies pour le badge
   const [modEnCours, setModEnCours] = useState(false);
+  const [ecoleForm, setEcoleForm] = useState(null); // en-tête école (commun à tous les badges)
+  const [ecoleEnCours, setEcoleEnCours] = useState(false);
   const [msg, setMsg] = useState('');
   const fichierRef = useRef(null);
 
@@ -46,6 +48,12 @@ export default function AdminBadges() {
       const d = await adminApi.badgeEleve(el.id);
       setBadge(d.badge);
       setModif(d.badge.modif);
+      setEcoleForm({
+        nom: d.badge.ecoleNom || '',
+        adresse: d.badge.ecoleAdresse || '',
+        telephone: d.badge.ecoleTelephone || '',
+        courriel: d.badge.ecoleCourriel || '',
+      });
       setVersion((v) => v + 1);
     } catch (e) {
       setErreur(e.message);
@@ -65,6 +73,23 @@ export default function AdminBadges() {
       setMsg('Badge mis à jour.');
     } catch (err) { setErreur(err.message); }
     finally { setModEnCours(false); }
+  };
+
+  const majEcole = (champ) => (e) => setEcoleForm((f) => ({ ...f, [champ]: e.target.value }));
+
+  const enregistrerEcole = async () => {
+    if (!ecoleForm) return;
+    setErreur(''); setMsg('');
+    if (!ecoleForm.nom.trim()) { setErreur("Le nom de l'école est requis."); return; }
+    setEcoleEnCours(true);
+    try {
+      const d = await adminApi.majEnteteEcole(ecoleForm);
+      setEcoleForm({ nom: d.nom, adresse: d.adresse || '', telephone: d.telephone || '', courriel: d.courriel || '' });
+      // Rafraîchit l'en-tête de la carte affichée
+      setBadge((b) => (b ? { ...b, ecoleNom: d.nom, ecoleAdresse: d.adresse, ecoleTelephone: d.telephone, ecoleCourriel: d.courriel } : b));
+      setMsg("Informations de l'école enregistrées (tous les badges).");
+    } catch (err) { setErreur(err.message); }
+    finally { setEcoleEnCours(false); }
   };
 
   const envoyerPhoto = async (e) => {
@@ -153,6 +178,38 @@ export default function AdminBadges() {
                 logoSrc={`${urlLogoEcole()}?v=${version}`} />
               <div className="badges-actions no-print">
                 {msg && <Alerte type="info">{msg}</Alerte>}
+
+                {/* En-tête du badge : informations de l'école (communes à tous les badges) */}
+                {ecoleForm && (
+                  <div className="badges-modif">
+                    <div className="badges-modif-titre"><Icone nom="school" /> En-tête du badge — école</div>
+                    <p className="badges-modif-note">Ces informations apparaissent en haut du badge et s'appliquent à <strong>tous les badges</strong>.</p>
+                    <div className="badges-modif-grille">
+                      <label className="badges-modif-champ">
+                        <span>Nom de l'école</span>
+                        <input value={ecoleForm.nom} onChange={majEcole('nom')} placeholder="ex. FDSE" />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Adresse</span>
+                        <input value={ecoleForm.adresse} onChange={majEcole('adresse')} placeholder="ex. Delmas 33, Port-au-Prince" />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Téléphone</span>
+                        <input value={ecoleForm.telephone} onChange={majEcole('telephone')} placeholder="ex. +509 0000 0000" />
+                      </label>
+                      <label className="badges-modif-champ">
+                        <span>Courriel</span>
+                        <input value={ecoleForm.courriel} onChange={majEcole('courriel')} placeholder="ex. contact@lekol.ht" />
+                      </label>
+                    </div>
+                    <button type="button" className="mat-modifier badges-modif-btn" onClick={enregistrerEcole} disabled={ecoleEnCours}>
+                      {ecoleEnCours ? 'Enregistrement…' : "Enregistrer l'en-tête"}
+                    </button>
+                    <p className="badges-modif-note" style={{ marginTop: '.5rem', marginBottom: 0 }}>
+                      Le logo se gère dans « Coordonnées de l'école » (espace direction).
+                    </p>
+                  </div>
+                )}
 
                 {/* Modification du badge (surcharge — n'affecte pas la fiche élève) */}
                 {modif && (
