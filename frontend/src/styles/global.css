@@ -1255,6 +1255,15 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 }
 .res-hero h1 { font-size: 1.8rem; font-weight: 800; letter-spacing: -.3px; }
 .res-hero p { color: #E2E8F0; margin-top: .5rem; }
+.res-hero-profil { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; }
+.res-avatar {
+  width: 84px; height: 84px; border-radius: 50%; object-fit: cover; flex-shrink: 0;
+  border: 3px solid rgba(255, 255, 255, .85); box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+}
+.res-avatar-vide {
+  display: grid; place-items: center; background: rgba(255, 255, 255, .18);
+  color: #fff; font-size: 2rem; font-weight: 800;
+}
 .res-alerte {
   display: flex; align-items: flex-start; gap: .6rem; margin-bottom: 1.25rem;
   background: #FED7D7; color: #C53030; border-radius: 12px; padding: .9rem 1.1rem; font-weight: 500;

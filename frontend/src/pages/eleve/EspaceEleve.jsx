@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { eleveApi, urlDocumentOfficiel } from '../../services/api.js';
+import { eleveApi, urlDocumentOfficiel, urlPhotoEleve } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -50,14 +50,18 @@ export default function EspaceEleve() {
   const [bulletins, setBulletins] = useState([]);
   const [bloques, setBloques] = useState([]);
   const [telechargeId, setTelechargeId] = useState(null);
+  const [aPhoto, setAPhoto] = useState(false);
   const [erreur, setErreur] = useState('');
   const [apprecs, setApprecs] = useState({});   // { cle: texte } — appréciations IA générées
   const [apprecEnCours, setApprecEnCours] = useState(null); // clé en cours
   const [apprecErreur, setApprecErreur] = useState({});     // { cle: message }
 
   useEffect(() => {
-    Promise.all([eleveApi.mesNotes(), eleveApi.mesBulletins()])
-      .then(([n, b]) => { setNotes(n.notes); setBloques(n.trimestresBloques || []); setBulletins(b.bulletins); })
+    Promise.all([eleveApi.mesNotes(), eleveApi.mesBulletins(), eleveApi.badge()])
+      .then(([n, b, bd]) => {
+        setNotes(n.notes); setBloques(n.trimestresBloques || []); setBulletins(b.bulletins);
+        setAPhoto(!!bd.badge?.aPhoto);
+      })
       .catch((e) => setErreur(e.message));
   }, []);
 
@@ -97,8 +101,19 @@ export default function EspaceEleve() {
   return (
     <div className="insc-page res-page">
       <section className="res-hero">
-        <h1><Icone nom="chart" /> Mes résultats</h1>
-        <p>Bonjour {utilisateur?.nom}{utilisateur?.niveau ? ` — ${utilisateur.niveau}` : ''}. Consultez vos notes et bulletins.</p>
+        <div className="res-hero-profil">
+          {aPhoto ? (
+            <img className="res-avatar" src={urlPhotoEleve()} alt="Photo de profil" />
+          ) : (
+            <div className="res-avatar res-avatar-vide" aria-hidden="true">
+              {(utilisateur?.nom || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h1><Icone nom="chart" /> Mes résultats</h1>
+            <p>Bonjour {utilisateur?.nom}{utilisateur?.niveau ? ` — ${utilisateur.niveau}` : ''}. Consultez vos notes et bulletins.</p>
+          </div>
+        </div>
       </section>
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
