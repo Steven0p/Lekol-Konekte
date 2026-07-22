@@ -1384,6 +1384,33 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .acad-filtre-btn:hover { border-color: #1A365D; color: #1A365D; }
 .acad-filtre-btn.actif { background: #1A365D; border-color: #1A365D; color: #fff; }
 
+/* ---------- Examens passés : assistant IA (aide aux exercices) ---------- */
+.examens-aide {
+  background: #FFFBEB; border: 1px solid #F6E05E; border-left: 4px solid #D69E2E;
+  border-radius: 12px; padding: 1.15rem 1.25rem; margin-bottom: 1.75rem;
+}
+.examens-aide-titre { display: flex; align-items: center; gap: .5rem; color: #B7791F; font-weight: 800; font-size: 1.05rem; }
+.examens-aide-note { color: #718096; font-size: .85rem; margin: .35rem 0 .75rem; }
+.examens-aide-texte {
+  width: 100%; padding: .7rem; border: 1px solid #E2E8F0; border-radius: 8px; font: inherit;
+  color: #2D3748; resize: vertical; background: #fff;
+}
+.examens-aide-texte:focus { outline: none; border-color: #D69E2E; box-shadow: 0 0 0 3px rgba(214,158,46,.15); }
+.examens-aide-ligne { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: .6rem; }
+.examens-aide-niveau {
+  flex: 1; min-width: 160px; padding: .55rem .7rem; border: 1px solid #E2E8F0; border-radius: 8px; font: inherit; background: #fff;
+}
+.examens-aide-niveau:focus { outline: none; border-color: #D69E2E; box-shadow: 0 0 0 3px rgba(214,158,46,.15); }
+.examens-aide-btn {
+  background: #D69E2E; color: #fff; border: none; border-radius: 8px; padding: .55rem 1.2rem;
+  font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.examens-aide-btn:hover:not(:disabled) { background: #B7791F; }
+.examens-aide-btn:disabled { opacity: .6; cursor: not-allowed; }
+.examens-aide-reponse { margin-top: 1rem; background: #fff; border: 1px solid #E2E8F0; border-radius: 10px; padding: 1rem 1.15rem; }
+.examens-aide-reponse-titre { display: flex; align-items: center; gap: .5rem; color: #1A365D; font-weight: 800; margin-bottom: .5rem; }
+.examens-aide-reponse p { color: #2D3748; line-height: 1.65; margin: 0; white-space: pre-line; }
+
 /* ---------- Examens passés (galerie publique) ---------- */
 .examens-groupe { margin-bottom: 2rem; }
 .examens-grille {

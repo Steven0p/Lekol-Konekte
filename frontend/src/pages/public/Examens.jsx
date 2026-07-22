@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { examensApi, urlPhotoExamen } from '../../services/api.js';
 import { dateFr } from '../../utils/libelles.js';
+import Alerte from '../../components/Alerte.jsx';
 import Icone from '../../components/Icone.jsx';
 
 export default function Examens() {
@@ -9,6 +10,24 @@ export default function Examens() {
   const [erreur, setErreur] = useState('');
   const [filtre, setFiltre] = useState('tous');
   const [apercu, setApercu] = useState(null); // examen affiché en grand
+
+  // Assistant IA — aide un élève bloqué sur un exercice
+  const [aideQ, setAideQ] = useState('');
+  const [aideNiveau, setAideNiveau] = useState('');
+  const [aideRep, setAideRep] = useState('');
+  const [aideEnCours, setAideEnCours] = useState(false);
+  const [aideErr, setAideErr] = useState('');
+
+  const demanderAide = async () => {
+    setAideErr(''); setAideRep('');
+    if (!aideQ.trim()) { setAideErr("Écris l'exercice ou explique où tu es bloqué(e)."); return; }
+    setAideEnCours(true);
+    try {
+      const d = await examensApi.aideIA({ question: aideQ.trim(), niveau: aideNiveau.trim() });
+      setAideRep(d.reponse);
+    } catch (err) { setAideErr(err.message); }
+    finally { setAideEnCours(false); }
+  };
 
   useEffect(() => {
     examensApi.lister()
@@ -42,6 +61,28 @@ export default function Examens() {
       </header>
 
       {erreur && <p className="texte-gris">{erreur}</p>}
+
+      {/* Assistant IA — aide aux exercices */}
+      <section className="examens-aide">
+        <div className="examens-aide-titre"><Icone nom="comment" /> Bloqué sur un exercice ? Demande de l'aide</div>
+        <p className="examens-aide-note">Écris l'exercice (ou explique où tu bloques). L'assistant t'explique la méthode étape par étape.</p>
+        {aideErr && <Alerte type="erreur">{aideErr}</Alerte>}
+        <textarea className="examens-aide-texte" rows={4} value={aideQ} onChange={(e) => setAideQ(e.target.value)}
+          placeholder="Ex. Je ne comprends pas comment résoudre : 3x + 5 = 20…" />
+        <div className="examens-aide-ligne">
+          <input className="examens-aide-niveau" value={aideNiveau} onChange={(e) => setAideNiveau(e.target.value)}
+            placeholder="Ta classe (optionnel) — ex. 9e AF" />
+          <button type="button" className="examens-aide-btn" onClick={demanderAide} disabled={aideEnCours}>
+            {aideEnCours ? 'Réflexion…' : 'Demander de l\'aide'}
+          </button>
+        </div>
+        {aideRep && (
+          <div className="examens-aide-reponse">
+            <div className="examens-aide-reponse-titre"><Icone nom="comment" /> Explication</div>
+            <p>{aideRep}</p>
+          </div>
+        )}
+      </section>
 
       {examens && examens.length > 0 && (
         <div className="acad-filtre" style={{ marginBottom: '1.25rem' }}>

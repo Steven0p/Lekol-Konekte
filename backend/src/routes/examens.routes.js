@@ -23,6 +23,9 @@ router.post('/examens/admin/login', examens.adminLogin);
 router.post('/examens/admin/logout', examens.adminLogout);
 router.get('/examens/admin/me', examens.adminMe);
 
+// Assistant IA — tuteur pour élève bloqué sur un exercice (public)
+router.post('/examens/aide-ia', examens.aideIA);
+
 // Examens
 router.get('/examens', examens.lister);                                          // public
 router.get('/examens/:id/photo', examens.servirPhoto);                           // public

@@ -232,6 +232,7 @@ export const examensApi = {
     return request('/examens', { method: 'POST', body: fd });
   },
   supprimer: (id) => request(`/examens/${id}`, { method: 'DELETE' }),
+  aideIA: (body) => request('/examens/aide-ia', { method: 'POST', body: json(body) }),
 };
 
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)

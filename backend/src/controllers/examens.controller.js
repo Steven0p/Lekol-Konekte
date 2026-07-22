@@ -4,6 +4,7 @@ import path from 'path';
 import * as examenModel from '../models/examens.model.js';
 import * as adminModel from '../models/examensAdmin.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 // ---------- Authentification admin Examens ----------
 
@@ -83,6 +84,48 @@ export async function supprimer(req, res, next) {
     await examenModel.supprimer(examen.id);
     return res.json({ message: 'Examen supprimé.' });
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/examens/aide-ia (public) — tuteur IA : aide un élève bloqué sur un exercice
+export async function aideIA(req, res, next) {
+  try {
+    if (!iaConfiguree()) {
+      return res.status(503).json({ erreur: "L'assistant IA n'est pas configuré (clé GROQ_API_KEY manquante côté serveur)." });
+    }
+    const question = (req.body.question || '').trim();
+    const niveau = (req.body.niveau || '').trim().slice(0, 60);
+    if (!question) return res.status(400).json({ erreur: "Décris l'exercice ou la question où tu es bloqué(e)." });
+    if (question.length > 2000) return res.status(400).json({ erreur: 'Ta question est trop longue (max 2000 caractères).' });
+
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.4,
+      max_tokens: 900,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es un tuteur scolaire bienveillant et patient de l'école « Lekòl Konekte », pour des élèves haïtiens. "
+            + "Un élève est bloqué sur un exercice d'examen. Aide-le à comprendre et à résoudre l'exercice ÉTAPE PAR ÉTAPE, "
+            + "avec des explications claires et simples, en français"
+            + (niveau ? ` (niveau de l'élève : ${niveau})` : '') + ". "
+            + "Explique le raisonnement et la méthode, pas seulement la réponse finale, pour qu'il apprenne. "
+            + "Encourage-le. Si l'énoncé est ambigu ou incomplet, demande une précision. Reste uniquement sur des sujets scolaires. "
+            + "N'utilise pas d'emojis.",
+        },
+        { role: 'user', content: question },
+      ],
+    });
+
+    const reponse = (completion.choices?.[0]?.message?.content || '').trim();
+    if (!reponse) return res.status(502).json({ erreur: "L'assistant IA n'a pas pu répondre." });
+    return res.json({ reponse });
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) {
+      return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
+    }
     next(err);
   }
 }
