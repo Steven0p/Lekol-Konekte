@@ -1,57 +1,169 @@
-// Carte badge élève réutilisable (espace élève + secrétariat).
-// props: badge {nom, prenom, niveau, anneeScolaire, nisu, ecoleNom, ecoleALogo, aPhoto}
+// Carte d'identité étudiant — recto/verso, façon carte ID plastifiée.
+// props: badge { nom, prenom, niveau, anneeScolaire, nisu, aPhoto, dateNaissance,
+//                groupeSanguin, nomParent, contactParent, dateEmission, dateExpiration,
+//                ecoleNom, ecoleAdresse, ecoleTelephone, ecoleCourriel, ecoleALogo }
 //        photoSrc (URL de la photo, ou null), logoSrc (URL du logo)
-export default function CarteBadge({ badge, photoSrc, logoSrc }) {
+import { QRCodeSVG } from 'qrcode.react';
+
+const MARINE = '#1A365D';
+const MARINE2 = '#2B4C7E';
+const OR = '#D69E2E';
+
+// Formate 'YYYY-MM-DD' -> 'JJ-MM-AAAA'
+const dateCourte = (iso) => {
+  if (!iso) return '—';
+  const p = String(iso).slice(0, 10).split('-');
+  return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : iso;
+};
+
+// Vague décorative (bas d'en-tête / haut de pied)
+function Vague({ couleur = MARINE, retourne = false }) {
   return (
-    <div className="badge-carte" style={{
-      width: 340, background: 'var(--blanc)', border: '1px solid var(--gris-bordure)',
-      borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--ombre)',
+    <svg viewBox="0 0 320 26" preserveAspectRatio="none"
+      style={{ display: 'block', width: '100%', height: 26, transform: retourne ? 'rotate(180deg)' : 'none' }}
+      aria-hidden="true">
+      <path d="M0,0 C90,30 230,30 320,0 L320,26 L0,26 Z" fill={couleur} />
+    </svg>
+  );
+}
+
+function Logo({ logoSrc, aLogo, taille = 46 }) {
+  return aLogo ? (
+    <img src={logoSrc} alt="Logo"
+      style={{ width: taille, height: taille, borderRadius: '50%', objectFit: 'cover', background: '#fff', border: '2px solid #fff' }} />
+  ) : (
+    <div style={{ width: taille, height: taille, borderRadius: '50%', background: 'rgba(255,255,255,.18)',
+      display: 'grid', placeItems: 'center', fontWeight: 800, color: '#fff', border: '2px solid #fff' }}>LK</div>
+  );
+}
+
+function EnteteEcole({ badge, logoSrc }) {
+  return (
+    <div style={{ background: `linear-gradient(160deg, ${MARINE} 0%, ${MARINE2} 100%)`, color: '#fff', padding: '.9rem 1rem .2rem', textAlign: 'center' }}>
+      <div style={{ display: 'grid', placeItems: 'center', marginBottom: '.4rem' }}>
+        <Logo logoSrc={logoSrc} aLogo={badge.ecoleALogo} />
+      </div>
+      <div style={{ fontWeight: 800, fontSize: '.92rem', lineHeight: 1.2 }}>{badge.ecoleNom}</div>
+      {badge.ecoleAdresse && <div style={{ fontSize: '.68rem', opacity: .85, marginTop: 2 }}>{badge.ecoleAdresse}</div>}
+    </div>
+  );
+}
+
+function Ligne({ libelle, valeur, mono }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '.5rem', fontSize: '.78rem', padding: '.2rem 0' }}>
+      <span style={{ color: '#718096' }}>{libelle}</span>
+      <span style={{ fontWeight: 700, color: '#2D3748', textAlign: 'right',
+        fontFamily: mono ? 'monospace' : 'inherit', letterSpacing: mono ? '.5px' : 0 }}>{valeur || '—'}</span>
+    </div>
+  );
+}
+
+// ---------- Recto ----------
+function Recto({ badge, photoSrc, logoSrc }) {
+  const nomComplet = [badge.prenom, badge.nom].filter(Boolean).join(' ') || '—';
+  return (
+    <div className="badge-face" style={{
+      width: 320, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
+      overflow: 'hidden', boxShadow: '0 6px 20px rgba(26,54,93,.12)',
     }}>
-      {/* En-tête école */}
-      <div style={{
-        background: 'linear-gradient(160deg, var(--bleu) 0%, var(--bleu-fonce) 100%)',
-        color: 'var(--blanc)', padding: '1rem', display: 'flex', alignItems: 'center', gap: '.75rem',
-      }}>
-        {badge.ecoleALogo ? (
-          <img src={logoSrc} alt="Logo"
-            style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', background: '#fff' }} />
-        ) : (
-          <div style={{ width: 42, height: 42, borderRadius: 8, background: 'rgba(255,255,255,.2)',
-            display: 'grid', placeItems: 'center', fontWeight: 800 }}>LK</div>
-        )}
-        <div style={{ fontWeight: 700, lineHeight: 1.2 }}>{badge.ecoleNom}</div>
+      <EnteteEcole badge={badge} logoSrc={logoSrc} />
+      <Vague />
+
+      <div style={{ textAlign: 'center', marginTop: -12 }}>
+        <span style={{ display: 'inline-block', background: OR, color: '#fff', fontWeight: 800,
+          fontSize: '.62rem', letterSpacing: '.08em', padding: '.25rem .8rem', borderRadius: 999 }}>
+          CARTE D'IDENTITÉ ÉTUDIANT
+        </span>
       </div>
 
       {/* Photo */}
-      <div style={{ display: 'grid', placeItems: 'center', padding: '1.25rem 1rem .5rem' }}>
-        <div style={{
-          width: 120, height: 140, borderRadius: 10, overflow: 'hidden',
-          border: '1px solid var(--gris-bordure)', background: 'var(--gris-clair)',
-          display: 'grid', placeItems: 'center',
-        }}>
-          {badge.aPhoto && photoSrc ? (
-            <img src={photoSrc} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <span className="texte-gris" style={{ fontSize: '.8rem', textAlign: 'center' }}>Aucune<br />photo</span>
-          )}
+      <div style={{ display: 'grid', placeItems: 'center', padding: '.75rem 1rem .35rem' }}>
+        <div style={{ width: 104, height: 124, borderRadius: 8, overflow: 'hidden',
+          border: `3px solid ${MARINE}`, background: '#EDF2F7', display: 'grid', placeItems: 'center' }}>
+          {badge.aPhoto && photoSrc
+            ? <img src={photoSrc} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : <span style={{ fontSize: '.72rem', color: '#A0AEC0', textAlign: 'center' }}>Aucune<br />photo</span>}
         </div>
       </div>
 
-      {/* Infos */}
-      <div style={{ padding: '.5rem 1.25rem 1.25rem' }}>
-        <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.1rem', marginBottom: '.75rem' }}>
-          {[badge.prenom, badge.nom].filter(Boolean).join(' ')}
-        </div>
-        <ul className="pile pile-sm" style={{ listStyle: 'none', padding: 0, margin: 0, fontSize: '.9rem' }}>
-          <li><span className="texte-gris">Nom : </span>{badge.nom || '—'}</li>
-          <li><span className="texte-gris">Prénom : </span>{badge.prenom || '—'}</li>
-          <li><span className="texte-gris">Classe : </span>{badge.niveau || '—'}</li>
-          <li><span className="texte-gris">Année académique : </span>{badge.anneeScolaire || '—'}</li>
-          <li><span className="texte-gris">NISU : </span>
-            <span style={{ fontFamily: 'monospace', fontWeight: 700, letterSpacing: '1px' }}>{badge.nisu || '—'}</span>
-          </li>
-        </ul>
+      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.02rem', color: MARINE, margin: '.1rem 0 .5rem' }}>
+        {nomComplet}
       </div>
+
+      <div style={{ padding: '0 1.15rem .5rem' }}>
+        <Ligne libelle="Nom du parent" valeur={badge.nomParent} />
+        <Ligne libelle="Classe" valeur={badge.niveau} />
+        <Ligne libelle="Session" valeur={badge.anneeScolaire} />
+        <Ligne libelle="N° étudiant" valeur={badge.nisu} mono />
+        <Ligne libelle="Groupe sanguin" valeur={badge.groupeSanguin} />
+      </div>
+
+      <Vague retourne />
+      <div style={{ background: MARINE, color: '#fff', textAlign: 'center', padding: '.35rem', fontSize: '.72rem', fontWeight: 700, marginTop: -1 }}>
+        Direction
+      </div>
+    </div>
+  );
+}
+
+// ---------- Verso ----------
+function Verso({ badge, logoSrc }) {
+  return (
+    <div className="badge-face" style={{
+      width: 320, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
+      overflow: 'hidden', boxShadow: '0 6px 20px rgba(26,54,93,.12)',
+    }}>
+      <div style={{ background: `linear-gradient(160deg, ${MARINE} 0%, ${MARINE2} 100%)`, color: '#fff', padding: '.7rem 1rem .2rem', textAlign: 'center' }}>
+        <div style={{ fontSize: '.72rem', opacity: .9 }}>En cas de perte, veuillez retourner cette carte à :</div>
+        <div style={{ display: 'grid', placeItems: 'center', margin: '.45rem 0 .3rem' }}>
+          <Logo logoSrc={logoSrc} aLogo={badge.ecoleALogo} taille={38} />
+        </div>
+        <div style={{ fontWeight: 800, fontSize: '.85rem' }}>{badge.ecoleNom}</div>
+        {badge.ecoleAdresse && <div style={{ fontSize: '.66rem', opacity: .85 }}>{badge.ecoleAdresse}</div>}
+        {badge.ecoleTelephone && <div style={{ fontSize: '.66rem', opacity: .85 }}>Tél : {badge.ecoleTelephone}</div>}
+        {badge.ecoleCourriel && <div style={{ fontSize: '.66rem', opacity: .85 }}>{badge.ecoleCourriel}</div>}
+      </div>
+      <Vague />
+
+      <div style={{ padding: '.35rem 1.15rem .5rem' }}>
+        <Ligne libelle="Contact" valeur={badge.contactParent} />
+        <Ligne libelle="Date de naissance" valeur={dateCourte(badge.dateNaissance)} />
+
+        <div style={{ display: 'flex', gap: '.5rem', margin: '.55rem 0' }}>
+          <div style={{ flex: 1, background: '#EBF8FF', border: `1px solid ${MARINE}`, borderRadius: 8, padding: '.4rem .5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '.6rem', color: '#718096', fontWeight: 700 }}>ÉMISSION</div>
+            <div style={{ fontSize: '.78rem', fontWeight: 800, color: MARINE }}>{dateCourte(badge.dateEmission)}</div>
+          </div>
+          <div style={{ flex: 1, background: '#FFFBEB', border: `1px solid ${OR}`, borderRadius: 8, padding: '.4rem .5rem', textAlign: 'center' }}>
+            <div style={{ fontSize: '.6rem', color: '#B7791F', fontWeight: 700 }}>EXPIRATION</div>
+            <div style={{ fontSize: '.78rem', fontWeight: 800, color: '#B7791F' }}>{dateCourte(badge.dateExpiration)}</div>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', placeItems: 'center', padding: '.35rem 0' }}>
+          <div style={{ padding: 6, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 8 }}>
+            <QRCodeSVG value={String(badge.nisu || badge.id || 'LK')} size={92} level="M" fgColor={MARINE} />
+          </div>
+          <div style={{ fontSize: '.62rem', color: '#A0AEC0', marginTop: 4, fontFamily: 'monospace', letterSpacing: '.5px' }}>
+            {badge.nisu || '—'}
+          </div>
+        </div>
+      </div>
+
+      <Vague retourne />
+      <div style={{ background: MARINE, color: '#fff', textAlign: 'center', padding: '.35rem', fontSize: '.66rem', marginTop: -1 }}>
+        {badge.ecoleNom}
+      </div>
+    </div>
+  );
+}
+
+export default function CarteBadge({ badge, photoSrc, logoSrc }) {
+  return (
+    <div className="badge-cartes" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <Recto badge={badge} photoSrc={photoSrc} logoSrc={logoSrc} />
+      <Verso badge={badge} logoSrc={logoSrc} />
     </div>
   );
 }

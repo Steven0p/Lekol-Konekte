@@ -13,6 +13,9 @@ export default function AdminBadges() {
   const [version, setVersion] = useState(0);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
+  const [groupeSaisi, setGroupeSaisi] = useState('');
+  const [sangEnCours, setSangEnCours] = useState(false);
+  const [msg, setMsg] = useState('');
   const fichierRef = useRef(null);
 
   useEffect(() => {
@@ -38,14 +41,27 @@ export default function AdminBadges() {
   }, [tous, recherche]);
 
   const voirBadge = async (el) => {
-    setErreur(''); setSelectionId(el.id);
+    setErreur(''); setMsg(''); setSelectionId(el.id);
     try {
       const d = await adminApi.badgeEleve(el.id);
       setBadge(d.badge);
+      setGroupeSaisi(d.badge.groupeSanguin || '');
       setVersion((v) => v + 1);
     } catch (e) {
       setErreur(e.message);
     }
+  };
+
+  const enregistrerGroupe = async () => {
+    if (!badge) return;
+    setErreur(''); setMsg(''); setSangEnCours(true);
+    try {
+      const d = await adminApi.majInfosBadge(badge.id, { groupeSanguin: groupeSaisi });
+      setBadge((b) => ({ ...b, groupeSanguin: d.groupeSanguin }));
+      setGroupeSaisi(d.groupeSanguin || '');
+      setMsg('Groupe sanguin enregistré.');
+    } catch (err) { setErreur(err.message); }
+    finally { setSangEnCours(false); }
   };
 
   const envoyerPhoto = async (e) => {
@@ -133,6 +149,20 @@ export default function AdminBadges() {
                 photoSrc={badge.aPhoto ? `${urlPhotoEleveAdmin(badge.id)}?v=${version}` : null}
                 logoSrc={`${urlLogoEcole()}?v=${version}`} />
               <div className="badges-actions no-print">
+                {msg && <Alerte type="info">{msg}</Alerte>}
+                {/* Groupe sanguin */}
+                <div className="badges-sang">
+                  <label>Groupe sanguin</label>
+                  <div className="badges-sang-ligne">
+                    <select value={groupeSaisi} onChange={(e) => setGroupeSaisi(e.target.value)}>
+                      <option value="">—</option>
+                      {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((g) => <option key={g} value={g}>{g}</option>)}
+                    </select>
+                    <button type="button" className="mat-modifier" onClick={enregistrerGroupe} disabled={sangEnCours}>
+                      {sangEnCours ? 'Enregistrement…' : 'Enregistrer'}
+                    </button>
+                  </div>
+                </div>
                 <input ref={fichierRef} type="file" accept="image/png,image/jpeg" onChange={envoyerPhoto} hidden />
                 <button type="button" className="badges-btn-photo" onClick={() => fichierRef.current?.click()} disabled={enCours}>
                   {enCours ? 'Envoi…' : (badge.aPhoto ? 'Changer la photo' : 'Ajouter la photo')}

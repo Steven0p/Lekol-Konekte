@@ -20,18 +20,22 @@ export async function mettreLogo(logoUrl) {
 }
 
 // Crée la fiche si absente, sinon la met à jour
-export async function definir({ nom, coordonneesBancaires, coordonneesMoncash }) {
+export async function definir({ nom, coordonneesBancaires, coordonneesMoncash, adresse, telephone, courriel }) {
   const existante = await obtenir();
   if (existante) {
     await pool.query(
-      'UPDATE ecole SET nom = ?, coordonnees_bancaires = ?, coordonnees_moncash = ? WHERE id = ?',
-      [nom, coordonneesBancaires || null, coordonneesMoncash || null, existante.id]
+      `UPDATE ecole SET nom = ?, coordonnees_bancaires = ?, coordonnees_moncash = ?,
+              adresse = ?, telephone = ?, courriel = ? WHERE id = ?`,
+      [nom, coordonneesBancaires || null, coordonneesMoncash || null,
+        adresse || null, telephone || null, courriel || null, existante.id]
     );
     return existante.id;
   }
   const [res] = await pool.query(
-    'INSERT INTO ecole (nom, coordonnees_bancaires, coordonnees_moncash) VALUES (?, ?, ?)',
-    [nom, coordonneesBancaires || null, coordonneesMoncash || null]
+    `INSERT INTO ecole (nom, coordonnees_bancaires, coordonnees_moncash, adresse, telephone, courriel)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [nom, coordonneesBancaires || null, coordonneesMoncash || null,
+      adresse || null, telephone || null, courriel || null]
   );
   return res.insertId;
 }

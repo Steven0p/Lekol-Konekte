@@ -71,6 +71,9 @@ export async function definirEcole(req, res, next) {
       nom,
       coordonneesBancaires: req.body.coordonneesBancaires,
       coordonneesMoncash: req.body.coordonneesMoncash,
+      adresse: req.body.adresse,
+      telephone: req.body.telephone,
+      courriel: req.body.courriel,
     });
     return res.json({ message: 'École enregistrée.' });
   } catch (err) {
@@ -86,6 +89,9 @@ export async function coordonneesEcole(req, res, next) {
       nom: ecole?.nom || 'Lekòl Konekte',
       coordonneesBancaires: ecole?.coordonnees_bancaires || null,
       coordonneesMoncash: ecole?.coordonnees_moncash || null,
+      adresse: ecole?.adresse || null,
+      telephone: ecole?.telephone || null,
+      courriel: ecole?.courriel || null,
       aLogo: !!(ecole && ecole.logo_url),
     });
   } catch (err) {

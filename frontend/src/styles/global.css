@@ -1005,6 +1005,13 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 }
 .badges-btn-imprimer:hover { background: #B7791F; }
 .badges-hint { color: #A0AEC0; font-size: .8rem; text-align: center; width: 100%; }
+.badges-sang { width: 100%; }
+.badges-sang label { display: block; font-size: .82rem; font-weight: 600; color: #4A5568; margin-bottom: .35rem; }
+.badges-sang-ligne { display: flex; gap: .5rem; }
+.badges-sang-ligne select {
+  flex: 1; padding: .5rem; border: 1px solid #E2E8F0; border-radius: 8px; font: inherit; color: #2D3748;
+}
+.badges-sang-ligne select:focus { outline: none; border-color: #3182CE; box-shadow: 0 0 0 3px rgba(49,130,206,.15); }
 
 @media (max-width: 820px) {
   .badges-layout { grid-template-columns: 1fr; }

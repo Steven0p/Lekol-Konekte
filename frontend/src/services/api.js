@@ -117,6 +117,7 @@ export const adminApi = {
   genererCodeEleve: (id) => request(`/admin/eleves/${id}/code-acces`, { method: 'POST' }),
   // Badges élèves (secrétariat)
   badgeEleve: (id) => request(`/admin/eleves/${id}/badge`),
+  majInfosBadge: (id, body) => request(`/admin/eleves/${id}/badge-infos`, { method: 'PATCH', body: json(body) }),
   televerserPhotoEleve: (id, fichier) => {
     const fd = new FormData();
     fd.append('photo', fichier);

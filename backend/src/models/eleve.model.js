@@ -32,7 +32,9 @@ export async function genererCodeAcces(idEleve) {
 // Élève par identifiant (données de base)
 export async function trouverParId(id) {
   const [rows] = await pool.query(
-    'SELECT id, nom, prenom, niveau, id_parent, code_acces, photo_url FROM eleves WHERE id = ? LIMIT 1',
+    `SELECT id, nom, prenom, niveau, id_parent, code_acces, photo_url,
+            date_naissance, groupe_sanguin, badge_emis_le
+       FROM eleves WHERE id = ? LIMIT 1`,
     [id]
   );
   return rows[0] || null;
@@ -41,6 +43,30 @@ export async function trouverParId(id) {
 // Enregistre le chemin de la photo de l'élève (badge)
 export async function mettrePhoto(idEleve, photoUrl) {
   await pool.query('UPDATE eleves SET photo_url = ? WHERE id = ?', [photoUrl, idEleve]);
+}
+
+// Met à jour les infos badge (groupe sanguin) — secrétariat
+export async function mettreInfosBadge(idEleve, { groupeSanguin }) {
+  await pool.query('UPDATE eleves SET groupe_sanguin = ? WHERE id = ?', [groupeSanguin || null, idEleve]);
+}
+
+// Garantit une date d'émission du badge : la fixe au jour même si absente, puis la renvoie.
+export async function assurerEmissionBadge(idEleve) {
+  const [rows] = await pool.query('SELECT badge_emis_le FROM eleves WHERE id = ? LIMIT 1', [idEleve]);
+  if (rows[0] && rows[0].badge_emis_le) return rows[0].badge_emis_le;
+  await pool.query('UPDATE eleves SET badge_emis_le = CURDATE() WHERE id = ?', [idEleve]);
+  const [maj] = await pool.query('SELECT badge_emis_le FROM eleves WHERE id = ? LIMIT 1', [idEleve]);
+  return maj[0] ? maj[0].badge_emis_le : null;
+}
+
+// Nom et téléphone du parent, depuis la dernière inscription (pour le badge)
+export async function infosParent(idEleve) {
+  const [rows] = await pool.query(
+    `SELECT nom_parent, telephone_parent FROM inscriptions
+      WHERE id_eleve = ? ORDER BY id DESC LIMIT 1`,
+    [idEleve]
+  );
+  return rows[0] || { nom_parent: null, telephone_parent: null };
 }
 
 // Dernière année scolaire d'inscription de l'élève (pour le badge)

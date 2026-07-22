@@ -4,7 +4,8 @@ import * as noteModel from '../models/note.model.js';
 import * as matiereModel from '../models/matiere.model.js';
 import { trouverAvecProprietaire as trouverEleve, listerParParent as listerElevesParent,
   listerTous as listerTousEleves, listerAvecCode, genererCodeAcces, appartientAuParent,
-  trouverParId as trouverEleveParId, mettrePhoto, derniereAnneeScolaire }
+  trouverParId as trouverEleveParId, mettrePhoto, derniereAnneeScolaire,
+  assurerEmissionBadge, infosParent, mettreInfosBadge }
   from '../models/eleve.model.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
@@ -189,25 +190,63 @@ export async function genererCodeAccesAdmin(req, res, next) {
   }
 }
 
+// Normalise une valeur date en 'YYYY-MM-DD' (gère Date ou chaîne, sans dérive de fuseau)
+function isoDate(v) {
+  if (!v) return null;
+  if (typeof v === 'string') {
+    const s = v.slice(0, 10);
+    return /^\d{4}-\d{2}-\d{2}$/.test(s) ? s : null;
+  }
+  const d = v instanceof Date ? v : new Date(v);
+  if (Number.isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const j = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${j}`;
+}
+// Ajoute n années à une date 'YYYY-MM-DD' par calcul de composants (aucun fuseau en jeu)
+function ajouterAns(v, n) {
+  const s = isoDate(v);
+  if (!s) return null;
+  const [y, m, j] = s.split('-');
+  return `${Number(y) + n}-${m}-${j}`;
+}
+
+// Construit le contenu complet du badge (carte ID recto/verso) pour un élève.
+async function construireBadge(eleve) {
+  const anneeScolaire = await derniereAnneeScolaire(eleve.id);
+  const ecole = await obtenirEcole();
+  const parent = await infosParent(eleve.id);
+  const dateEmission = isoDate(await assurerEmissionBadge(eleve.id));
+  const dateExpiration = ajouterAns(dateEmission, 1); // expire 1 an après l'émission
+  return {
+    id: eleve.id,
+    nom: eleve.nom,
+    prenom: eleve.prenom || '',
+    niveau: eleve.niveau,
+    anneeScolaire,
+    nisu: eleve.code_acces,
+    aPhoto: !!eleve.photo_url,
+    dateNaissance: isoDate(eleve.date_naissance),
+    groupeSanguin: eleve.groupe_sanguin || null,
+    nomParent: parent.nom_parent || null,
+    contactParent: parent.telephone_parent || null,
+    dateEmission,
+    dateExpiration,
+    ecoleNom: ecole?.nom || 'Lekòl Konekte',
+    ecoleAdresse: ecole?.adresse || null,
+    ecoleTelephone: ecole?.telephone || null,
+    ecoleCourriel: ecole?.courriel || null,
+    ecoleALogo: !!(ecole && ecole.logo_url),
+  };
+}
+
 // GET /api/eleve/badge (session élève) — données du badge
 export async function badgeEleve(req, res, next) {
   try {
     const eleve = await trouverEleveParId(req.session.eleveId);
     if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
-    const anneeScolaire = await derniereAnneeScolaire(eleve.id);
-    const ecole = await obtenirEcole();
-    return res.json({
-      badge: {
-        nom: eleve.nom,
-        prenom: eleve.prenom || '',
-        niveau: eleve.niveau,
-        anneeScolaire,
-        nisu: eleve.code_acces,
-        aPhoto: !!eleve.photo_url,
-        ecoleNom: ecole?.nom || 'Lekòl Konekte',
-        ecoleALogo: !!(ecole && ecole.logo_url),
-      },
-    });
+    return res.json({ badge: await construireBadge(eleve) });
   } catch (err) {
     next(err);
   }
@@ -218,21 +257,23 @@ export async function badgeEleveAdmin(req, res, next) {
   try {
     const eleve = await trouverEleveParId(Number(req.params.id));
     if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
-    const anneeScolaire = await derniereAnneeScolaire(eleve.id);
-    const ecole = await obtenirEcole();
-    return res.json({
-      badge: {
-        id: eleve.id,
-        nom: eleve.nom,
-        prenom: eleve.prenom || '',
-        niveau: eleve.niveau,
-        anneeScolaire,
-        nisu: eleve.code_acces,
-        aPhoto: !!eleve.photo_url,
-        ecoleNom: ecole?.nom || 'Lekòl Konekte',
-        ecoleALogo: !!(ecole && ecole.logo_url),
-      },
-    });
+    return res.json({ badge: await construireBadge(eleve) });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/admin/eleves/:id/badge-infos (admin/direction) — groupe sanguin
+export async function majInfosBadgeEleve(req, res, next) {
+  try {
+    const eleve = await trouverEleveParId(Number(req.params.id));
+    if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
+    let groupeSanguin = (req.body.groupeSanguin || '').trim().toUpperCase();
+    if (groupeSanguin && !/^(A|B|AB|O)[+-]$/.test(groupeSanguin)) {
+      return res.status(400).json({ erreur: 'Groupe sanguin invalide (ex. A+, O-, AB+).' });
+    }
+    await mettreInfosBadge(eleve.id, { groupeSanguin: groupeSanguin || null });
+    return res.json({ message: 'Informations du badge mises à jour.', groupeSanguin: groupeSanguin || null });
   } catch (err) {
     next(err);
   }

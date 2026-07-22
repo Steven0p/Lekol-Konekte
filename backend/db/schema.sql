@@ -55,6 +55,8 @@ CREATE TABLE IF NOT EXISTS eleves (
   niveau             VARCHAR(60),
   code_acces         VARCHAR(20) UNIQUE,
   photo_url          VARCHAR(500),
+  groupe_sanguin     VARCHAR(5),
+  badge_emis_le      DATE,
   statut_inscription ENUM('en_attente','accepte','refuse','confirmee') NOT NULL DEFAULT 'en_attente',
   FOREIGN KEY (id_parent) REFERENCES parents(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -68,7 +70,10 @@ CREATE TABLE IF NOT EXISTS ecole (
   nom                   VARCHAR(150) NOT NULL,
   coordonnees_bancaires VARCHAR(255),
   coordonnees_moncash   VARCHAR(255),
-  logo_url              VARCHAR(500)
+  logo_url              VARCHAR(500),
+  adresse               VARCHAR(255),
+  telephone             VARCHAR(50),
+  courriel              VARCHAR(150)
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS inscriptions (

@@ -29,6 +29,7 @@ router.post('/admin/eleves/:id/code-acces', requireRole('admin', 'direction'), n
 
 // Secrétariat : badges élèves (consultation, photo, impression)
 router.get('/admin/eleves/:id/badge', requireRole('admin', 'direction'), note.badgeEleveAdmin);
+router.patch('/admin/eleves/:id/badge-infos', requireRole('admin', 'direction'), note.majInfosBadgeEleve);
 router.get('/admin/eleves/:id/photo', requireRole('admin', 'direction'), note.servirPhotoEleveAdmin);
 router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), note.televerserPhotoEleveAdmin);
 
