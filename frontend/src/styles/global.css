@@ -1665,3 +1665,7 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
   .sidebar.reduit .sb-lien { justify-content: flex-start; gap: .75rem; }
   .sb-backdrop.visible { display: block; position: fixed; inset: 0; background: rgba(0, 0, 0, .45); z-index: 50; }
 }
+
+/* Option régénérer les bulletins (Publication des notes) */
+.pub-regenerer { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: #4A5568; cursor: pointer; }
+.pub-regenerer input { width: 16px; height: 16px; accent-color: #1A365D; cursor: pointer; }

@@ -21,6 +21,21 @@ export async function bulletinExiste(idEleve, periode, anneeScolaire) {
   return rows.length > 0;
 }
 
+// Retrouve le bulletin existant (id + chemin du PDF) pour supprimer/régénérer.
+export async function trouverBulletin(idEleve, periode, anneeScolaire) {
+  const [rows] = await pool.query(
+    `SELECT id, url_pdf FROM documents_officiels
+      WHERE id_eleve = ? AND type = 'bulletin' AND periode = ? AND annee_scolaire = ?
+      LIMIT 1`,
+    [idEleve, periode, anneeScolaire]
+  );
+  return rows[0] || null;
+}
+
+export async function supprimer(id) {
+  await pool.query('DELETE FROM documents_officiels WHERE id = ?', [id]);
+}
+
 export async function listerPourEleve(idEleve, type) {
   const params = [idEleve];
   let filtreType = '';

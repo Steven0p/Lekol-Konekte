@@ -42,14 +42,16 @@ export async function publierCtrl(req, res, next) {
       return res.status(400).json({ erreur: `Trimestre invalide (${TRIMESTRES.join(', ')}).` });
     }
 
-    const r = await publier({ niveau, anneeScolaire, trimestre, idDirection: req.session.userId });
+    const regenerer = req.body.regenerer === true || req.body.regenerer === 'true';
+    const r = await publier({ niveau, anneeScolaire, trimestre, idDirection: req.session.userId, regenerer });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
 
     return res.status(201).json({
-      message: 'Notes publiées.',
+      message: regenerer ? 'Notes publiées et bulletins régénérés.' : 'Notes publiées.',
       bulletinsGeneres: r.nbBulletins,
       elevesSansNotes: r.nbSansNotes,
       bulletinsDejaFaits: r.nbDejaFaits,
+      bulletinsRegeneres: r.nbRegeneres,
     });
   } catch (err) {
     next(err);

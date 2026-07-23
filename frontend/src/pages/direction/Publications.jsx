@@ -23,6 +23,7 @@ function anneesScolaires() {
 export default function Publications() {
   const [niveaux, setNiveaux] = useState([]);
   const [form, setForm] = useState({ niveau: '', anneeScolaire: anneeScolaireCourante(), trimestre: '1er_trimestre' });
+  const [regenerer, setRegenerer] = useState(false);
 
   const [publications, setPublications] = useState(null); // null = chargement
   const [bulletins, setBulletins] = useState([]);
@@ -85,8 +86,9 @@ export default function Publications() {
   const publier = async () => {
     setErreur(''); setMsg(''); setEnCours(true);
     try {
-      const d = await directionApi.publier(form);
+      const d = await directionApi.publier({ ...form, regenerer });
       setMsg(`Publié. ${d.bulletinsGeneres} bulletin(s) généré(s)`
+        + `${d.bulletinsRegeneres ? `, ${d.bulletinsRegeneres} régénéré(s)` : ''}`
         + `, ${d.elevesSansNotes} élève(s) sans notes validées`
         + `${d.bulletinsDejaFaits ? `, ${d.bulletinsDejaFaits} déjà existant(s)` : ''}.`);
       setConfirme(false);
@@ -150,8 +152,12 @@ export default function Publications() {
               {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
             </select>
           </div>
+          <label className="pub-regenerer">
+            <input type="checkbox" checked={regenerer} onChange={(e) => setRegenerer(e.target.checked)} />
+            <span>Régénérer les bulletins existants (applique le nouveau format)</span>
+          </label>
           <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
-            {enCours ? 'Publication…' : 'Publier'}
+            {enCours ? 'Publication…' : (regenerer ? 'Publier & régénérer' : 'Publier')}
           </button>
         </form>
       </div>
@@ -250,6 +256,7 @@ export default function Publications() {
             <h2 style={{ marginBottom: '.75rem' }}>Confirmer la publication</h2>
             <p style={{ color: '#4A5568', marginBottom: '1rem' }}>
               Voulez-vous vraiment publier les notes de <strong>{form.niveau}</strong> — <strong>{libTrim(form.trimestre)}</strong> ({form.anneeScolaire}) ? Les bulletins seront générés et les parents notifiés.
+              {regenerer && <><br /><strong>Les bulletins déjà existants seront régénérés</strong> au nouveau format.</>}
             </p>
             <div className="pub-stats">
               <span className="pub-stat"><Icone nom="users" /> <strong>{statsModal ? (statsModal.eleves ?? '—') : '…'}</strong> élèves</span>

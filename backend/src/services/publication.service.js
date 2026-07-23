@@ -4,10 +4,14 @@ import { existe, creer as creerPublication } from '../models/publication.model.j
 import { listerParNiveau } from '../models/eleve.model.js';
 import { notesValideesPourBulletin } from '../models/note.model.js';
 import { lister as listerMatieres } from '../models/matiere.model.js';
-import { creer as creerDocumentOfficiel, bulletinExiste } from '../models/documentOfficiel.model.js';
+import { creer as creerDocumentOfficiel, bulletinExiste,
+  trouverBulletin, supprimer as supprimerDocument } from '../models/documentOfficiel.model.js';
 import { calculerMoyenne } from './moyenne.service.js';
 import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 const LIBELLE_TRIMESTRE = {
   '1er_trimestre': '1er trimestre',
@@ -26,8 +30,9 @@ async function nomEcole() {
 // Bulletin traditionnel : la grille montre les trimestres jusqu'au trimestre courant
 // (le 3e trimestre rassemble les 3), avec Total/Moyenne/Place + Moyenne générale annuelle.
 // Idempotent : un bulletin par (élève, trimestre, année).
-// Résultat : { ok:true, nbBulletins, nbSansNotes, nbDejaFaits }
-export async function publier({ niveau, anneeScolaire, trimestre, idDirection }) {
+// regenerer=true : remplace les bulletins déjà existants (applique le nouveau format).
+// Résultat : { ok:true, nbBulletins, nbSansNotes, nbDejaFaits, nbRegeneres }
+export async function publier({ niveau, anneeScolaire, trimestre, idDirection, regenerer = false }) {
   if (!(await existe(niveau, anneeScolaire, trimestre))) {
     await creerPublication({ niveau, anneeScolaire, trimestre, publiePar: idDirection });
   }
@@ -67,13 +72,26 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection })
   let nbBulletins = 0;
   let nbSansNotes = 0;
   let nbDejaFaits = 0;
+  let nbRegeneres = 0;
 
   for (const eleve of eleves) {
-    if (await bulletinExiste(eleve.id, trimestre, anneeScolaire)) { nbDejaFaits += 1; continue; }
+    const existant = await trouverBulletin(eleve.id, trimestre, anneeScolaire);
+    if (existant && !regenerer) { nbDejaFaits += 1; continue; }
 
     const dn = donnees.get(eleve.id);
     const moyenneCourante = dn[trimestre] ? dn[trimestre].moyenne : null;
-    if (moyenneCourante == null) { nbSansNotes += 1; continue; } // pas de notes validées ce trimestre
+    // Pas de notes validées ce trimestre → on ne touche pas au bulletin existant.
+    if (moyenneCourante == null) { nbSansNotes += 1; continue; }
+
+    // Régénération : on remplace l'ancien bulletin (fichier + enregistrement)
+    if (existant) {
+      if (existant.url_pdf) {
+        const chemin = path.resolve(UPLOAD_ROOT, existant.url_pdf);
+        if (chemin.startsWith(path.resolve(UPLOAD_ROOT))) await fs.unlink(chemin).catch(() => {});
+      }
+      await supprimerDocument(existant.id);
+      nbRegeneres += 1;
+    }
 
     const notesParTrim = {};
     const moyennesParTrim = {};
@@ -103,8 +121,9 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection })
     });
     nbBulletins += 1;
 
-    // Notification au parent (ne bloque pas la publication en cas d'échec)
+    // Notification au parent — uniquement pour un nouveau bulletin (pas lors d'une régénération).
     const libelle = LIBELLE_TRIMESTRE[trimestre] || trimestre;
+    if (existant) continue; // régénération : bulletin remplacé, on ne re-notifie pas
     const bilanTexte = moyenneAnnuelle != null
       ? `\nMoyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.` : '';
     const bilanHtml = moyenneAnnuelle != null
@@ -127,5 +146,5 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection })
     }
   }
 
-  return { ok: true, nbBulletins, nbSansNotes, nbDejaFaits };
+  return { ok: true, nbBulletins, nbSansNotes, nbDejaFaits, nbRegeneres };
 }
