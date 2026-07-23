@@ -1,4 +1,6 @@
-// Service de génération du bulletin PDF (pdf-lib)
+// Service de génération du bulletin PDF (pdf-lib) — format traditionnel haïtien,
+// paysage : grille Matière × trimestres, Total/Moyenne/Place, bloc de droite
+// (Signature, Moyenne Générale, Observation, Décision de fin d'année).
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import crypto from 'crypto';
 import fs from 'fs/promises';
@@ -8,92 +10,206 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const BULLETINS_DIR = path.join(__dirname, '..', '..', 'uploads', 'bulletins');
 
-const LIBELLE_TRIMESTRE = {
-  '1er_trimestre': '1er trimestre',
-  '2e_trimestre': '2e trimestre',
-  '3e_trimestre': '3e trimestre',
+const LIBELLE_TRIM = {
+  '1er_trimestre': '1er Trimestre',
+  '2e_trimestre': '2e Trimestre',
+  '3e_trimestre': '3e Trimestre',
+};
+const COURT_TRIM = {
+  '1er_trimestre': '1er Trim.',
+  '2e_trimestre': '2e Trim.',
+  '3e_trimestre': '3e Trim.',
 };
 
-// Génère le PDF et l'écrit sur le disque. Retourne { urlPdf, identifiantUnique }.
-// moyenneAnnuelle / moyennesTrimestres : renseignés uniquement au 3e trimestre
-// (bilan de fin d'année). moyennesTrimestres = { '1er_trimestre', '2e_trimestre', '3e_trimestre' }.
-export async function genererBulletinPDF({ eleve, niveau, trimestre, anneeScolaire, lignes, moyenne, ecoleNom, moyenneAnnuelle = null, moyennesTrimestres = null }) {
+const fmtNote = (v) => {
+  if (v == null || Number.isNaN(v)) return '';
+  return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
+};
+
+// Génère le PDF (paysage A4) et l'écrit sur le disque. Retourne { urlPdf, identifiantUnique }.
+// Params :
+//  eleve { nom_famille, prenom, nom }, niveau, trimestre, anneeScolaire, ecoleNom
+//  matieres : [{ nom, coefficient }]                       (lignes du tableau)
+//  notesParTrim : { '1er_trimestre': { [matiere]: valeur }, ... }
+//  moyennesParTrim : { trim: moyenne|null }
+//  placesParTrim : { trim: place|null }
+//  trimestresAffiches : [trim, ...]                         (colonnes à afficher)
+//  moyenneAnnuelle : number|null                            (renseigné au 3e trimestre)
+export async function genererBulletinPDF({
+  eleve, niveau, trimestre, anneeScolaire, ecoleNom,
+  matieres = [], notesParTrim = {}, moyennesParTrim = {}, placesParTrim = {},
+  trimestresAffiches = [], moyenneAnnuelle = null,
+}) {
   const pdf = await PDFDocument.create();
-  let page = pdf.addPage([595, 842]); // A4
+  const page = pdf.addPage([842, 595]); // A4 paysage
   const police = await pdf.embedFont(StandardFonts.Helvetica);
-  const policeGras = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const gras = await pdf.embedFont(StandardFonts.HelveticaBold);
   const noir = rgb(0.1, 0.1, 0.1);
-  const gris = rgb(0.45, 0.45, 0.45);
+  const gris = rgb(0.5, 0.5, 0.5);
+  const trait = rgb(0.3, 0.3, 0.3);
 
-  let y = 800;
-  const marge = 50;
+  const T = (t, x, y, size = 9, b = false, color = noir) =>
+    page.drawText(String(t ?? ''), { x, y, size, font: b ? gras : police, color });
+  const ligneH = (x1, x2, y, w = 0.7, color = trait) =>
+    page.drawLine({ start: { x: x1, y }, end: { x: x2, y }, thickness: w, color });
+  const ligneV = (x, y1, y2, w = 0.7, color = trait) =>
+    page.drawLine({ start: { x, y: y1 }, end: { x, y: y2 }, thickness: w, color });
+  const tronque = (s, max) => (s && s.length > max ? `${s.slice(0, max - 1)}…` : (s || ''));
 
-  const texte = (t, x, yy, taille = 11, gras = false, couleur = noir) =>
-    page.drawText(String(t), { x, y: yy, size: taille, font: gras ? policeGras : police, color: couleur });
+  const M = 28;
 
-  // En-tête
-  texte(ecoleNom || 'Lekòl Konekte', marge, y, 18, true);
-  y -= 22;
-  texte('Bulletin de notes', marge, y, 13, true, gris);
-  y -= 30;
+  // ---------- En-tête (Nom / Prénom / Classe / Année) ----------
+  let y = 567;
+  const champ = (label, valeur, x, largeur) => {
+    T(label, x, y, 10, true);
+    const lx = x + police.widthOfTextAtSize(label, 10) + 4;
+    T(valeur || '', lx, y, 10);
+    ligneH(lx, x + largeur, y - 2, 0.5, gris);
+  };
+  champ('Nom :', eleve.nom_famille || eleve.nom || '', M, 210);
+  champ('Prénom :', eleve.prenom || '', M + 220, 200);
+  champ('Classe :', niveau || '', M + 440, 170);
+  champ('Année :', anneeScolaire || '', M + 620, 166);
 
-  // Infos élève
-  texte(`Élève : ${eleve.nom}`, marge, y, 11, true); y -= 16;
-  texte(`Niveau : ${niveau}`, marge, y); y -= 16;
-  texte(`${LIBELLE_TRIMESTRE[trimestre] || trimestre} — Année ${anneeScolaire}`, marge, y); y -= 26;
+  // ---------- Tableau de gauche ----------
+  const cols = trimestresAffiches.length ? trimestresAffiches : [trimestre];
+  const wMat = 156, wCoef = 34, wTrim = 52;
+  const xMat = M;
+  const xCoef = xMat + wMat;
+  const xT0 = xCoef + wCoef;
+  const xEnd = xT0 + cols.length * wTrim;
+  const centre = (texte, xg, largeur, yy, size = 8.5, b = false, color = noir) => {
+    const w = (b ? gras : police).widthOfTextAtSize(String(texte ?? ''), size);
+    T(texte, xg + (largeur - w) / 2, yy, size, b, color);
+  };
 
-  // En-tête du tableau
-  const colMatiere = marge;
-  const colNote = 320;
-  const colCoef = 400;
-  const colProduit = 470;
-  texte('Matière', colMatiere, y, 11, true);
-  texte('Note /100', colNote, y, 11, true);
-  texte('Coef.', colCoef, y, 11, true);
-  texte('Note×Coef', colProduit, y, 11, true);
-  y -= 6;
-  page.drawLine({ start: { x: marge, y }, end: { x: 545, y }, thickness: 1, color: gris });
-  y -= 16;
+  const hautTable = 540;
+  const basTable = 40;
+  const hEntete = 24;
+  const nLignes = matieres.length + 3; // + Total, Moyenne, Place
+  let rowH = (hautTable - hEntete - basTable) / nLignes;
+  if (rowH > 20) rowH = 20;
+  if (rowH < 11) rowH = 11;
+  const sizeCell = rowH < 14 ? 7.5 : 8.5;
 
-  // Lignes
-  for (const l of lignes) {
-    texte(l.matiere, colMatiere, y);
-    texte(l.valeur.toFixed(2), colNote, y);
-    texte(l.coefficient.toFixed(2), colCoef, y);
-    texte(l.produit.toFixed(2), colProduit, y);
-    y -= 16;
-    if (y < 80) { y = 800; pdf.addPage([595, 842]); }
+  // Cadre + en-tête
+  let yy = hautTable;
+  page.drawRectangle({ x: xMat, y: hautTable - hEntete, width: xEnd - xMat, height: hEntete, color: rgb(0.93, 0.95, 0.98) });
+  centre('Matière', xMat, wMat, hautTable - 16, 11, true);
+  centre('Coef.', xCoef, wCoef, hautTable - 16, 8, true);
+  cols.forEach((tr, i) => centre(COURT_TRIM[tr] || tr, xT0 + i * wTrim, wTrim, hautTable - 15, 7.5, true));
+  yy = hautTable - hEntete;
+
+  // Lignes matières
+  for (const mat of matieres) {
+    const yTexte = yy - rowH + (rowH - sizeCell) / 2 + 1;
+    T(tronque(mat.nom, wMat > 150 ? 30 : 24), xMat + 4, yTexte, sizeCell);
+    centre(fmtNote(Number(mat.coefficient)), xCoef, wCoef, yTexte, sizeCell);
+    cols.forEach((tr, i) => {
+      const v = notesParTrim[tr] ? notesParTrim[tr][mat.nom] : undefined;
+      centre(fmtNote(v == null ? null : Number(v)), xT0 + i * wTrim, wTrim, yTexte, sizeCell);
+    });
+    yy -= rowH;
   }
 
-  y -= 6;
-  page.drawLine({ start: { x: marge, y }, end: { x: 545, y }, thickness: 1, color: gris });
-  y -= 22;
-  texte(`Moyenne du trimestre (pondérée) : ${moyenne.toFixed(2)} / 100`, marge, y, 13, true);
-
-  // Bilan annuel — affiché uniquement quand le 3e trimestre est terminé.
-  if (trimestre === '3e_trimestre' && moyenneAnnuelle != null) {
-    const fmt = (v) => (v == null ? '—' : Number(v).toFixed(2));
-    const mt = moyennesTrimestres || {};
-    y -= 34;
-    if (y < 140) { y = 800; page = pdf.addPage([595, 842]); }
-    const marine = rgb(0.10, 0.21, 0.36);
-    page.drawRectangle({ x: marge, y: y - 96, width: 495, height: 108, color: rgb(0.93, 0.97, 1) });
-    texte('Bilan de fin d\'année', marge + 12, y, 13, true, marine);
-    y -= 22;
-    texte(`Moyenne 1er trimestre : ${fmt(mt['1er_trimestre'])} / 100`, marge + 12, y); y -= 16;
-    texte(`Moyenne 2e trimestre : ${fmt(mt['2e_trimestre'])} / 100`, marge + 12, y); y -= 16;
-    texte(`Moyenne 3e trimestre : ${fmt(mt['3e_trimestre'])} / 100`, marge + 12, y); y -= 22;
-    texte(`Moyenne générale annuelle : ${Number(moyenneAnnuelle).toFixed(2)} / 100`, marge + 12, y, 14, true, marine);
-    const admis = Number(moyenneAnnuelle) >= 50;
-    texte(`Décision : ${admis ? 'Admis(e) en classe supérieure' : 'Ajourné(e)'}`, marge + 300, y, 11, true,
-      admis ? rgb(0.13, 0.55, 0.13) : rgb(0.72, 0.11, 0.11));
-    y -= 12;
+  // Total / Moyenne / Place
+  const sommeCoef = matieres.reduce((s, m) => s + (Number(m.coefficient) || 0), 0);
+  const totalTrim = (tr) => {
+    let s = 0;
+    for (const m of matieres) {
+      const v = notesParTrim[tr] ? notesParTrim[tr][m.nom] : undefined;
+      if (v != null) s += Number(v) * (Number(m.coefficient) || 1);
+    }
+    return Math.round(s);
+  };
+  const lignesBilan = [
+    { libelle: 'Total', coef: fmtNote(sommeCoef), valeur: (tr) => (moyennesParTrim[tr] != null ? String(totalTrim(tr)) : ''), b: true },
+    { libelle: 'Moyenne', coef: '', valeur: (tr) => (moyennesParTrim[tr] != null ? Number(moyennesParTrim[tr]).toFixed(2) : ''), b: true },
+    { libelle: 'Place', coef: '', valeur: (tr) => (placesParTrim[tr] ? `${placesParTrim[tr]}e` : ''), b: false },
+  ];
+  for (const lb of lignesBilan) {
+    const yTexte = yy - rowH + (rowH - sizeCell) / 2 + 1;
+    T(lb.libelle, xMat + 4, yTexte, sizeCell, true);
+    centre(lb.coef, xCoef, wCoef, yTexte, sizeCell, true);
+    cols.forEach((tr, i) => centre(lb.valeur(tr), xT0 + i * wTrim, wTrim, yTexte, sizeCell, lb.b));
+    yy -= rowH;
   }
 
-  // Pied de page
+  // Grille : lignes horizontales + verticales
+  const yTop = hautTable, yBot = yy;
+  for (let ly = yTop; ly >= yBot - 0.1; ly -= rowH === 0 ? 1 : rowH) { /* placeholder */ }
+  // horizontales
+  ligneH(xMat, xEnd, yTop);
+  ligneH(xMat, xEnd, yTop - hEntete);
+  let yl = yTop - hEntete;
+  for (let i = 0; i < nLignes; i += 1) { yl -= rowH; ligneH(xMat, xEnd, yl, 0.4, gris); }
+  // verticales
+  [xMat, xCoef, xT0].forEach((vx) => ligneV(vx, yTop, yBot));
+  cols.forEach((_, i) => ligneV(xT0 + (i + 1) * wTrim, yTop, yBot));
+
+  // ---------- Bloc de droite ----------
+  const rx = xEnd + 26;
+  const rEnd = 814;
+  let ry = 545;
+
+  // Signature
+  centre('Signature', rx, rEnd - rx, ry, 11, true);
+  ry -= 16;
+  const sHead = ry;
+  const cLabel = 150, cSig = (rEnd - rx - cLabel) / 2;
+  const xSig1 = rx + cLabel, xSig2 = xSig1 + cSig;
+  centre('Direction', xSig1, cSig, ry - 11, 8, true);
+  centre('Responsable', xSig2, cSig, ry - 11, 8, true);
+  ry -= 15;
+  const rowsSig = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
+  ligneH(rx, rEnd, sHead); ligneH(rx, rEnd, ry);
+  let sy = ry;
+  for (const tr of rowsSig) {
+    T(LIBELLE_TRIM[tr], rx + 4, sy - 14, 8);
+    sy -= 18;
+    ligneH(rx, rEnd, sy, 0.4, gris);
+  }
+  [rx, xSig1, xSig2, rEnd].forEach((vx) => ligneV(vx, sHead, sy));
+
+  // Moyenne Générale
+  ry = sy - 22;
+  T('Moyenne Générale :', rx, ry, 11, true);
+  const mgx = rx + gras.widthOfTextAtSize('Moyenne Générale :', 11) + 6;
+  T(moyenneAnnuelle != null ? `${Number(moyenneAnnuelle).toFixed(2)} / 100` : '', mgx, ry, 11, true, rgb(0.1, 0.21, 0.36));
+  ligneH(mgx, rEnd, ry - 2, 0.5, gris);
+
+  // Observation
+  ry -= 26;
+  T('Observation', rx, ry, 11, true);
+  ry -= 18;
+  for (const tr of rowsSig) {
+    T(`${LIBELLE_TRIM[tr]} :`, rx, ry, 9);
+    ligneH(rx + police.widthOfTextAtSize(`${LIBELLE_TRIM[tr]} :`, 9) + 4, rEnd, ry - 2, 0.5, gris);
+    ry -= 20;
+  }
+
+  // Décision de fin d'année
+  ry -= 6;
+  T("Décision de fin d'année", rx, ry, 11, true);
+  ry -= 18;
+  const admis = moyenneAnnuelle != null && Number(moyenneAnnuelle) >= 50;
+  T("L'élève est admis(e) en :", rx, ry, 9);
+  if (moyenneAnnuelle != null) {
+    T(admis ? 'classe supérieure' : '', rx + police.widthOfTextAtSize("L'élève est admis(e) en :", 9) + 6, ry, 9, true, rgb(0.13, 0.5, 0.13));
+  }
+  ligneH(rx + police.widthOfTextAtSize("L'élève est admis(e) en :", 9) + 4, rEnd, ry - 2, 0.5, gris);
+  ry -= 20;
+  T('Doit être réévalué(e) en :', rx, ry, 9);
+  if (moyenneAnnuelle != null && !admis) {
+    T('reprise', rx + police.widthOfTextAtSize('Doit être réévalué(e) en :', 9) + 6, ry, 9, true, rgb(0.72, 0.11, 0.11));
+  }
+  ligneH(rx + police.widthOfTextAtSize('Doit être réévalué(e) en :', 9) + 4, rEnd, ry - 2, 0.5, gris);
+
+  // ---------- Titre & pied ----------
+  T(ecoleNom || 'Lekòl Konekte', M, 583, 12, true, gris);
   const identifiantUnique = crypto.randomBytes(16).toString('hex');
-  texte(`Identifiant du document : ${identifiantUnique}`, marge, 50, 8, false, gris);
-  texte(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, marge, 38, 8, false, gris);
+  T(`Bulletin — ${LIBELLE_TRIM[trimestre] || trimestre} · Année ${anneeScolaire}`, M, 26, 7.5, false, gris);
+  T(`Document : ${identifiantUnique} — généré le ${new Date().toLocaleDateString('fr-FR')}`, M, 16, 7, false, gris);
 
   const octets = await pdf.save();
   await fs.mkdir(BULLETINS_DIR, { recursive: true });

@@ -171,7 +171,8 @@ export async function listerParNiveau(niveau) {
   // Le courriel de notification = celui saisi sur la dernière inscription si présent,
   // sinon le courriel du compte parent. Idem pour le nom du parent.
   const [rows] = await pool.query(
-    `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau,
+    `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom,
+            e.nom AS nom_famille, e.prenom AS prenom, e.niveau,
             COALESCE(insc.courriel_parent, u.courriel) AS parent_courriel,
             COALESCE(insc.nom_parent, u.nom) AS parent_nom
        FROM eleves e
