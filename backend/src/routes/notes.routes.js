@@ -61,6 +61,7 @@ router.get('/eleves/:id/notes', requireAuth, note.listerPourEleve);
 // Publication (Direction)
 router.post('/publications', requireRole('direction'), publication.publierCtrl);
 router.get('/publications', requireRole('admin', 'direction'), publication.lister);
+router.delete('/publications/:id', requireRole('direction'), publication.supprimerCtrl);
 router.get('/admin/bulletins', requireRole('admin', 'direction'), publication.listerBulletinsNiveau);
 
 // Bulletins & documents officiels

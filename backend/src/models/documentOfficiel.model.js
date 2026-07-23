@@ -36,6 +36,17 @@ export async function supprimer(id) {
   await pool.query('DELETE FROM documents_officiels WHERE id = ?', [id]);
 }
 
+// Bulletins d'un niveau/trimestre/année (pour supprimer les fichiers lors d'un dé-publication)
+export async function bulletinsPourPublication(niveau, periode, anneeScolaire) {
+  const [rows] = await pool.query(
+    `SELECT d.id, d.url_pdf FROM documents_officiels d
+       JOIN eleves e ON e.id = d.id_eleve
+      WHERE d.type = 'bulletin' AND e.niveau = ? AND d.periode = ? AND d.annee_scolaire = ?`,
+    [niveau, periode, anneeScolaire]
+  );
+  return rows;
+}
+
 export async function listerPourEleve(idEleve, type) {
   const params = [idEleve];
   let filtreType = '';

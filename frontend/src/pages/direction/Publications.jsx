@@ -24,6 +24,8 @@ export default function Publications() {
   const [niveaux, setNiveaux] = useState([]);
   const [form, setForm] = useState({ niveau: '', anneeScolaire: anneeScolaireCourante(), trimestre: '1er_trimestre' });
   const [regenerer, setRegenerer] = useState(false);
+  const [suppression, setSuppression] = useState(null); // publication à supprimer
+  const [suppEnCours, setSuppEnCours] = useState(false);
 
   const [publications, setPublications] = useState(null); // null = chargement
   const [bulletins, setBulletins] = useState([]);
@@ -96,6 +98,18 @@ export default function Publications() {
       chargerBulletins(form.niveau);
     } catch (err) { setErreur(err.message); setConfirme(false); }
     finally { setEnCours(false); }
+  };
+
+  const supprimerPublication = async () => {
+    setErreur(''); setMsg(''); setSuppEnCours(true);
+    try {
+      const d = await directionApi.supprimerPublication(suppression.id);
+      setMsg(`Publication supprimée${d.bulletinsSupprimes ? ` (${d.bulletinsSupprimes} bulletin(s) retiré(s))` : ''}.`);
+      setSuppression(null);
+      charger();
+      chargerBulletins(niveauBulletins);
+    } catch (err) { setErreur(err.message); setSuppression(null); }
+    finally { setSuppEnCours(false); }
   };
 
   const voirBulletins = (niveau) => {
@@ -190,7 +204,12 @@ export default function Publications() {
                     <td>{libTrim(p.trimestre)}</td>
                     <td>{dateHeureFr(p.publie_le)}</td>
                     <td>{p.publie_par_nom || '—'}</td>
-                    <td><button type="button" className="paie-btn paie-details" onClick={() => voirBulletins(p.niveau)}>Voir bulletins</button></td>
+                    <td>
+                      <div className="rangee" style={{ gap: '.4rem', flexWrap: 'wrap' }}>
+                        <button type="button" className="paie-btn paie-details" onClick={() => voirBulletins(p.niveau)}>Voir bulletins</button>
+                        <button type="button" className="paie-btn paie-rejeter" onClick={() => setSuppression(p)}><Icone nom="trash" /> Supprimer</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -266,6 +285,26 @@ export default function Publications() {
               <button type="button" className="insc-btn-reinit" onClick={() => setConfirme(false)} disabled={enCours}>Annuler</button>
               <button type="button" className="eco-batch-btn eco-batch-ok" onClick={publier} disabled={enCours}>
                 {enCours ? 'Publication…' : 'Publier'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de confirmation — suppression d'une publication */}
+      {suppression && (
+        <div className="prof-modal-fond" onClick={() => !suppEnCours && setSuppression(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setSuppression(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Supprimer la publication</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              Voulez-vous vraiment supprimer la publication <strong>{suppression.niveau}</strong> — <strong>{libTrim(suppression.trimestre)}</strong> ({suppression.annee_scolaire}) ?
+              <br />Les <strong>bulletins générés</strong> pour ce trimestre seront supprimés et les résultats ne seront plus visibles pour les familles. Les notes saisies ne sont pas effacées.
+            </p>
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setSuppression(null)} disabled={suppEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={supprimerPublication} disabled={suppEnCours}>
+                {suppEnCours ? 'Suppression…' : 'Confirmer'}
               </button>
             </div>
           </div>

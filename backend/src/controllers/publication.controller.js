@@ -1,9 +1,12 @@
 // Contrôleur Publication + Bulletins
 import path from 'path';
+import fs from 'fs/promises';
 import { publier } from '../services/publication.service.js';
-import { lister as listerPublications } from '../models/publication.model.js';
+import { lister as listerPublications, trouverParId as trouverPublication,
+  supprimer as supprimerPublicationModel } from '../models/publication.model.js';
 import { listerPourEleve as listerBulletinsEleve, listerParNiveau as listerBulletinsNiveauModel,
-  trouverAvecProprietaire as trouverDocument }
+  trouverAvecProprietaire as trouverDocument, bulletinsPourPublication,
+  supprimer as supprimerDocument }
   from '../models/documentOfficiel.model.js';
 import { trouverAvecProprietaire as trouverEleve } from '../models/eleve.model.js';
 import { estAcquitte } from '../models/acquittement.model.js';
@@ -53,6 +56,31 @@ export async function publierCtrl(req, res, next) {
       bulletinsDejaFaits: r.nbDejaFaits,
       bulletinsRegeneres: r.nbRegeneres,
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/publications/:id (direction) — dé-publie un niveau/trimestre + supprime ses bulletins
+export async function supprimerCtrl(req, res, next) {
+  try {
+    const publication = await trouverPublication(Number(req.params.id));
+    if (!publication) return res.status(404).json({ erreur: 'Publication introuvable.' });
+
+    // Supprime les bulletins générés (fichiers PDF + enregistrements)
+    const bulletins = await bulletinsPourPublication(
+      publication.niveau, publication.trimestre, publication.annee_scolaire
+    );
+    for (const b of bulletins) {
+      if (b.url_pdf) {
+        const chemin = path.resolve(UPLOAD_ROOT, b.url_pdf);
+        if (chemin.startsWith(path.resolve(UPLOAD_ROOT))) await fs.unlink(chemin).catch(() => {});
+      }
+      await supprimerDocument(b.id);
+    }
+    await supprimerPublicationModel(publication.id);
+
+    return res.json({ message: 'Publication supprimée.', bulletinsSupprimes: bulletins.length });
   } catch (err) {
     next(err);
   }

@@ -28,3 +28,12 @@ export async function lister() {
   );
   return rows;
 }
+
+export async function trouverParId(id) {
+  const [rows] = await pool.query('SELECT * FROM publications_notes WHERE id = ? LIMIT 1', [id]);
+  return rows[0] || null;
+}
+
+export async function supprimer(id) {
+  await pool.query('DELETE FROM publications_notes WHERE id = ?', [id]);
+}
