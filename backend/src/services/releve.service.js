@@ -71,9 +71,10 @@ export async function genererReleve({ eleve, groupes, ecoleNom, duplicata = fals
     for (const l of g.lignes) {
       verifierEspace(70);
       texte(l.matiere, marge, y, 10);
-      texte(l.valeur.toFixed(2), 320, y, 10);
+      // valeur/produit sont null pour une matière non notée : colonne laissée vide
+      texte(l.valeur === null ? '—' : l.valeur.toFixed(2), 320, y, 10);
       texte(l.coefficient.toFixed(2), 400, y, 10);
-      texte(l.produit.toFixed(2), 470, y, 10);
+      texte(l.produit === null ? '—' : l.produit.toFixed(2), 470, y, 10);
       y -= 14;
     }
     texte(`Moyenne pondérée : ${g.moyenne.toFixed(2)} / 100`, marge, y, 11, true);

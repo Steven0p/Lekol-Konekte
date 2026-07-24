@@ -20,9 +20,9 @@ export default function Register() {
     setErreur('');
     setEnCours(true);
     try {
-      const data = await register({ nom, courriel, motDePasse });
-      // Aller à la vérification du courriel (avec l'aperçu Ethereal en dev)
-      navigate('/verifier-courriel', { state: { courriel, apercuCourriel: data.apercuCourriel } });
+      await register({ nom, courriel, motDePasse });
+      // La session est ouverte par register : on entre directement dans l'espace parent.
+      navigate('/tableau-de-bord');
     } catch (err) {
       setErreur(err.message);
     } finally {

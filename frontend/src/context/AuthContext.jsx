@@ -28,11 +28,9 @@ export function AuthProvider({ children }) {
     return data.utilisateur;
   };
 
-  // register n'ouvre PAS de session : l'utilisateur doit vérifier son courriel
-  const register = (payload) => authApi.register(payload);
-
-  const verifierCourriel = async (payload) => {
-    const data = await authApi.verifierCourriel(payload);
+  // register ouvre directement la session : il n'y a plus d'étape de vérification
+  const register = async (payload) => {
+    const data = await authApi.register(payload);
     setUtilisateur(data.utilisateur);
     return data.utilisateur;
   };
@@ -43,7 +41,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, eleveConnexion, register, verifierCourriel, logout }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, eleveConnexion, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

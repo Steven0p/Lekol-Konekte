@@ -5,8 +5,6 @@ import {
   login,
   logout,
   me,
-  verifierCourriel,
-  renvoyerCode,
   eleveConnexion,
   motDePasseOublie,
   reinitialiserMotDePasse,
@@ -18,8 +16,6 @@ const router = Router();
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 router.post('/eleve-connexion', authLimiter, eleveConnexion);
-router.post('/verifier-courriel', otpLimiter, verifierCourriel);
-router.post('/renvoyer-code', otpLimiter, renvoyerCode);
 router.post('/mot-de-passe-oublie', otpLimiter, motDePasseOublie);
 router.post('/reinitialiser-mot-de-passe', otpLimiter, reinitialiserMotDePasse);
 // logout et me gèrent aussi bien un compte classique qu'une session élève.

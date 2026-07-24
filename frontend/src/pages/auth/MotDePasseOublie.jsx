@@ -12,19 +12,17 @@ export default function MotDePasseOublie() {
   const [courriel, setCourriel] = useState('');
   const [code, setCode] = useState('');
   const [nouveauMotDePasse, setNouveauMotDePasse] = useState('');
-  const [apercu, setApercu] = useState('');
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
 
   const demanderCode = async (e) => {
     e.preventDefault();
-    setErreur(''); setMsg(''); setApercu('');
+    setErreur(''); setMsg('');
     setEnCours(true);
     try {
-      const d = await authApi.motDePasseOublie(courriel);
+      await authApi.motDePasseOublie(courriel);
       setMsg('Si un compte existe, un code vient d\'être envoyé par courriel.');
-      if (d.apercuCourriel) setApercu(d.apercuCourriel); // dev (Ethereal)
       setEtape(2);
     } catch (err) {
       setErreur(err.message);
@@ -72,11 +70,6 @@ export default function MotDePasseOublie() {
 
             <Alerte type="erreur">{erreur}</Alerte>
             {msg && <Alerte type="info">{msg}</Alerte>}
-            {apercu && (
-              <Alerte type="info">
-                Dev : <a href={apercu} target="_blank" rel="noreferrer">voir le courriel (aperçu)</a>
-              </Alerte>
-            )}
 
             <Champ label="Code reçu" value={code}
               onChange={(e) => setCode(e.target.value)} required autoComplete="one-time-code" />

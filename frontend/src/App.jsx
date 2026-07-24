@@ -21,7 +21,6 @@ import Login from './pages/auth/Login.jsx';
 import ConnexionEleve from './pages/auth/ConnexionEleve.jsx';
 import MotDePasseOublie from './pages/auth/MotDePasseOublie.jsx';
 import Register from './pages/auth/Register.jsx';
-import VerifierCourriel from './pages/auth/VerifierCourriel.jsx';
 import EspaceEleve from './pages/eleve/EspaceEleve.jsx';
 import BadgeEleve from './pages/eleve/BadgeEleve.jsx';
 import TableauDeBord from './pages/TableauDeBord.jsx';
@@ -72,7 +71,6 @@ export default function App() {
       <Route path="/eleve" element={<RoutePublique><ConnexionEleve /></RoutePublique>} />
       <Route path="/mot-de-passe-oublie" element={<RoutePublique><MotDePasseOublie /></RoutePublique>} />
       <Route path="/register" element={<RoutePublique><Register /></RoutePublique>} />
-      <Route path="/verifier-courriel" element={<VerifierCourriel />} />
 
       {/* Zone authentifiée */}
       <Route

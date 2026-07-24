@@ -39,6 +39,9 @@ export async function findById(id) {
 }
 
 // Crée un utilisateur (rôle 'parent' par défaut) + sa fiche parent, en transaction.
+// Le compte est immédiatement utilisable : il n'y a plus d'étape de vérification du
+// courriel. La colonne courriel_verifie est conservée (mise à 1) pour pouvoir
+// réactiver cette étape plus tard sans migration.
 // Retourne l'utilisateur créé (sans le hash).
 export async function createParent({ nom, courriel, motDePasseHash }) {
   const conn = await pool.getConnection();
@@ -46,7 +49,7 @@ export async function createParent({ nom, courriel, motDePasseHash }) {
     await conn.beginTransaction();
 
     const [res] = await conn.query(
-      'INSERT INTO utilisateurs (nom, courriel, mot_de_passe_hash, role) VALUES (?, ?, ?, ?)',
+      'INSERT INTO utilisateurs (nom, courriel, mot_de_passe_hash, role, courriel_verifie) VALUES (?, ?, ?, ?, 1)',
       [nom, courriel, motDePasseHash, 'parent']
     );
     const idUtilisateur = res.insertId;

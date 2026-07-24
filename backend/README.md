@@ -122,13 +122,24 @@ Flux identique pour `inscription` / `releve` / `duplicata`. `idReference` = id d
 inscription → `confirmee` ; relevé → transcript PDF (toutes notes validées) ; duplicata →
 copie étiquetée « DUPLICATA ». Aucune donnée bancaire stockée, seulement l'image de la preuve.
 
-### Vérification du courriel (OTP)
+### Création de compte
 
-Code à 6 chiffres, haché en base, expiration 10 min, max 5 tentatives.
-En développement (variable `SMTP_HOST` vide), les courriels ne sont pas réellement
-envoyés : un compte **Ethereal** est créé et l'URL d'aperçu du courriel apparaît dans
-les logs du serveur (et dans le champ `apercuCourriel` de la réponse `register` /
-`renvoyer-code`). Pour un envoi réel, renseigner `SMTP_HOST/PORT/USER/PASS` dans `.env`.
+`POST /api/auth/register` crée le compte parent et **ouvre directement la session** :
+il n'y a pas de vérification du courriel par code. L'adresse saisie n'est donc pas
+prouvée — c'est un choix assumé pour ne pas dépendre d'un service d'envoi de courriel.
+
+La colonne `courriel_verifie` est conservée dans le schéma (mise à `1` à la création)
+afin de pouvoir réactiver cette étape plus tard sans migration.
+
+### Courriel (SMTP)
+
+Le courriel reste utilisé pour la réinitialisation de mot de passe et les notifications
+(inscriptions, paiements, bulletins). Les envois sont réels dans tous les environnements :
+il n'y a pas de mode « bac à sable ». Renseigner `SMTP_HOST/PORT/USER/PASS` dans `.env`
+(fournisseur retenu : **Brevo**, voir `.env.example`). Le serveur teste les identifiants
+au démarrage et affiche `✔ Courriel actif` ou `⚠ Courriel INACTIF` sans jamais s'arrêter.
+
+Codes de réinitialisation : 6 chiffres, hachés en base, expiration 10 min, max 5 tentatives.
 
 ## Structure
 

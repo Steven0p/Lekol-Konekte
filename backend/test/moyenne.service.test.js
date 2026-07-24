@@ -74,3 +74,114 @@ describe('calculerMoyenne', () => {
     assert.equal(r.moyenneGenerale, 50);
   });
 });
+
+describe('calculerMoyenne — coefficient 0 (matière hors calcul)', () => {
+  test('un coefficient 0 explicite exclut la matière de la moyenne', () => {
+    // Sport est configuré à 0 par la Direction : seul Maths compte.
+    const r = calculerMoyenne([
+      { matiere: 'Maths', valeur: 90, coefficient: 2 },
+      { matiere: 'Sport', valeur: 10, coefficient: 0 },
+    ]);
+    assert.equal(r.sommeCoef, 2);
+    assert.equal(r.moyenneGenerale, 90);
+  });
+
+  test('un coefficient 0 en chaîne (DECIMAL mysql2) est respecté aussi', () => {
+    const r = calculerMoyenne([
+      { matiere: 'Maths', valeur: 90, coefficient: '2.00' },
+      { matiere: 'Sport', valeur: 10, coefficient: '0.00' },
+    ]);
+    assert.equal(r.moyenneGenerale, 90);
+  });
+
+  test('la matière à coefficient 0 reste affichée sur le bulletin', () => {
+    const { lignes } = calculerMoyenne([
+      { matiere: 'Sport', valeur: 10, coefficient: 0 },
+    ]);
+    assert.deepEqual(lignes, [
+      { matiere: 'Sport', valeur: 10, coefficient: 0, produit: 0 },
+    ]);
+  });
+
+  test('un coefficient null retombe sur 1, il n’est pas confondu avec 0', () => {
+    // NULL en base = coefficient non configuré, pas « matière hors calcul »
+    const r = calculerMoyenne([
+      { matiere: 'A', valeur: 80, coefficient: null },
+      { matiere: 'B', valeur: 60, coefficient: undefined },
+    ]);
+    assert.equal(r.sommeCoef, 2);
+    assert.equal(r.moyenneGenerale, 70);
+  });
+
+  test('un coefficient illisible retombe sur 1', () => {
+    const r = calculerMoyenne([{ matiere: 'A', valeur: 80, coefficient: 'abc' }]);
+    assert.equal(r.sommeCoef, 1);
+    assert.equal(r.moyenneGenerale, 80);
+  });
+
+  test('si toutes les matières sont à 0, la moyenne vaut 0 sans division par zéro', () => {
+    const r = calculerMoyenne([
+      { matiere: 'A', valeur: 80, coefficient: 0 },
+      { matiere: 'B', valeur: 60, coefficient: 0 },
+    ]);
+    assert.equal(r.sommeCoef, 0);
+    assert.equal(r.moyenneGenerale, 0);
+  });
+});
+
+describe('calculerMoyenne — matière non notée', () => {
+  test('une note absente n’est pas comptée comme un zéro', () => {
+    // Sans exclusion, (100 + 0)/2 donnerait 50 : un bulletin faussé.
+    const r = calculerMoyenne([
+      { matiere: 'Maths', valeur: 100, coefficient: 1 },
+      { matiere: 'Sport', valeur: null, coefficient: 1 },
+    ]);
+    assert.equal(r.sommeCoef, 1);
+    assert.equal(r.moyenneGenerale, 100);
+  });
+
+  test('une note non numérique ne rend pas toute la moyenne NaN', () => {
+    for (const invalide of [undefined, '', 'absent', NaN]) {
+      const r = calculerMoyenne([
+        { matiere: 'Maths', valeur: 80, coefficient: 1 },
+        { matiere: 'Sport', valeur: invalide, coefficient: 1 },
+      ]);
+      assert.equal(r.moyenneGenerale, 80, `valeur invalide : ${String(invalide)}`);
+      assert.ok(!Number.isNaN(r.moyenneGenerale));
+    }
+  });
+
+  test('la matière non notée reste dans les lignes, avec valeur et produit à null', () => {
+    const { lignes } = calculerMoyenne([
+      { matiere: 'Sport', valeur: null, coefficient: 2 },
+    ]);
+    // Conservée pour que le bulletin puisse l’afficher sans note,
+    // plutôt que de faire disparaître la matière.
+    assert.deepEqual(lignes, [
+      { matiere: 'Sport', valeur: null, coefficient: 2, produit: null },
+    ]);
+  });
+
+  test('aucune note valide donne une moyenne de 0, comme une liste vide', () => {
+    const r = calculerMoyenne([
+      { matiere: 'A', valeur: null, coefficient: 1 },
+      { matiere: 'B', valeur: undefined, coefficient: 1 },
+    ]);
+    assert.equal(r.sommeCoef, 0);
+    assert.equal(r.moyenneGenerale, 0);
+    assert.equal(r.lignes.length, 2);
+  });
+
+  test('une note à 0 reste bien distincte d’une note absente', () => {
+    const zero = calculerMoyenne([
+      { matiere: 'A', valeur: 0, coefficient: 1 },
+      { matiere: 'B', valeur: 100, coefficient: 1 },
+    ]);
+    const absente = calculerMoyenne([
+      { matiere: 'A', valeur: null, coefficient: 1 },
+      { matiere: 'B', valeur: 100, coefficient: 1 },
+    ]);
+    assert.equal(zero.moyenneGenerale, 50);
+    assert.equal(absente.moyenneGenerale, 100);
+  });
+});

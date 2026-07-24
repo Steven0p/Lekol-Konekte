@@ -4,21 +4,21 @@ import {
   findByCourriel,
   findById,
   createParent,
-  marquerCourrielVerifie,
   mettreAJourMotDePasse,
 } from '../models/user.model.js';
 import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
   from '../models/eleve.model.js';
-import { envoyerCodeVerification, envoyerCodeReinitialisation, verifierCode }
-  from '../services/otp.service.js';
+import { envoyerCodeReinitialisation, verifierCode } from '../services/otp.service.js';
+import { courrielConfigure } from '../config/mailer.js';
 
 const TYPE_RESET = 'reinitialisation_mdp';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 12;
 
-// POST /api/auth/register — crée un compte 'parent' NON vérifié et envoie un OTP.
-// N'ouvre PAS de session : l'utilisateur doit d'abord vérifier son courriel.
+// POST /api/auth/register — crée un compte 'parent' immédiatement actif et ouvre
+// la session. Il n'y a plus de vérification du courriel par code : l'adresse saisie
+// n'est donc pas prouvée (choix assumé, voir README).
 export async function register(req, res, next) {
   try {
     const nom = (req.body.nom || '').trim();
@@ -43,94 +43,17 @@ export async function register(req, res, next) {
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
     const utilisateur = await createParent({ nom, courriel, motDePasseHash });
 
-    const { previewUrl } = await envoyerCodeVerification({
-      idUtilisateur: utilisateur.id,
-      courriel,
-      nom,
-    });
+    req.session.userId = utilisateur.id;
+    req.session.role = utilisateur.role;
 
     return res.status(201).json({
-      message: 'Compte créé. Vérifiez votre courriel pour activer le compte.',
-      courriel,
-      // previewUrl n'est présent qu'en développement (Ethereal) — pratique pour tester.
-      ...(previewUrl ? { apercuCourriel: previewUrl } : {}),
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// POST /api/auth/verifier-courriel — valide l'OTP, marque vérifié, ouvre la session
-export async function verifierCourriel(req, res, next) {
-  try {
-    const courriel = (req.body.courriel || '').trim().toLowerCase();
-    const code = (req.body.code || '').trim();
-
-    if (!courriel || !code) {
-      return res.status(400).json({ erreur: 'Courriel et code requis.' });
-    }
-
-    const utilisateur = await findByCourriel(courriel);
-    if (!utilisateur) {
-      return res.status(404).json({ erreur: 'Compte introuvable.' });
-    }
-    if (utilisateur.courriel_verifie) {
-      return res.status(400).json({ erreur: 'Ce courriel est déjà vérifié.' });
-    }
-
-    const resultat = await verifierCode({ idUtilisateur: utilisateur.id, code });
-
-    if (resultat === 'ok') {
-      await marquerCourrielVerifie(utilisateur.id);
-      req.session.userId = utilisateur.id;
-      req.session.role = utilisateur.role;
-      return res.json({
-        message: 'Courriel vérifié.',
-        utilisateur: {
-          id: utilisateur.id,
-          nom: utilisateur.nom,
-          courriel: utilisateur.courriel,
-          role: utilisateur.role,
-        },
-      });
-    }
-
-    const messages = {
-      aucun_code: 'Aucun code actif. Demandez un nouveau code.',
-      expire: 'Code expiré. Demandez un nouveau code.',
-      trop_tentatives: 'Trop de tentatives. Demandez un nouveau code.',
-      invalide: 'Code invalide.',
-    };
-    const status = resultat === 'invalide' ? 400 : 410;
-    return res.status(status).json({ erreur: messages[resultat] || 'Code invalide.' });
-  } catch (err) {
-    next(err);
-  }
-}
-
-// POST /api/auth/renvoyer-code — régénère et renvoie un OTP
-export async function renvoyerCode(req, res, next) {
-  try {
-    const courriel = (req.body.courriel || '').trim().toLowerCase();
-    if (!courriel) {
-      return res.status(400).json({ erreur: 'Courriel requis.' });
-    }
-
-    const utilisateur = await findByCourriel(courriel);
-    // Réponse générique : ne pas révéler si le compte existe
-    if (!utilisateur || utilisateur.courriel_verifie) {
-      return res.json({ message: 'Si un compte non vérifié existe, un nouveau code a été envoyé.' });
-    }
-
-    const { previewUrl } = await envoyerCodeVerification({
-      idUtilisateur: utilisateur.id,
-      courriel: utilisateur.courriel,
-      nom: utilisateur.nom,
-    });
-
-    return res.json({
-      message: 'Si un compte non vérifié existe, un nouveau code a été envoyé.',
-      ...(previewUrl ? { apercuCourriel: previewUrl } : {}),
+      message: 'Compte créé.',
+      utilisateur: {
+        id: utilisateur.id,
+        nom: utilisateur.nom,
+        courriel: utilisateur.courriel,
+        role: utilisateur.role,
+      },
     });
   } catch (err) {
     next(err);
@@ -146,16 +69,30 @@ export async function motDePasseOublie(req, res, next) {
       return res.status(400).json({ erreur: 'Courriel invalide.' });
     }
 
+    // Contrôle avant toute recherche en base : l'absence de configuration SMTP ne
+    // dépend d'aucun compte, la signaler ne révèle donc pas si le courriel existe.
+    if (!courrielConfigure()) {
+      return res.status(503).json({
+        erreur: 'L\'envoi de courriel n\'est pas configuré sur le serveur. '
+          + 'Contactez le secrétariat pour réinitialiser votre mot de passe.',
+      });
+    }
+
     const utilisateur = await findByCourriel(courriel);
     const reponse = { message: 'Si un compte existe pour ce courriel, un code de réinitialisation a été envoyé.' };
 
     if (utilisateur && utilisateur.statut === 'actif') {
-      const { previewUrl } = await envoyerCodeReinitialisation({
-        idUtilisateur: utilisateur.id,
-        courriel: utilisateur.courriel,
-        nom: utilisateur.nom,
-      });
-      if (previewUrl) reponse.apercuCourriel = previewUrl; // dev (Ethereal)
+      try {
+        await envoyerCodeReinitialisation({
+          idUtilisateur: utilisateur.id,
+          courriel: utilisateur.courriel,
+          nom: utilisateur.nom,
+        });
+      } catch (err) {
+        // Panne ponctuelle du relais : on garde la réponse générique pour ne pas
+        // révéler l'existence du compte, mais on trace l'échec côté serveur.
+        console.error(`✖ Envoi du code de réinitialisation à ${courriel} échoué :`, err.message);
+      }
     }
 
     return res.json(reponse);
@@ -227,14 +164,6 @@ export async function login(req, res, next) {
     const ok = await bcrypt.compare(motDePasse, utilisateur.mot_de_passe_hash);
     if (!ok) {
       return res.status(401).json({ erreur: 'Identifiants invalides.' });
-    }
-
-    // Blocage tant que le courriel n'est pas vérifié (message explicite pour guider)
-    if (!utilisateur.courriel_verifie) {
-      return res.status(403).json({
-        erreur: 'Courriel non vérifié. Vérifiez votre courriel pour activer le compte.',
-        courrielNonVerifie: true,
-      });
     }
 
     req.session.userId = utilisateur.id;

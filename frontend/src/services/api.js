@@ -30,8 +30,6 @@ const json = (body) => JSON.stringify(body);
 
 export const authApi = {
   register: (payload) => request('/auth/register', { method: 'POST', body: json(payload) }),
-  verifierCourriel: (payload) => request('/auth/verifier-courriel', { method: 'POST', body: json(payload) }),
-  renvoyerCode: (courriel) => request('/auth/renvoyer-code', { method: 'POST', body: json({ courriel }) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: json(payload) }),
   eleveConnexion: (code) => request('/auth/eleve-connexion', { method: 'POST', body: json({ code }) }),
   motDePasseOublie: (courriel) => request('/auth/mot-de-passe-oublie', { method: 'POST', body: json({ courriel }) }),

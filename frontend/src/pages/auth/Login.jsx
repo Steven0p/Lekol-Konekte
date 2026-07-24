@@ -24,11 +24,6 @@ export default function Login() {
       await login({ courriel, motDePasse });
       navigate('/tableau-de-bord');
     } catch (err) {
-      // Courriel non vérifié → rediriger vers l'écran de vérification
-      if (err.payload?.courrielNonVerifie) {
-        navigate('/verifier-courriel', { state: { courriel } });
-        return;
-      }
       setErreur(err.message);
     } finally {
       setEnCours(false);

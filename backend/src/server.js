@@ -1,6 +1,7 @@
 // Point d'entrée du serveur
 import app from './app.js';
 import { testConnection } from './config/db.js';
+import { verifierMailer } from './config/mailer.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,6 +12,7 @@ async function demarrer() {
   try {
     await testConnection();
     console.log('✔ Connexion MySQL établie.');
+    await verifierMailer();
     app.listen(PORT, () => {
       console.log(`✔ Serveur Lekol Konekte démarré sur http://localhost:${PORT}`);
     });
