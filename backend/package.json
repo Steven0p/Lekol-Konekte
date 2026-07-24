@@ -8,6 +8,8 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "test": "node --experimental-test-module-mocks --test \"test/*.test.js\"",
+    "init:db": "node scripts/initDbRailway.js",
+    "seed:admin:railway": "node scripts/seedAdminRailway.js",
     "seed": "node scripts/seed.js",
     "seed:vlog": "node scripts/seedVlog.js",
     "seed:profs": "node scripts/seedProfs.js",

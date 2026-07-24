@@ -36,7 +36,7 @@ Navigateur ──HTTPS──▶  Service Node (Express)
    DB_PORT=${{MySQL.MYSQLPORT}}
    DB_USER=${{MySQL.MYSQLUSER}}
    DB_PASSWORD=${{MySQL.MYSQLPASSWORD}}
-   DB_NAME=${{MySQL.MYSQLDATABASE}}
+   DB_NAME=lekol_konekte
 
    SESSION_SECRET=<chaîne longue et aléatoire>
    CLIENT_ORIGIN=https://<votre-domaine>.up.railway.app
@@ -52,9 +52,24 @@ Navigateur ──HTTPS──▶  Service Node (Express)
 5. **Volume persistant** (sinon les PDF disparaissent à chaque redéploiement) :
    service → **Settings → Volumes → Add Volume**, point de montage
    `/app/backend/uploads`.
-6. **Initialiser la base** (une fois) — depuis un client MySQL connecté à la base Railway :
-   - exécuter `backend/db/schema.sql`
-   - puis les migrations `backend/db/migrations/*.sql` dans l'ordre
+   > **Important — `DB_NAME=lekol_konekte`** (pas `${{MySQL.MYSQLDATABASE}}`, qui vaut
+   > `railway`). Le schéma crée sa propre base `lekol_konekte` ; l'app doit pointer dessus.
+
+6. **Initialiser la base** (une seule fois). `db/schema.sql` est le schéma **complet et à
+   jour** : pour une base neuve, il suffit de l'exécuter — **ne pas** rejouer les migrations
+   `db/migrations/*.sql` (elles ne servent qu'à mettre à niveau une ancienne base et
+   échoueraient ici en doublon).
+
+   Le plus simple, depuis `backend/` :
+
+   ```bash
+   npm run init:db "mysql://root:MOTDEPASSE@HOTE.proxy.rlwy.net:PORT/railway"
+   ```
+
+   L'URL publique est dans Railway → service **MySQL → Variables → `MYSQL_PUBLIC_URL`**
+   (l'URL **publique**, pas `mysql.railway.internal`). Le script crée `lekol_konekte` et
+   toutes les tables, puis affiche le nombre de tables créées.
+
    - optionnel : créer les comptes de départ (`npm run seed` en local pointant sur
      la base Railway, ou insérer manuellement).
 7. Railway build via le Dockerfile et démarre le service. L'app est en ligne sur
@@ -62,9 +77,13 @@ Navigateur ──HTTPS──▶  Service Node (Express)
 
 ## SMTP (courriel)
 
-En développement, `SMTP_HOST` vide → Ethereal (aperçu automatique). En production,
-utiliser un vrai fournisseur : **Resend**, **SendGrid**, **Mailgun** ou le SMTP de
-votre hébergeur de messagerie.
+Les courriels partent réellement dans tous les environnements. Fournisseur retenu :
+**Brevo** (`smtp-relay.brevo.com:587`, 300 courriels/jour gratuits). Renseigner
+`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` et `MAIL_FROM` dans les variables
+Railway comme dans `backend/.env.example`.
+
+Sans ces variables, le site fonctionne mais la création de compte répond 502 : le code
+de vérification ne peut pas partir.
 
 ## Test local de l'image (optionnel)
 
