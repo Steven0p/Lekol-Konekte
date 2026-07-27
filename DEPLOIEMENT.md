@@ -75,6 +75,20 @@ Navigateur ──HTTPS──▶  Service Node (Express)
 7. Railway build via le Dockerfile et démarre le service. L'app est en ligne sur
    `https://<votre-domaine>.up.railway.app`.
 
+## Mises à jour de la base (migrations)
+
+`db/schema.sql` reste à jour pour une base **neuve**. Pour une base **déjà en ligne**,
+appliquer seulement la migration correspondant à la nouveauté. Depuis `backend/`, avec
+l'URL publique :
+
+```bash
+mysql -h <HOTE>.proxy.rlwy.net -P <PORT> -u root -p<MDP> lekol_konekte < db/migrations/017_2fa_connexion.sql
+```
+
+- **017 — 2FA connexion parent** : ajoute le type `connexion_2fa` à `codes_verification`.
+  Nécessaire pour la double authentification des parents (sinon l'envoi du code échoue).
+  Prérequis : SMTP configuré (voir ci-dessous), sinon les parents ne peuvent pas se connecter.
+
 ## SMTP (courriel)
 
 Les courriels partent réellement dans tous les environnements. Fournisseur retenu :
