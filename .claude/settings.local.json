@@ -305,7 +305,15 @@
       "Bash(curl -s -b cj.txt http://127.0.0.1:4000/api/auth/me -w \"\\\\n[http %{http_code}]\\\\n\")",
       "Bash(curl -s -c cj.txt -X POST http://127.0.0.1:4000/api/auth/login -H \"Content-Type: application/json\" -d '{\"courriel\":\"admin@lekol.ht\",\"motDePasse\":\"admin1234\"}' -w \"\\\\n[http %{http_code}]\\\\n\")",
       "Bash(node scripts/initDbRailway.js)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(git stash *)",
+      "Bash(node --check src/controllers/auth.controller.js)",
+      "Bash(node --check src/services/otp.service.js)",
+      "Bash(node --check src/routes/auth.routes.js)",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.scripts,null,2\\)\\)\")",
+      "Bash(node_modules/.bin/vite build *)",
+      "Bash(node --check scripts/seedAdminsModulesRailway.js)",
+      "Bash(node scripts/seedAdminsModulesRailway.js \"mysql://root:LHpHSjUCUrekWSeiVorgntjRFnecGxCC@tokaido.proxy.rlwy.net:28268/railway\")"
     ],
     "additionalDirectories": [
       "C:\\Users\\Hz\\Documents\\Lekol Konekte\\backend\\uploads\\bulletins"
