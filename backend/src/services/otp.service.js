@@ -14,6 +14,7 @@ const SALT_ROUNDS = 10;
 const MAX_TENTATIVES = 5;
 const TYPE_VERIF = 'verification_courriel';
 const TYPE_RESET = 'reinitialisation_mdp';
+const TYPE_2FA = 'connexion_2fa';
 
 function expirationMinutes() {
   return Number(process.env.OTP_EXPIRATION_MIN) || 10;
@@ -79,6 +80,36 @@ export async function envoyerCodeReinitialisation({ idUtilisateur, courriel, nom
     `<p>Il expire dans ${minutes} minutes.</p>` +
     `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : ` +
     `votre mot de passe reste inchangé.</p>`;
+
+  const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
+  return { previewUrl };
+}
+
+// Crée un OTP de connexion (2FA) et l'envoie par courriel.
+export async function envoyerCodeConnexion({ idUtilisateur, courriel, nom }) {
+  await invaliderCodesActifs(idUtilisateur, TYPE_2FA);
+
+  const code = genererCode();
+  const codeHash = await bcrypt.hash(code, SALT_ROUNDS);
+  const expireLe = new Date(Date.now() + expirationMinutes() * 60 * 1000);
+
+  await creerCode({ idUtilisateur, codeHash, type: TYPE_2FA, expireLe });
+
+  const minutes = expirationMinutes();
+  const sujet = 'Lekòl Konekte — code de connexion';
+  const texte =
+    `Bonjour ${nom || ''},\n\n` +
+    `Une connexion à votre compte a été demandée.\n` +
+    `Votre code de connexion est : ${code}\n` +
+    `Il expire dans ${minutes} minutes.\n\n` +
+    `Si vous n'êtes pas à l'origine de cette connexion, changez votre mot de passe.`;
+  const html =
+    `<p>Bonjour ${nom || ''},</p>` +
+    `<p>Une connexion à votre compte a été demandée. Votre code de connexion est :</p>` +
+    `<p style="font-size:24px;font-weight:bold;letter-spacing:3px">${code}</p>` +
+    `<p>Il expire dans ${minutes} minutes.</p>` +
+    `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette connexion, ` +
+    `changez votre mot de passe.</p>`;
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };

@@ -31,6 +31,9 @@ const json = (body) => JSON.stringify(body);
 export const authApi = {
   register: (payload) => request('/auth/register', { method: 'POST', body: json(payload) }),
   login: (payload) => request('/auth/login', { method: 'POST', body: json(payload) }),
+  // 2FA parent : 2ᵉ étape (vérification du code) et renvoi de code.
+  verifierConnexion: (code) => request('/auth/verifier-connexion', { method: 'POST', body: json({ code }) }),
+  renvoyerCodeConnexion: () => request('/auth/renvoyer-code-connexion', { method: 'POST' }),
   eleveConnexion: (code) => request('/auth/eleve-connexion', { method: 'POST', body: json({ code }) }),
   motDePasseOublie: (courriel) => request('/auth/mot-de-passe-oublie', { method: 'POST', body: json({ courriel }) }),
   reinitialiserMotDePasse: (payload) => request('/auth/reinitialiser-mot-de-passe', { method: 'POST', body: json(payload) }),
@@ -244,5 +247,11 @@ export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
 export const urlPhotoVlog = (id) => `${API_URL}/vlog/${id}/photo`;
 export const urlPhotoProf = (id) => `${API_URL}/professeurs/${id}/photo`;
 export const urlPhotoExamen = (id) => `${API_URL}/examens/${id}/photo`;
+
+// Marque de l'école (nom + présence d'un logo) — endpoint public utilisé par
+// l'en-tête du site public et la barre latérale de l'espace connecté.
+export const marqueApi = {
+  obtenir: () => request('/ecole/marque'),
+};
 
 export { request, API_URL };

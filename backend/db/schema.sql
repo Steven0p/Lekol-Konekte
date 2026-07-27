@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS codes_verification (
   id             INT AUTO_INCREMENT PRIMARY KEY,
   id_utilisateur INT NOT NULL,
   code_hash      VARCHAR(255) NOT NULL,
-  type           ENUM('verification_courriel','reinitialisation_mdp') NOT NULL DEFAULT 'verification_courriel',
+  type           ENUM('verification_courriel','reinitialisation_mdp','connexion_2fa') NOT NULL DEFAULT 'verification_courriel',
   tentatives     INT NOT NULL DEFAULT 0,
   utilise        TINYINT(1) NOT NULL DEFAULT 0,
   expire_le      DATETIME NOT NULL,

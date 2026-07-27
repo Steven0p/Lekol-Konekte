@@ -15,11 +15,22 @@ export function AuthProvider({ children }) {
       .finally(() => setChargement(false));
   }, []);
 
+  // login peut renvoyer soit { utilisateur } (session ouverte), soit
+  // { etape: '2fa_requis', courriel } pour les comptes parent (2FA par courriel).
   const login = async (payload) => {
     const data = await authApi.login(payload);
+    if (data.utilisateur) setUtilisateur(data.utilisateur);
+    return data;
+  };
+
+  // 2FA parent : valide le code reçu par courriel et ouvre la session.
+  const verifierConnexion = async (code) => {
+    const data = await authApi.verifierConnexion(code);
     setUtilisateur(data.utilisateur);
     return data.utilisateur;
   };
+
+  const renvoyerCodeConnexion = () => authApi.renvoyerCodeConnexion();
 
   // Connexion espace élève par code d'accès (sans courriel ni mot de passe)
   const eleveConnexion = async (code) => {
@@ -41,7 +52,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, eleveConnexion, register, logout }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

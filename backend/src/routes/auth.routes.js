@@ -8,6 +8,8 @@ import {
   eleveConnexion,
   motDePasseOublie,
   reinitialiserMotDePasse,
+  verifierConnexion,
+  renvoyerCodeConnexion,
 } from '../controllers/auth.controller.js';
 import { authLimiter, otpLimiter } from '../middleware/rateLimit.js';
 
@@ -15,6 +17,9 @@ const router = Router();
 
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+// 2FA parent : 2ᵉ étape (vérification du code) et renvoi de code.
+router.post('/verifier-connexion', otpLimiter, verifierConnexion);
+router.post('/renvoyer-code-connexion', otpLimiter, renvoyerCodeConnexion);
 router.post('/eleve-connexion', authLimiter, eleveConnexion);
 router.post('/mot-de-passe-oublie', otpLimiter, motDePasseOublie);
 router.post('/reinitialiser-mot-de-passe', otpLimiter, reinitialiserMotDePasse);

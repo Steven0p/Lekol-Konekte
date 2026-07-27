@@ -8,10 +8,15 @@ import {
 } from '../models/user.model.js';
 import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
   from '../models/eleve.model.js';
-import { envoyerCodeReinitialisation, verifierCode } from '../services/otp.service.js';
+import {
+  envoyerCodeReinitialisation,
+  envoyerCodeConnexion,
+  verifierCode,
+} from '../services/otp.service.js';
 import { courrielConfigure } from '../config/mailer.js';
 
 const TYPE_RESET = 'reinitialisation_mdp';
+const TYPE_2FA = 'connexion_2fa';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SALT_ROUNDS = 12;
@@ -166,6 +171,38 @@ export async function login(req, res, next) {
       return res.status(401).json({ erreur: 'Identifiants invalides.' });
     }
 
+    // Double authentification (2FA) : les comptes 'parent' reçoivent un code par
+    // courriel avant l'ouverture de la session. Les rôles admin/direction gardent
+    // la connexion par mot de passe seul.
+    if (utilisateur.role === 'parent') {
+      if (!courrielConfigure()) {
+        return res.status(503).json({
+          erreur: 'L\'envoi de courriel n\'est pas configuré sur le serveur. '
+            + 'Contactez le secrétariat pour accéder à votre compte.',
+        });
+      }
+
+      // On note l'utilisateur en attente de 2FA sans ouvrir la session complète.
+      req.session.pending2fa = utilisateur.id;
+      delete req.session.userId;
+      delete req.session.role;
+
+      try {
+        await envoyerCodeConnexion({
+          idUtilisateur: utilisateur.id,
+          courriel: utilisateur.courriel,
+          nom: utilisateur.nom,
+        });
+      } catch (err) {
+        console.error(`✖ Envoi du code de connexion à ${courriel} échoué :`, err.message);
+        return res.status(502).json({
+          erreur: 'Impossible d\'envoyer le code de connexion. Réessayez plus tard.',
+        });
+      }
+
+      return res.json({ etape: '2fa_requis', courriel: utilisateur.courriel });
+    }
+
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
 
@@ -177,6 +214,95 @@ export async function login(req, res, next) {
         role: utilisateur.role,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/verifier-connexion — 2ᵉ étape de connexion parent : vérifie le
+// code reçu par courriel puis ouvre la session complète.
+export async function verifierConnexion(req, res, next) {
+  try {
+    const code = (req.body.code || '').trim();
+    const idUtilisateur = req.session.pending2fa;
+
+    if (!idUtilisateur) {
+      return res.status(401).json({ erreur: 'Aucune connexion en attente. Recommencez.' });
+    }
+    if (!code) {
+      return res.status(400).json({ erreur: 'Code requis.' });
+    }
+
+    const resultat = await verifierCode({ idUtilisateur, code, type: TYPE_2FA });
+    if (resultat !== 'ok') {
+      const messages = {
+        aucun_code: 'Aucun code actif. Recommencez la connexion.',
+        expire: 'Code expiré. Recommencez la connexion.',
+        trop_tentatives: 'Trop de tentatives. Recommencez la connexion.',
+        invalide: 'Code invalide.',
+      };
+      const status = resultat === 'invalide' ? 400 : 410;
+      // Un code épuisé/expiré interrompt la tentative : on efface l'attente.
+      if (resultat !== 'invalide') delete req.session.pending2fa;
+      return res.status(status).json({ erreur: messages[resultat] || 'Code invalide.' });
+    }
+
+    const utilisateur = await findById(idUtilisateur);
+    if (!utilisateur) {
+      delete req.session.pending2fa;
+      return res.status(401).json({ erreur: 'Compte introuvable.' });
+    }
+
+    // Promotion en session complète.
+    delete req.session.pending2fa;
+    req.session.userId = utilisateur.id;
+    req.session.role = utilisateur.role;
+
+    return res.json({
+      utilisateur: {
+        id: utilisateur.id,
+        nom: utilisateur.nom,
+        courriel: utilisateur.courriel,
+        role: utilisateur.role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/auth/renvoyer-code-connexion — renvoie un code 2FA si une connexion
+// parent est en attente.
+export async function renvoyerCodeConnexion(req, res, next) {
+  try {
+    const idUtilisateur = req.session.pending2fa;
+    if (!idUtilisateur) {
+      return res.status(401).json({ erreur: 'Aucune connexion en attente. Recommencez.' });
+    }
+    if (!courrielConfigure()) {
+      return res.status(503).json({
+        erreur: 'L\'envoi de courriel n\'est pas configuré sur le serveur.',
+      });
+    }
+
+    const utilisateur = await findById(idUtilisateur);
+    if (!utilisateur) {
+      delete req.session.pending2fa;
+      return res.status(401).json({ erreur: 'Compte introuvable.' });
+    }
+
+    try {
+      await envoyerCodeConnexion({
+        idUtilisateur: utilisateur.id,
+        courriel: utilisateur.courriel,
+        nom: utilisateur.nom,
+      });
+    } catch (err) {
+      console.error(`✖ Renvoi du code de connexion échoué :`, err.message);
+      return res.status(502).json({ erreur: 'Impossible d\'envoyer le code. Réessayez plus tard.' });
+    }
+
+    return res.json({ message: 'Un nouveau code a été envoyé.' });
   } catch (err) {
     next(err);
   }
