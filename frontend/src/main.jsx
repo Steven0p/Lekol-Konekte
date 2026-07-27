@@ -3,13 +3,16 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { MarqueProvider } from './context/MarqueContext.jsx';
 import './styles/global.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <MarqueProvider>
+          <App />
+        </MarqueProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>

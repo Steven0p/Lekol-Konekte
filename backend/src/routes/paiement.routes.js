@@ -44,6 +44,8 @@ router.post('/ecole/logo', requireRole('direction'), televerserLogoFichier, tari
 router.delete('/ecole/logo', requireRole('direction'), tarif.supprimerLogo);
 // Logo public (le badge élève, sans compte utilisateur, doit pouvoir l'afficher)
 router.get('/ecole/logo', tarif.servirLogo);
+// Marque publique (nom + présence d'un logo) — affichée dans l'en-tête du site.
+router.get('/ecole/marque', tarif.marqueEcole);
 
 // Frais divers (catalogue géré par la direction)
 router.get('/frais-divers', requireAuth, fraisDivers.lister);

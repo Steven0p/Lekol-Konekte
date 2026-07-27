@@ -358,6 +358,10 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
   display: grid; place-items: center; font-size: 1rem; font-weight: 800;
 }
 
+/* Variante image du logo de marque (photo téléversée par la direction) : garde la
+   taille/le rayon du carré « LK » et remplit sans déformer. */
+.logo-img { object-fit: cover; display: block; padding: 0; background: var(--blanc); }
+
 .site-burger {
   display: none;
   background: transparent; border: 1px solid var(--gris-bordure); border-radius: var(--rayon-sm);

@@ -2,6 +2,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useMarque, initialesMarque } from '../context/MarqueContext.jsx';
+import { urlLogoEcole } from '../services/api.js';
 
 // Menus déroulants
 const MENUS = {
@@ -25,6 +27,7 @@ const MENUS = {
 
 export default function PublicLayout() {
   const { utilisateur } = useAuth();
+  const { nom: nomMarque, aLogo, version } = useMarque();
   const location = useLocation();
   const [ouvert, setOuvert] = useState(null);       // 'academie' | 'plus' | null
   const [menuMobile, setMenuMobile] = useState(false);
@@ -49,8 +52,10 @@ export default function PublicLayout() {
       <header className="site-nav">
         <div className="site-nav-inner">
           <Link to="/" className="site-marque">
-            <span className="logo">LK</span>
-            <span>Lekòl Konekte</span>
+            {aLogo
+              ? <img className="logo logo-img" src={`${urlLogoEcole()}?v=${version}`} alt="" aria-hidden="true" />
+              : <span className="logo">{initialesMarque(nomMarque)}</span>}
+            <span>{nomMarque}</span>
           </Link>
 
           <button

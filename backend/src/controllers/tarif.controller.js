@@ -99,6 +99,20 @@ export async function coordonneesEcole(req, res, next) {
   }
 }
 
+// GET /api/ecole/marque (public) — identité de marque affichée dans l'en-tête
+// (nom + présence d'un logo). Accessible sans authentification pour le site public.
+export async function marqueEcole(req, res, next) {
+  try {
+    const ecole = await ecoleModel.obtenir();
+    return res.json({
+      nom: ecole?.nom || 'Lekòl Konekte',
+      aLogo: !!(ecole && ecole.logo_url),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // PUT /api/ecole-entete (admin/direction) — en-tête du badge (nom, adresse, tél, courriel)
 export async function majEnteteEcole(req, res, next) {
   try {

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { directionApi, urlLogoEcole } from '../../services/api.js';
+import { useMarque } from '../../context/MarqueContext.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
 
 export default function Ecole() {
+  const { recharger: rechargerMarque } = useMarque();
   const [form, setForm] = useState(null);
   const [aLogo, setALogo] = useState(false);
   const [version, setVersion] = useState(0);
@@ -45,7 +47,7 @@ export default function Ecole() {
     setErreur(''); setMsg('');
     if (!form.nom.trim()) { setErreur("Le nom de l'école est requis."); return; }
     setEnCours(true);
-    try { await directionApi.majEcole(form); setMsg('Coordonnées enregistrées avec succès.'); }
+    try { await directionApi.majEcole(form); setMsg('Coordonnées enregistrées avec succès.'); rechargerMarque(); }
     catch (err) { setErreur(err.message); }
     finally { setEnCours(false); }
   };
@@ -63,7 +65,7 @@ export default function Ecole() {
     setErreurLogo(''); setLogoEnCours(true);
     try {
       await directionApi.televerserLogo(fichier);
-      setALogo(true); setVersion((v) => v + 1);
+      setALogo(true); setVersion((v) => v + 1); rechargerMarque();
       setMsg('Logo enregistré.'); setModalLogo(false); setFichier(null); setApercu('');
     } catch (err) { setErreurLogo(err.message); }
     finally { setLogoEnCours(false); }
@@ -73,7 +75,7 @@ export default function Ecole() {
     setErreur(''); setMsg(''); setSuppEnCours(true);
     try {
       await directionApi.supprimerLogo();
-      setALogo(false); setVersion((v) => v + 1);
+      setALogo(false); setVersion((v) => v + 1); rechargerMarque();
       setMsg('Logo supprimé.'); setConfirmSupp(false);
     } catch (err) { setErreur(err.message); setConfirmSupp(false); }
     finally { setSuppEnCours(false); }
@@ -132,7 +134,7 @@ export default function Ecole() {
         {/* Logo */}
         <section className="traiter-carte ecole-logo-carte">
           <div className="traiter-titre"><Icone nom="image" /> Logo de l'école</div>
-          <p className="texte-gris" style={{ marginBottom: '1rem' }}>Le logo apparaît sur les badges des élèves.</p>
+          <p className="texte-gris" style={{ marginBottom: '1rem' }}>Le logo et le nom apparaissent dans l'en-tête du site et sur les badges des élèves.</p>
           <div className="ecole-logo-preview">
             {aLogo ? (
               <img src={`${urlLogoEcole()}?v=${version}`} alt="Logo de l'école" />
