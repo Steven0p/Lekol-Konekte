@@ -47,6 +47,13 @@ function creerTransport() {
     port,
     secure: port === 465, // 465 = TLS implicite ; 587 = STARTTLS
     auth: { user: utilisateur, pass: mdp },
+    // Sans ces délais, un SMTP lent ou bloqué (ex. IP non autorisée chez le
+    // fournisseur) peut faire attendre verifierMailer() plusieurs minutes au
+    // démarrage — largement au-delà du healthcheck Railway (120s), ce qui fait
+    // échouer tout le déploiement à cause d'un simple souci de courriel.
+    connectionTimeout: 10_000,
+    greetingTimeout: 10_000,
+    socketTimeout: 10_000,
   });
 }
 
