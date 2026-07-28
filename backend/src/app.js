@@ -1,5 +1,6 @@
 // Configuration de l'application Express
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
@@ -26,6 +27,13 @@ const isProd = process.env.NODE_ENV === 'production';
 
 // Confiance au proxy (utile derrière un reverse proxy en production)
 if (isProd) app.set('trust proxy', 1);
+
+// En-têtes de sécurité (HSTS, X-Content-Type-Options, X-Frame-Options, retrait
+// de X-Powered-By, etc.). CSP désactivée pour l'instant : le build React n'a
+// pas encore été audité module par module pour du contenu inline (scripts,
+// styles) qui casserait sous une politique stricte — à activer séparément
+// une fois ce travail fait.
+app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(express.json());
 app.use(cookieParser());
