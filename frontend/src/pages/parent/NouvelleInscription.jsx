@@ -52,9 +52,9 @@ export default function NouvelleInscription() {
             <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')} required />
           </div>
           <Champ label="Date de naissance" type="date" value={form.dateNaissance}
-            onChange={maj('dateNaissance')} />
+            onChange={maj('dateNaissance')} required />
           <Champ label="Niveau scolaire visé" value={form.niveau}
-            onChange={maj('niveau')} placeholder="ex. 6e année" />
+            onChange={maj('niveau')} placeholder="ex. 6e année" required />
           <Champ label="Année scolaire" value={form.anneeScolaire}
             onChange={maj('anneeScolaire')} placeholder="ex. 2026-2027" required />
 
@@ -64,7 +64,7 @@ export default function NouvelleInscription() {
           <Champ label="Profession du parent" value={form.professionParent}
             onChange={maj('professionParent')} placeholder="ex. Commerçant(e)" />
           <Champ label="Téléphone du parent" type="tel" value={form.telephoneParent}
-            onChange={maj('telephoneParent')} placeholder="ex. +509 ..." />
+            onChange={maj('telephoneParent')} placeholder="ex. +509 ..." required />
           <Champ label="Courriel du parent" type="email" value={form.courrielParent}
             onChange={maj('courrielParent')} placeholder="ex. parent@exemple.com" required />
           <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
