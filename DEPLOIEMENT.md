@@ -85,6 +85,9 @@ mysql -h <HOTE>.proxy.rlwy.net -P <PORT> -u root -p<MDP> lekol_konekte < db/migr
 - **017 — 2FA connexion parent** : ajoute le type `connexion_2fa` à `codes_verification`.
   Nécessaire pour la double authentification des parents (sinon l'envoi du code échoue).
   Prérequis : courriel configuré (voir ci-dessous), sinon les parents ne peuvent pas se connecter.
+- **018 — historique_statut.commentaire en TEXT** : les messages rédigés par
+  l'assistant IA (Traiter le dossier) dépassent souvent l'ancienne limite de
+  500 caractères, ce qui faisait échouer le changement de statut (erreur 500).
 
 ## Courriel (API Resend)
 

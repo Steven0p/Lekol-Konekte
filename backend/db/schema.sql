@@ -237,7 +237,7 @@ CREATE TABLE IF NOT EXISTS historique_statut (
   id_entite      INT NOT NULL,
   ancien_statut  VARCHAR(40),
   nouveau_statut VARCHAR(40) NOT NULL,
-  commentaire    VARCHAR(500),
+  commentaire    TEXT,
   id_auteur      INT,
   cree_le        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_auteur) REFERENCES utilisateurs(id) ON DELETE SET NULL
