@@ -14,7 +14,8 @@ export async function creer(req, res, next) {
   try {
     const typeFrais = (req.body.typeFrais || '').trim();
     const idReference = Number(req.body.idReference);
-    const r = await creerDemande({ typeFrais, idReference, idUtilisateur: req.session.userId });
+    const montant = Number(req.body.montant);
+    const r = await creerDemande({ typeFrais, idReference, montant, idUtilisateur: req.session.userId });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
     return res.status(201).json({ paiement: r.paiement, coordonnees: r.coordonnees });
   } catch (err) {

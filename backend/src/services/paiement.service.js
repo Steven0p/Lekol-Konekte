@@ -32,10 +32,16 @@ async function resoudreProprietaire(typeFrais, idReference) {
   };
 }
 
-// Crée une demande de paiement. Retourne { ok, code?, erreur?, paiement, coordonnees }
-export async function creerDemande({ typeFrais, idReference, idUtilisateur }) {
+// Crée une demande de paiement. Le montant est saisi par le parent (ce qu'il a
+// réellement déposé) : le secrétariat le confronte à la photo du reçu pendant
+// la validation, plutôt que d'imposer le montant du tarif côté serveur.
+// Retourne { ok, code?, erreur?, paiement, coordonnees }
+export async function creerDemande({ typeFrais, idReference, montant, idUtilisateur }) {
   if (!TYPES.includes(typeFrais)) return { ok: false, code: 400, erreur: 'Type de frais invalide.' };
   if (!idReference) return { ok: false, code: 400, erreur: 'idReference requis.' };
+  if (!Number.isFinite(montant) || montant <= 0) {
+    return { ok: false, code: 400, erreur: 'Montant invalide.' };
+  }
 
   const prop = await resoudreProprietaire(typeFrais, idReference);
   if (!prop) return { ok: false, code: 404, erreur: 'Référence introuvable.' };
@@ -54,13 +60,13 @@ export async function creerDemande({ typeFrais, idReference, idUtilisateur }) {
   if (!tarif) return { ok: false, code: 409, erreur: 'Aucun tarif configuré pour ce type de frais.' };
 
   const id = await paiementModel.creer({
-    typeFrais, idReference, montant: tarif.montant, devise: tarif.devise,
+    typeFrais, idReference, montant, devise: tarif.devise,
   });
 
   const ecole = await obtenirEcole();
   return {
     ok: true,
-    paiement: { id, typeFrais, idReference, montant: tarif.montant, devise: tarif.devise, statut: 'en_attente' },
+    paiement: { id, typeFrais, idReference, montant, devise: tarif.devise, statut: 'en_attente' },
     coordonnees: {
       nom: ecole?.nom || 'Lekòl Konekte',
       bancaires: ecole?.coordonnees_bancaires || null,

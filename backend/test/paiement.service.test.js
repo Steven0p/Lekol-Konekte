@@ -119,14 +119,14 @@ describe('creerDemande', () => {
 
   test('refuse une référence introuvable (404)', async () => {
     faux.eleve = null;
-    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, false);
     assert.equal(r.code, 404);
   });
 
   test('refuse un parent qui paie pour l’enfant d’un autre (403)', async () => {
     faux.eleve = eleveDe(999); // l'élève appartient à un autre compte
-    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, false);
     assert.equal(r.code, 403);
     assert.equal(appels.paiementCree.length, 0, 'aucun paiement ne doit être créé');
@@ -134,14 +134,14 @@ describe('creerDemande', () => {
 
   test('refuse de repayer une inscription déjà confirmée (409)', async () => {
     faux.inscription = inscriptionAcceptee('confirmee');
-    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
   });
 
   test('refuse le paiement d’une inscription pas encore acceptée (409)', async () => {
     faux.inscription = inscriptionAcceptee('en_attente');
-    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
   });
@@ -149,30 +149,41 @@ describe('creerDemande', () => {
   test('refuse si aucun tarif n’est configuré (409)', async () => {
     faux.eleve = eleveDe();
     faux.tarif = null;
-    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
     assert.equal(appels.paiementCree.length, 0);
   });
 
-  test('crée la demande au montant du tarif courant, en attente', async () => {
+  test('refuse un montant manquant, nul ou négatif (400)', async () => {
+    faux.eleve = eleveDe();
+    for (const montant of [undefined, 0, -100, NaN]) {
+      const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant, idUtilisateur: PARENT });
+      assert.equal(r.ok, false);
+      assert.equal(r.code, 400);
+    }
+    assert.equal(appels.paiementCree.length, 0);
+  });
+
+  test('crée la demande au montant saisi par le parent, en attente', async () => {
     faux.eleve = eleveDe();
     faux.tarif = { montant: 1500, devise: 'HTG' };
-    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, idUtilisateur: PARENT });
+    // Le parent a réellement déposé 1800 (au-delà du tarif indicatif de 1500) :
+    // c'est ce montant-là qui doit être enregistré, pas celui du tarif.
+    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant: 1800, idUtilisateur: PARENT });
 
     assert.equal(r.ok, true);
-    assert.equal(r.paiement.montant, 1500);
+    assert.equal(r.paiement.montant, 1800);
     assert.equal(r.paiement.devise, 'HTG');
     assert.equal(r.paiement.statut, 'en_attente');
-    // Le montant enregistré vient du tarif, jamais du client
     assert.deepEqual(appels.paiementCree, [
-      { typeFrais: 'releve', idReference: 3, montant: 1500, devise: 'HTG' },
+      { typeFrais: 'releve', idReference: 3, montant: 1800, devise: 'HTG' },
     ]);
   });
 
   test('renvoie les coordonnées de paiement de l’école', async () => {
     faux.eleve = eleveDe();
-    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'releve', idReference: 3, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.coordonnees.nom, 'FDSE');
     assert.equal(r.coordonnees.bancaires, 'Sogebank 123');
     assert.equal(r.coordonnees.moncash, '3xxx');
@@ -180,7 +191,7 @@ describe('creerDemande', () => {
 
   test('accepte le paiement d’une inscription acceptée', async () => {
     faux.inscription = inscriptionAcceptee('accepte');
-    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, idUtilisateur: PARENT });
+    const r = await creerDemande({ typeFrais: 'inscription', idReference: 9, montant: 1500, idUtilisateur: PARENT });
     assert.equal(r.ok, true);
     assert.equal(appels.paiementCree[0].typeFrais, 'inscription');
   });

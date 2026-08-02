@@ -12,6 +12,7 @@ export default function NouveauPaiement() {
   const navigate = useNavigate();
   const [typeFrais, setTypeFrais] = useState('inscription');
   const [idReference, setIdReference] = useState('');
+  const [montant, setMontant] = useState('');
   const [inscriptions, setInscriptions] = useState([]);
   const [eleves, setEleves] = useState([]);
   const [tarifs, setTarifs] = useState([]);
@@ -31,7 +32,7 @@ export default function NouveauPaiement() {
   }, []);
 
   // Réinitialise la référence quand le type change
-  useEffect(() => { setIdReference(''); }, [typeFrais]);
+  useEffect(() => { setIdReference(''); setMontant(''); }, [typeFrais]);
 
   const tarif = tarifCourant(tarifs, typeFrais);
   const optionsReference = typeFrais === 'inscription'
@@ -42,9 +43,14 @@ export default function NouveauPaiement() {
     e.preventDefault();
     setErreur('');
     if (!idReference) { setErreur('Veuillez choisir une référence.'); return; }
+    const montantNombre = Number(montant);
+    if (!montant || !Number.isFinite(montantNombre) || montantNombre <= 0) {
+      setErreur('Veuillez indiquer le montant que vous avez payé.');
+      return;
+    }
     setEnCours(true);
     try {
-      const d = await paiementsApi.creer({ typeFrais, idReference: Number(idReference) });
+      const d = await paiementsApi.creer({ typeFrais, idReference: Number(idReference), montant: montantNombre });
       navigate(`/paiements/${d.paiement.id}`);
     } catch (err) {
       setErreur(err.message);
@@ -84,15 +90,19 @@ export default function NouveauPaiement() {
           )}
 
           {tarif ? (
-            <p style={{ margin: '0 0 1rem', fontWeight: 600 }}>
-              Montant à payer : {montantFr(tarif.montant, tarif.devise)}
+            <p className="texte-gris" style={{ margin: '0 0 .5rem', fontSize: '.85rem' }}>
+              Tarif indicatif : {montantFr(tarif.montant, tarif.devise)}
             </p>
           ) : (
             <Alerte type="info">Aucun tarif configuré pour ce type de frais.</Alerte>
           )}
 
+          <Champ label={`Montant payé${tarif ? ` (${tarif.devise})` : ''}`} type="number" min="1" step="any"
+            value={montant} onChange={(e) => setMontant(e.target.value)}
+            placeholder="ex. 1500" required />
+
           <div className="rangee">
-            <Bouton type="submit" enCours={enCours} disabled={!tarif || !idReference}>Continuer</Bouton>
+            <Bouton type="submit" enCours={enCours} disabled={!tarif || !idReference || !montant}>Continuer</Bouton>
             <Link to="/paiements"><Bouton variante="fantome" type="button">Annuler</Bouton></Link>
           </div>
         </form>
