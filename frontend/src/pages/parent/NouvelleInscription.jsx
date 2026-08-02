@@ -13,7 +13,7 @@ export default function NouvelleInscription() {
   const { utilisateur } = useAuth();
   const [form, setForm] = useState({
     eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
-    nomParent: '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
+    nomParent: utilisateur?.nom || '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
   const [erreur, setErreur] = useState('');
