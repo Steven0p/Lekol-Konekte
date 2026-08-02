@@ -1,98 +1,88 @@
-// Configuration de l'envoi de courriels (Nodemailer)
-// Les courriels partent réellement vers la boîte du destinataire (relais Brevo par
-// défaut). Aucun mode « bac à sable » : si le SMTP n'est pas configuré, l'envoi
-// échoue explicitement plutôt que de faire croire que le courriel est parti.
-import nodemailer from 'nodemailer';
+// Configuration de l'envoi de courriels (API Resend, via fetch)
+// Les courriels partent réellement vers la boîte du destinataire. Aucun mode
+// « bac à sable » : si l'API n'est pas configurée, l'envoi échoue explicitement
+// plutôt que de faire croire que le courriel est parti.
+//
+// L'API HTTPS est utilisée plutôt que le relais SMTP : certains hébergeurs
+// (dont Railway, observé en pratique) bloquent ou ralentissent fortement les
+// connexions sortantes sur le port SMTP, ce qui faisait échouer le démarrage
+// du serveur. Le port 443 (HTTPS) est lui toujours ouvert.
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const HOTE_DEFAUT = 'smtp-relay.brevo.com';
-const PORT_DEFAUT = 587;
+const API_URL = 'https://api.resend.com';
+const DELAI_MS = 10_000;
 
-let transportPromise = null;
-
-// Les identifiants copiés depuis une console web arrivent souvent avec des espaces
-// (Gmail affiche son mot de passe d'application en 4 blocs de 4), que le serveur
-// SMTP refuse tels quels.
-function motDePasse() {
-  return (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+function cleAPI() {
+  return (process.env.RESEND_API_KEY || '').trim();
 }
 
-// Indique si des identifiants SMTP sont présents. Ne dépend d'aucun compte : le
-// résultat peut donc être renvoyé au client sans révéler si un courriel existe en base.
+// Indique si une clé API est présente. Ne dépend d'aucun compte : le résultat
+// peut donc être renvoyé au client sans révéler si un courriel existe en base.
 export function courrielConfigure() {
-  return Boolean(process.env.SMTP_USER && motDePasse());
+  return Boolean(cleAPI());
 }
 
 function expediteur() {
-  return process.env.MAIL_FROM || `Lekòl Konekte <${process.env.SMTP_USER}>`;
+  return process.env.MAIL_FROM || 'Lekòl Konekte <onboarding@resend.dev>';
 }
 
-function creerTransport() {
-  const utilisateur = process.env.SMTP_USER;
-  const mdp = motDePasse();
-
-  if (!utilisateur || !mdp) {
+async function appelAPI(chemin, options) {
+  const cle = cleAPI();
+  if (!cle) {
     throw new Error(
-      'SMTP non configuré : renseignez SMTP_USER et SMTP_PASS dans backend/.env. '
-      + 'Pour Brevo, ces deux valeurs sont le « Login » et la « clé SMTP » de '
-      + 'https://app.brevo.com → SMTP & API → onglet SMTP.',
+      'Resend non configuré : renseignez RESEND_API_KEY dans backend/.env. '
+      + 'Clé disponible sur https://resend.com → API Keys.',
     );
   }
 
-  const port = Number(process.env.SMTP_PORT) || PORT_DEFAUT;
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST || HOTE_DEFAUT,
-    port,
-    secure: port === 465, // 465 = TLS implicite ; 587 = STARTTLS
-    auth: { user: utilisateur, pass: mdp },
-    // Sans ces délais, un SMTP lent ou bloqué (ex. IP non autorisée chez le
-    // fournisseur) peut faire attendre verifierMailer() plusieurs minutes au
-    // démarrage — largement au-delà du healthcheck Railway (120s), ce qui fait
-    // échouer tout le déploiement à cause d'un simple souci de courriel.
-    connectionTimeout: 10_000,
-    greetingTimeout: 10_000,
-    socketTimeout: 10_000,
-  });
-}
-
-function getTransport() {
-  if (!transportPromise) {
-    transportPromise = Promise.resolve().then(creerTransport);
-    // Un échec ne doit pas rester « non géré » : la vraie erreur remonte via l'appelant.
-    transportPromise.catch(() => {});
-  }
-  return transportPromise;
-}
-
-// Vérifie les identifiants SMTP au démarrage. Ne fait jamais tomber le serveur :
-// le reste du site doit fonctionner même si le courriel est mal configuré.
-export async function verifierMailer() {
+  const controleur = new AbortController();
+  const minuteur = setTimeout(() => controleur.abort(), DELAI_MS);
   try {
-    const transport = await getTransport();
-    await transport.verify();
-    console.log(`✔ Courriel actif — envoi via ${process.env.SMTP_HOST || HOTE_DEFAUT} (${process.env.SMTP_USER}).`);
-    return true;
-  } catch (err) {
-    console.warn(`⚠ Courriel INACTIF : ${err.message}`);
-    console.warn('  Les codes de vérification ne partiront pas tant que ce point n\'est pas réglé.');
-    return false;
+    const reponse = await fetch(`${API_URL}${chemin}`, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${cle}`,
+        'Content-Type': 'application/json',
+        ...(options?.headers || {}),
+      },
+      signal: controleur.signal,
+    });
+    const corps = await reponse.json().catch(() => ({}));
+    if (!reponse.ok) {
+      throw new Error(corps.message || `Resend a répondu ${reponse.status}`);
+    }
+    return corps;
+  } finally {
+    clearTimeout(minuteur);
   }
 }
 
-// Envoie un courriel. `previewUrl` est toujours null (plus d'aperçu bac à sable) :
-// les appelants qui l'exposent encore ne montreront simplement rien.
+// Vérifie qu'une clé API est présente au démarrage. Ne fait pas d'appel réseau :
+// les clés Resend « envoi seul » n'ont pas accès aux routes de lecture (ex.
+// /domains), donc les y appeler donnerait un faux « inactif » alors que
+// l'envoi fonctionne. La validité réelle de la clé se confirme au premier
+// envoi (voir envoyerCourriel). Ne fait jamais tomber le serveur : le reste
+// du site doit fonctionner même si le courriel est mal configuré.
+export async function verifierMailer() {
+  if (courrielConfigure()) {
+    console.log(`✔ Courriel configuré — envoi via l'API Resend (${expediteur()}).`);
+    return true;
+  }
+  console.warn('⚠ Courriel INACTIF : RESEND_API_KEY manquante dans backend/.env.');
+  console.warn('  Les codes de vérification ne partiront pas tant que ce point n\'est pas réglé.');
+  return false;
+}
+
+// Envoie un courriel. `previewUrl` est toujours null (plus d'aperçu bac à
+// sable) : les appelants qui l'exposent encore ne montreront simplement rien.
 export async function envoyerCourriel({ to, subject, text, html }) {
-  const transport = await getTransport();
-  const info = await transport.sendMail({
-    from: expediteur(),
-    to,
-    subject,
-    text,
-    html,
+  const corps = await appelAPI('/emails', {
+    method: 'POST',
+    body: JSON.stringify({ from: expediteur(), to, subject, text, html }),
   });
 
   console.log(`✉ Courriel envoyé à ${to} — ${subject}`);
-  return { messageId: info.messageId, previewUrl: null };
+  return { messageId: corps.id, previewUrl: null };
 }

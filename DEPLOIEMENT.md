@@ -41,10 +41,7 @@ Navigateur ──HTTPS──▶  Service Node (Express)
    SESSION_SECRET=<chaîne longue et aléatoire>
    CLIENT_ORIGIN=https://<votre-domaine>.up.railway.app
 
-   SMTP_HOST=<hôte smtp>
-   SMTP_PORT=587
-   SMTP_USER=<utilisateur>
-   SMTP_PASS=<mot de passe>
+   RESEND_API_KEY=<clé API Resend>
    MAIL_FROM="Lekòl Konekte <no-reply@votredomaine>"
    OTP_EXPIRATION_MIN=10
    ```
@@ -87,17 +84,22 @@ mysql -h <HOTE>.proxy.rlwy.net -P <PORT> -u root -p<MDP> lekol_konekte < db/migr
 
 - **017 — 2FA connexion parent** : ajoute le type `connexion_2fa` à `codes_verification`.
   Nécessaire pour la double authentification des parents (sinon l'envoi du code échoue).
-  Prérequis : SMTP configuré (voir ci-dessous), sinon les parents ne peuvent pas se connecter.
+  Prérequis : courriel configuré (voir ci-dessous), sinon les parents ne peuvent pas se connecter.
 
-## SMTP (courriel)
+## Courriel (API Resend)
 
-Les courriels partent réellement dans tous les environnements. Fournisseur retenu :
-**Brevo** (`smtp-relay.brevo.com:587`, 300 courriels/jour gratuits). Renseigner
-`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` et `MAIL_FROM` dans les variables
-Railway comme dans `backend/.env.example`.
+Les courriels partent réellement dans tous les environnements, via l'**API HTTPS**
+de **Resend** (100 courriels/jour et 3000/mois gratuits) — pas de relais SMTP :
+certains hébergeurs (dont Railway, observé en pratique) bloquent ou ralentissent
+fortement les connexions sortantes en SMTP, ce qui faisait échouer le démarrage
+du serveur (healthcheck dépassé). Renseigner `RESEND_API_KEY` et `MAIL_FROM` dans
+les variables Railway comme dans `backend/.env.example`. `MAIL_FROM` doit utiliser un domaine
+vérifié dans Resend (Domains → Add Domain, puis les enregistrements DNS proposés) ;
+sans domaine vérifié, seul `onboarding@resend.dev` fonctionne, et uniquement vers
+l'adresse du compte Resend (mode bac à sable).
 
-Sans ces variables, le site fonctionne mais la création de compte répond 502 : le code
-de vérification ne peut pas partir.
+Sans ces variables, le site fonctionne mais la connexion des comptes parents (2FA par
+courriel) répond 503 : le code de connexion ne peut pas partir.
 
 ## Test local de l'image (optionnel)
 
