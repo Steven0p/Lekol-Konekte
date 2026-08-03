@@ -6,6 +6,46 @@ import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
 
+// Assistant IA : rédige le parcours (biographie) à partir des infos déjà
+// saisies dans le formulaire + quelques éléments libres.
+function AssistantIA({ valeurs, setV }) {
+  const [elements, setElements] = useState('');
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState('');
+
+  const generer = async () => {
+    setErreur('');
+    if (!valeurs.nom.trim()) { setErreur('Renseignez au moins le nom avant de générer.'); return; }
+    setEnCours(true);
+    try {
+      const { parcours } = await profsApi.redactionIA({
+        nom: valeurs.nom.trim(), prenom: valeurs.prenom.trim(),
+        matiere: valeurs.matiere.trim(), fonction: valeurs.fonction.trim(),
+        diplomes: valeurs.diplomes.trim(), experienceAnnees: valeurs.experienceAnnees,
+        elements: elements.trim(),
+      });
+      setV((f) => ({ ...f, parcours }));
+    } catch (err) { setErreur(err.message); }
+    finally { setEnCours(false); }
+  };
+
+  return (
+    <div className="vadm-ia">
+      <div className="vadm-ia-titre"><Icone nom="comment" /> Assistant IA</div>
+      {erreur && <Alerte type="erreur">{erreur}</Alerte>}
+      <textarea rows={2} value={elements} onChange={(e) => setElements(e.target.value)}
+        placeholder="Éléments à mentionner (optionnel) : établissements précédents, spécialités, réalisations…" />
+      <button type="button" className="vadm-ia-btn" onClick={generer} disabled={enCours}>
+        {enCours ? 'Génération…' : 'Générer le parcours avec l\'IA'}
+      </button>
+      <p className="vadm-info">
+        Utilise le nom, la matière, la fonction, les diplômes et l'expérience déjà saisis ci-dessus.
+        L'IA remplit le champ « Parcours » plus bas. Relisez toujours avant d'enregistrer.
+      </p>
+    </div>
+  );
+}
+
 const FICHE_VIDE = {
   nom: '', prenom: '', matiere: '', fonction: '',
   diplomes: '', experienceAnnees: '', parcours: '', photo: null,
@@ -103,6 +143,9 @@ function ChampsFiche({ valeurs, setV, modeEdition }) {
       <div className="vadm-champ"><label>Formation & diplômes</label>
         <textarea rows={2} value={valeurs.diplomes} onChange={maj('diplomes')}
           placeholder="Ex. Licence en sciences de l'éducation, Université d'État d'Haïti" /></div>
+
+      <AssistantIA valeurs={valeurs} setV={setV} />
+
       <div className="vadm-champ"><label>Parcours (biographie)</label>
         <textarea rows={3} value={valeurs.parcours} onChange={maj('parcours')}
           placeholder="Décrivez le parcours professionnel, les établissements, les réalisations…" /></div>

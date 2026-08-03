@@ -195,6 +195,7 @@ export const profsApi = {
   creer: (data) => request('/professeurs', { method: 'POST', body: formDataProf(data) }),
   modifier: (id, data) => request(`/professeurs/${id}`, { method: 'PUT', body: formDataProf(data) }),
   supprimer: (id) => request(`/professeurs/${id}`, { method: 'DELETE' }),
+  redactionIA: (body) => request('/professeurs/redaction-ia', { method: 'POST', body: json(body) }),
 };
 
 // Page « À propos » — système indépendant (propre authentification)

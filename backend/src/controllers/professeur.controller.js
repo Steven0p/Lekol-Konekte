@@ -5,6 +5,7 @@ import fs from 'fs';
 import * as profModel from '../models/professeur.model.js';
 import * as adminModel from '../models/profsAdmin.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 // ---------- Authentification admin enseignants ----------
 
@@ -44,6 +45,55 @@ export async function adminMe(req, res, next) {
     if (!admin) return res.status(401).json({ erreur: 'Non authentifié.' });
     return res.json({ admin: { id: admin.id, identifiant: admin.identifiant } });
   } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/professeurs/redaction-ia (admin enseignants) — rédige le
+// parcours (biographie) d'un professeur à partir des infos déjà saisies.
+export async function redactionIA(req, res, next) {
+  try {
+    if (!iaConfiguree()) {
+      return res.status(503).json({ erreur: "L'assistant IA n'est pas configuré (clé GROQ_API_KEY manquante côté serveur)." });
+    }
+    const nom = (req.body.nom || '').trim();
+    if (!nom) return res.status(400).json({ erreur: 'Le nom du professeur est requis.' });
+    const elements = (req.body.elements || '').trim();
+    if (elements.length > 800) return res.status(400).json({ erreur: 'Les éléments fournis sont trop longs (max 800 caractères).' });
+
+    const contexte = [
+      `Nom : ${[req.body.prenom, nom].filter(Boolean).join(' ')}`,
+      req.body.matiere ? `Matière enseignée : ${req.body.matiere}` : null,
+      req.body.fonction ? `Fonction : ${req.body.fonction}` : null,
+      req.body.diplomes ? `Diplômes / formation : ${req.body.diplomes}` : null,
+      req.body.experienceAnnees ? `Années d'expérience : ${req.body.experienceAnnees}` : null,
+      elements ? `Éléments supplémentaires fournis par le secrétariat : ${elements}` : null,
+    ].filter(Boolean).join('\n');
+
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.7,
+      max_tokens: 400,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es le chargé de communication de l'école « Lekòl Konekte ». Tu rédiges une courte biographie professionnelle (le « parcours ») d'un membre du corps enseignant, pour la page publique du site. Style clair, chaleureux et professionnel, en français, à la troisième personne. N'utilise pas d'emojis. N'invente aucun diplôme, aucune année d'expérience ni aucun établissement qui n'est pas mentionné dans le contexte fourni. Réponds UNIQUEMENT avec le texte de la biographie (3 à 5 phrases), sans titre, sans guillemets et sans préambule.",
+        },
+        {
+          role: 'user',
+          content: `Rédige le parcours à partir de ce contexte :\n${contexte}`,
+        },
+      ],
+    });
+
+    const parcours = (completion.choices?.[0]?.message?.content || '').trim();
+    if (!parcours) return res.status(502).json({ erreur: "L'assistant IA n'a pas pu générer de texte." });
+    return res.json({ parcours });
+  } catch (err) {
+    if (err && (err.status === 401 || err.status === 403)) {
+      return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
+    }
     next(err);
   }
 }

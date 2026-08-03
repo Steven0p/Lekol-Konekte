@@ -23,6 +23,9 @@ router.post('/professeurs/admin/login', prof.adminLogin);
 router.post('/professeurs/admin/logout', prof.adminLogout);
 router.get('/professeurs/admin/me', prof.adminMe);
 
+// Assistant IA — rédige le parcours (biographie) d'un professeur
+router.post('/professeurs/redaction-ia', requireProfsAdmin, prof.redactionIA);
+
 // Fiches
 router.get('/professeurs', prof.lister);                                         // public
 router.get('/professeurs/:id/photo', prof.servirPhoto);                          // public
