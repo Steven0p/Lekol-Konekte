@@ -18,7 +18,9 @@ import professeurRoutes from './routes/professeur.routes.js';
 import aproposRoutes from './routes/apropos.routes.js';
 import academieRoutes from './routes/academie.routes.js';
 import examensRoutes from './routes/examens.routes.js';
+import direstatsRoutes from './routes/direction.routes.js';
 import { requireAuth } from './middleware/auth.js';
+import { enregistrerErreur } from './config/etatServeur.js';
 
 dotenv.config();
 
@@ -100,6 +102,9 @@ app.use('/api', academieRoutes);
 // Module « Examens passés » (système indépendant)
 app.use('/api', examensRoutes);
 
+// Statistiques direction (santé serveur + évolution)
+app.use('/api', direstatsRoutes);
+
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';
 app.get('/api/admin/ping', requireRole('admin', 'direction'), (req, res) =>
@@ -130,6 +135,7 @@ app.get(/^\/(?!api\/).*/, (req, res, next) => {
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err);
+  enregistrerErreur(err);
   res.status(500).json({ erreur: 'Erreur interne du serveur.' });
 });
 

@@ -128,6 +128,7 @@ export const adminApi = {
 };
 
 export const directionApi = {
+  statistiques: () => request('/direction/statistiques'),
   matieres: (niveau) => request(`/matieres${qs({ niveau })}`),
   creerMatiere: (body) => request('/matieres', { method: 'POST', body: json(body) }),
   majMatiere: (id, body) => request(`/matieres/${id}`, { method: 'PATCH', body: json(body) }),

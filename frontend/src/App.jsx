@@ -42,6 +42,7 @@ import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Tarifs from './pages/direction/Tarifs.jsx';
 import Ecole from './pages/direction/Ecole.jsx';
+import Statistiques from './pages/direction/Statistiques.jsx';
 
 export default function App() {
   return (
@@ -113,6 +114,7 @@ export default function App() {
         <Route path="/direction/publications" element={<RoutePrivee roles={['direction']}><Publications /></RoutePrivee>} />
         <Route path="/direction/tarifs" element={<RoutePrivee roles={['direction']}><Tarifs /></RoutePrivee>} />
         <Route path="/direction/ecole" element={<RoutePrivee roles={['direction']}><Ecole /></RoutePrivee>} />
+        <Route path="/direction/statistiques" element={<RoutePrivee roles={['direction']}><Statistiques /></RoutePrivee>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

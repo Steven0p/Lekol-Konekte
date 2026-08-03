@@ -24,6 +24,11 @@ const IcoEcole = () => (
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
   </svg>
 );
+const IcoStatistiques = () => (
+  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M5 21V9h3v12H5zm6 0V3h3v18h-3zm6 0v-7h3v7h-3z" />
+  </svg>
+);
 
 const SECTIONS = [
   { Icone: IcoMatieres, ton: 'navy', titre: 'Matières & coefficients',
@@ -34,6 +39,8 @@ const SECTIONS = [
     desc: "Définissez les frais d'inscription, de relevé et de duplicata.", to: '/direction/tarifs' },
   { Icone: IcoEcole, ton: 'info', titre: "Coordonnées de l'école",
     desc: 'Renseignez les coordonnées bancaires / MonCash.', to: '/direction/ecole' },
+  { Icone: IcoStatistiques, ton: 'navy', titre: 'Statistiques & santé',
+    desc: "Suivez la santé technique du site et l'évolution de son utilisation.", to: '/direction/statistiques' },
 ];
 
 export default function TableauDirection() {
