@@ -35,6 +35,15 @@ export default function Permissions() {
     }
   };
 
+  if (erreur && !permissions) {
+    return (
+      <div style={{ maxWidth: 720 }}>
+        <div className="page-entete"><h1>Contrôle d'accès</h1></div>
+        <Alerte type="erreur">{erreur}</Alerte>
+        <Bouton type="button" onClick={charger}>Réessayer</Bouton>
+      </div>
+    );
+  }
   if (!permissions) return <Chargement />;
 
   return (
