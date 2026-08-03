@@ -20,6 +20,20 @@ export async function mettreAJourMotDePasse(id, motDePasseHash) {
   await pool.query('UPDATE utilisateurs SET mot_de_passe_hash = ? WHERE id = ?', [motDePasseHash, id]);
 }
 
+// Met à jour le courriel d'un utilisateur
+export async function mettreAJourCourriel(id, courriel) {
+  await pool.query('UPDATE utilisateurs SET courriel = ? WHERE id = ?', [courriel, id]);
+}
+
+// Retourne l'utilisateur AVEC le hash par id (pour vérifier le mot de passe actuel)
+export async function findByIdAvecHash(id) {
+  const [rows] = await pool.query(
+    'SELECT id, nom, courriel, mot_de_passe_hash, role FROM utilisateurs WHERE id = ? LIMIT 1',
+    [id]
+  );
+  return rows[0] || null;
+}
+
 // Retourne l'id de la fiche parent liée à un utilisateur (ou null)
 export async function findParentIdByUserId(idUtilisateur) {
   const [rows] = await pool.query(

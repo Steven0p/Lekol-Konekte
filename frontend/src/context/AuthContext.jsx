@@ -51,8 +51,15 @@ export function AuthProvider({ children }) {
     setUtilisateur(null);
   };
 
+  // Recharge le compte courant (ex. après changement de courriel)
+  const rafraichir = async () => {
+    const data = await authApi.me();
+    setUtilisateur(data.utilisateur);
+    return data.utilisateur;
+  };
+
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, logout }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, logout, rafraichir }}>
       {children}
     </AuthContext.Provider>
   );

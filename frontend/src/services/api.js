@@ -241,6 +241,7 @@ export const examensApi = {
 export const permissionsApi = {
   lister: () => request('/permissions'),
   basculer: (cle, autorise) => request(`/permissions/${cle}`, { method: 'PATCH', body: json({ autorise }) }),
+  modifierCompte: (body) => request('/proprietaire/compte', { method: 'PATCH', body: json(body) }),
 };
 
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
