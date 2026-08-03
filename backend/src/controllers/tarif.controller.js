@@ -122,6 +122,9 @@ export async function marqueEcole(req, res, next) {
     return res.json({
       nom: ecole?.nom || 'Lekòl Konekte',
       aLogo: !!(ecole && ecole.logo_url),
+      // Public (pas sensible) : les comptes élève (session par code, sans req.session.userId)
+      // n'ont pas accès à /ecole/coordonnees (requireAuth) — c'est ici qu'ils le lisent.
+      seuilReussite: ecole ? Number(ecole.seuil_reussite) : 60,
     });
   } catch (err) {
     next(err);

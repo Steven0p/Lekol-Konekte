@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { notesApi, urlDocumentOfficiel } from '../../services/api.js';
+import { notesApi, marqueApi, urlDocumentOfficiel } from '../../services/api.js';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -57,6 +57,9 @@ export default function NotesBulletins() {
   const [genereEnCours, setGenereEnCours] = useState(false);
   const [erreur, setErreur] = useState('');
   const [chargeDetail, setChargeDetail] = useState(false);
+  const [seuil, setSeuil] = useState(50); // note de passage /100, définie par le secrétariat
+
+  useEffect(() => { marqueApi.obtenir().then((m) => setSeuil(m.seuilReussite)).catch(() => {}); }, []);
 
   // Génère (ou régénère) le code d'accès de l'espace élève pour l'enfant sélectionné.
   const genererCode = async () => {
@@ -195,7 +198,9 @@ export default function NotesBulletins() {
                         {g.notes.map((n) => (
                           <tr key={n.id}>
                             <td>{n.matiere}</td>
-                            <td>{Number(n.valeur).toFixed(2)}</td>
+                            <td style={{ color: Number(n.valeur) >= seuil ? '#2F855A' : '#C53030', fontWeight: 700 }}>
+                              {Number(n.valeur).toFixed(2)}
+                            </td>
                             <td>{Number(n.coefficient || 1).toFixed(2)}</td>
                           </tr>
                         ))}
@@ -203,7 +208,8 @@ export default function NotesBulletins() {
                     </table>
                   </div>
                   <p style={{ marginTop: '.75rem', fontWeight: 700 }}>
-                    Moyenne pondérée : {g.moyenne.toFixed(2)} / 100
+                    Moyenne pondérée :{' '}
+                    <span style={{ color: g.moyenne >= seuil ? '#2F855A' : '#C53030' }}>{g.moyenne.toFixed(2)} / 100</span>
                   </p>
                 </Carte>
               ))}
@@ -227,8 +233,8 @@ export default function NotesBulletins() {
                   <p style={{ marginTop: '.75rem', fontWeight: 800, fontSize: '1.05rem', color: 'var(--bleu, #1A365D)' }}>
                     Moyenne générale annuelle : {b.moyenne.toFixed(2)} / 100
                     {' — '}
-                    <span style={{ color: b.moyenne >= 50 ? '#2F855A' : '#C53030' }}>
-                      {b.moyenne >= 50 ? 'Admis(e)' : 'Ajourné(e)'}
+                    <span style={{ color: b.moyenne >= seuil ? '#2F855A' : '#C53030' }}>
+                      {b.moyenne >= seuil ? 'Admis(e)' : 'Ajourné(e)'}
                     </span>
                   </p>
                 </Carte>

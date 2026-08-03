@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { eleveApi, urlDocumentOfficiel, urlPhotoEleve } from '../../services/api.js';
+import { eleveApi, marqueApi, urlDocumentOfficiel, urlPhotoEleve } from '../../services/api.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -55,6 +55,7 @@ export default function EspaceEleve() {
   const [apprecs, setApprecs] = useState({});   // { cle: texte } — appréciations IA générées
   const [apprecEnCours, setApprecEnCours] = useState(null); // clé en cours
   const [apprecErreur, setApprecErreur] = useState({});     // { cle: message }
+  const [seuil, setSeuil] = useState(50); // note de passage /100, définie par le secrétariat
 
   useEffect(() => {
     Promise.all([eleveApi.mesNotes(), eleveApi.mesBulletins(), eleveApi.badge()])
@@ -63,6 +64,7 @@ export default function EspaceEleve() {
         setAPhoto(!!bd.badge?.aPhoto);
       })
       .catch((e) => setErreur(e.message));
+    marqueApi.obtenir().then((m) => setSeuil(m.seuilReussite)).catch(() => {});
   }, []);
 
   const telecharger = async (id) => {
@@ -152,14 +154,19 @@ export default function EspaceEleve() {
                     {g.notes.map((n) => (
                       <tr key={n.id}>
                         <td className="insc-nom">{n.matiere}</td>
-                        <td className="res-note">{Number(n.valeur).toFixed(2)}</td>
+                        <td className="res-note" style={{ color: Number(n.valeur) >= seuil ? '#38A169' : '#E53E3E' }}>
+                          {Number(n.valeur).toFixed(2)}
+                        </td>
                         <td>{Number(n.coefficient || 1).toFixed(2)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-              <div className="res-moyenne"><Icone nom="chart" /> Moyenne pondérée : <strong>{g.moyenne.toFixed(2)} / 100</strong></div>
+              <div className="res-moyenne">
+                <Icone nom="chart" /> Moyenne pondérée :{' '}
+                <strong style={{ color: g.moyenne >= seuil ? '#38A169' : '#E53E3E' }}>{g.moyenne.toFixed(2)} / 100</strong>
+              </div>
 
               {/* Appréciation IA du trimestre */}
               {(() => {
@@ -203,8 +210,8 @@ export default function EspaceEleve() {
               </div>
               <div className="res-bilan-general">
                 Moyenne générale annuelle <strong>{b.moyenne.toFixed(2)} / 100</strong>
-                <span className={`res-bilan-decision ${b.moyenne >= 50 ? 'ok' : 'ko'}`}>
-                  {b.moyenne >= 50 ? 'Admis(e)' : 'Ajourné(e)'}
+                <span className={`res-bilan-decision ${b.moyenne >= seuil ? 'ok' : 'ko'}`}>
+                  {b.moyenne >= seuil ? 'Admis(e)' : 'Ajourné(e)'}
                 </span>
               </div>
             </div>
