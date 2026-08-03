@@ -1,4 +1,5 @@
 // Middleware de contrôle d'accès — appliqué CÔTÉ SERVEUR (pas seulement à l'écran)
+import { estAutorise } from '../services/permissions.service.js';
 
 // Exige une session valide
 export function requireAuth(req, res, next) {
@@ -67,4 +68,22 @@ export function requireExamensAdmin(req, res, next) {
     return res.status(401).json({ erreur: 'Connexion admin Examens requise.' });
   }
   next();
+}
+
+// Exige qu'une action ne soit pas désactivée par le propriétaire (voir
+// permissions.service.js). À utiliser APRÈS requireRole sur les routes
+// direction/admin concernées — le propriétaire lui-même n'emprunte pas ces
+// routes, donc ce gate ne s'applique jamais à son propre rôle.
+export function requirePermission(cle) {
+  return async (req, res, next) => {
+    try {
+      const ok = await estAutorise(cle);
+      if (!ok) {
+        return res.status(403).json({ erreur: 'Cette fonctionnalité a été désactivée par le propriétaire de l\'école.' });
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
 }

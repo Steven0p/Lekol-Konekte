@@ -28,6 +28,7 @@ const ICONES = {
   ecole: 'M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z',
   resultats: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2V7h2v10zm4 0h-2v-8h2v8z',
   statistiques: 'M5 21V9h3v12H5zm6 0V3h3v18h-3zm6 0v-7h3v7h-3z',
+  verrou: 'M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -66,6 +67,11 @@ const MENUS = {
       { to: '/direction/statistiques', libelle: 'Statistiques', icone: 'statistiques' },
     ] },
   ],
+  proprietaire: [
+    { titre: null, items: [
+      { to: '/tableau-de-bord', libelle: 'Contrôle d\'accès', icone: 'verrou', fin: true },
+    ] },
+  ],
   eleve: [
     { titre: null, items: [
       { to: '/eleve/notes', libelle: 'Mes résultats', icone: 'resultats' },
@@ -74,7 +80,7 @@ const MENUS = {
   ],
 };
 
-const LIBELLE_ROLE = { parent: 'Parent', admin: 'Secrétariat', direction: 'Direction', eleve: 'Élève' };
+const LIBELLE_ROLE = { parent: 'Parent', admin: 'Secrétariat', direction: 'Direction', eleve: 'Élève', proprietaire: 'Propriétaire' };
 
 export default function BarreNav() {
   const { utilisateur, logout } = useAuth();

@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
   nom               VARCHAR(120) NOT NULL,
   courriel          VARCHAR(180) NOT NULL UNIQUE,
   mot_de_passe_hash VARCHAR(255) NOT NULL,
-  role              ENUM('parent','eleve','admin','direction') NOT NULL DEFAULT 'parent',
+  role              ENUM('parent','eleve','admin','direction','proprietaire') NOT NULL DEFAULT 'parent',
   statut            ENUM('actif','inactif') NOT NULL DEFAULT 'actif',
   courriel_verifie  TINYINT(1) NOT NULL DEFAULT 0,
   cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -113,6 +113,18 @@ CREATE TABLE IF NOT EXISTS tarifs (
   montant        DECIMAL(10,2) NOT NULL,
   devise         ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',
   date_effective DATE NOT NULL
+) ENGINE=InnoDB;
+
+-- permissions : interrupteurs contrôlés par le propriétaire, pour des actions
+-- normalement réservées à direction/admin. Absence de ligne = autorisé par
+-- défaut (ne casse pas le fonctionnement existant tant que le propriétaire
+-- n'a rien désactivé). Clés : matieres_gestion, notes_saisie, notes_publication.
+CREATE TABLE IF NOT EXISTS permissions (
+  cle          VARCHAR(60) PRIMARY KEY,
+  autorise     TINYINT(1) NOT NULL DEFAULT 1,
+  modifie_par  INT,
+  modifie_le   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (modifie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- frais_divers : catalogue de frais géré par la direction (écolage, cantine, livres…)

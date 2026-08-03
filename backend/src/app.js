@@ -19,6 +19,7 @@ import aproposRoutes from './routes/apropos.routes.js';
 import academieRoutes from './routes/academie.routes.js';
 import examensRoutes from './routes/examens.routes.js';
 import direstatsRoutes from './routes/direction.routes.js';
+import permissionsRoutes from './routes/permissions.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
 
@@ -104,6 +105,9 @@ app.use('/api', examensRoutes);
 
 // Statistiques direction (santé serveur + évolution)
 app.use('/api', direstatsRoutes);
+
+// Permissions gérées par le propriétaire
+app.use('/api', permissionsRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';

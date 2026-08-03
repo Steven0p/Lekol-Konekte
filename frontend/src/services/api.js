@@ -238,6 +238,11 @@ export const examensApi = {
   aideIA: (body) => request('/examens/aide-ia', { method: 'POST', body: json(body) }),
 };
 
+export const permissionsApi = {
+  lister: () => request('/permissions'),
+  basculer: (cle, autorise) => request(`/permissions/${cle}`, { method: 'PATCH', body: json({ autorise }) }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;

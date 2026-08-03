@@ -4,22 +4,24 @@ import * as matiere from '../controllers/matiere.controller.js';
 import * as note from '../controllers/note.controller.js';
 import * as publication from '../controllers/publication.controller.js';
 import * as acquittement from '../controllers/acquittement.controller.js';
-import { requireAuth, requireRole, requireEleve } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireEleve, requirePermission } from '../middleware/auth.js';
+import { CLES } from '../services/permissions.service.js';
 import { uploadPhoto } from '../config/upload.js';
 
 const router = Router();
 
-// Matières (Direction configure ; Admin/Direction consultent)
-router.post('/matieres', requireRole('direction'), matiere.creer);
+// Matières (Direction configure ; Admin/Direction consultent) — le propriétaire
+// peut désactiver la gestion (écriture) sans toucher à la consultation.
+router.post('/matieres', requireRole('direction'), requirePermission(CLES.MATIERES), matiere.creer);
 router.get('/matieres', requireRole('admin', 'direction'), matiere.lister);
-router.patch('/matieres/:id', requireRole('direction'), matiere.mettreAJour);
-router.delete('/matieres/:id', requireRole('direction'), matiere.supprimer);
+router.patch('/matieres/:id', requireRole('direction'), requirePermission(CLES.MATIERES), matiere.mettreAJour);
+router.delete('/matieres/:id', requireRole('direction'), requirePermission(CLES.MATIERES), matiere.supprimer);
 
 // Notes (Admin saisit / valide)
-router.post('/notes', requireRole('admin'), note.creer);
-router.patch('/notes/:id', requireRole('admin'), note.mettreAJour);
-router.delete('/notes/:id', requireRole('admin'), note.supprimer);
-router.patch('/notes/:id/valider', requireRole('admin'), note.valider);
+router.post('/notes', requireRole('admin'), requirePermission(CLES.NOTES_SAISIE), note.creer);
+router.patch('/notes/:id', requireRole('admin'), requirePermission(CLES.NOTES_SAISIE), note.mettreAJour);
+router.delete('/notes/:id', requireRole('admin'), requirePermission(CLES.NOTES_SAISIE), note.supprimer);
+router.patch('/notes/:id/valider', requireRole('admin'), requirePermission(CLES.NOTES_SAISIE), note.valider);
 router.get('/admin/notes', requireRole('admin', 'direction'), note.listerAdmin);
 router.get('/admin/eleves', requireRole('admin', 'direction'), note.listerElevesAdmin);
 
@@ -59,9 +61,9 @@ router.get('/eleve/photo', requireEleve, note.servirPhotoEleve);
 router.get('/eleves/:id/notes', requireAuth, note.listerPourEleve);
 
 // Publication (Direction)
-router.post('/publications', requireRole('direction'), publication.publierCtrl);
+router.post('/publications', requireRole('direction'), requirePermission(CLES.NOTES_PUBLICATION), publication.publierCtrl);
 router.get('/publications', requireRole('admin', 'direction'), publication.lister);
-router.delete('/publications/:id', requireRole('direction'), publication.supprimerCtrl);
+router.delete('/publications/:id', requireRole('direction'), requirePermission(CLES.NOTES_PUBLICATION), publication.supprimerCtrl);
 router.get('/admin/bulletins', requireRole('admin', 'direction'), publication.listerBulletinsNiveau);
 
 // Bulletins & documents officiels

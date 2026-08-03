@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { directionApi, adminApi } from '../../services/api.js';
+import { directionApi, adminApi, permissionsApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -12,6 +12,13 @@ export default function Matieres() {
   const [matieres, setMatieres] = useState([]);
   const [chargement, setChargement] = useState(false);
   const [page, setPage] = useState(1);
+  // Le propriétaire peut désactiver cette gestion — voir /proprietaire.
+  const [gestionAutorisee, setGestionAutorisee] = useState(true);
+  useEffect(() => {
+    permissionsApi.lister()
+      .then((d) => setGestionAutorisee(d.permissions.find((p) => p.cle === 'matieres_gestion')?.autorise ?? true))
+      .catch(() => {});
+  }, []);
 
   const [form, setForm] = useState({ nom: '', coefficient: '1' });
   const [erreur, setErreur] = useState('');
@@ -108,6 +115,11 @@ export default function Matieres() {
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
       {msg && <Alerte type="info">{msg}</Alerte>}
+      {!gestionAutorisee && (
+        <Alerte type="info">
+          La gestion des matières a été désactivée par le propriétaire de l'école. Vous pouvez consulter la liste, mais pas la modifier.
+        </Alerte>
+      )}
 
       {!niveau ? (
         <div className="insc-vide">
@@ -117,21 +129,25 @@ export default function Matieres() {
       ) : (
         <>
           {/* Ajouter une matière */}
-          <div className="notes-section-titre" ref={formRef}>Ajouter une matière</div>
-          <div className="carte">
-            <form onSubmit={ajouter} className="notes-form-grille">
-              <div className="notes-champ" style={{ flex: '1 1 220px' }}>
-                <label>Nom</label>
-                <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex. Mathématiques" />
+          {gestionAutorisee && (
+            <>
+              <div className="notes-section-titre" ref={formRef}>Ajouter une matière</div>
+              <div className="carte">
+                <form onSubmit={ajouter} className="notes-form-grille">
+                  <div className="notes-champ" style={{ flex: '1 1 220px' }}>
+                    <label>Nom</label>
+                    <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex. Mathématiques" />
+                  </div>
+                  <div className="notes-champ">
+                    <label>Coefficient</label>
+                    <input type="number" min="0.1" max="99.99" step="0.1" value={form.coefficient}
+                      onChange={(e) => setForm({ ...form, coefficient: e.target.value })} style={{ width: 120 }} />
+                  </div>
+                  <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>{enCours ? 'Ajout…' : 'Ajouter'}</button>
+                </form>
               </div>
-              <div className="notes-champ">
-                <label>Coefficient</label>
-                <input type="number" min="0.1" max="99.99" step="0.1" value={form.coefficient}
-                  onChange={(e) => setForm({ ...form, coefficient: e.target.value })} style={{ width: 120 }} />
-              </div>
-              <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>{enCours ? 'Ajout…' : 'Ajouter'}</button>
-            </form>
-          </div>
+            </>
+          )}
 
           {/* Tableau */}
           <div className="notes-section-titre">Matières — {niveau}</div>
@@ -141,7 +157,9 @@ export default function Matieres() {
             <div className="insc-vide">
               <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune matière configurée pour ce niveau.</p>
-              <button type="button" className="eco-batch-btn eco-batch-ok" onClick={allerAuFormulaire}>Ajouter une matière</button>
+              {gestionAutorisee && (
+                <button type="button" className="eco-batch-btn eco-batch-ok" onClick={allerAuFormulaire}>Ajouter une matière</button>
+              )}
             </div>
           ) : (
             <>
@@ -162,8 +180,12 @@ export default function Matieres() {
                           </span>
                         </td>
                         <td>
-                          <button type="button" className="mat-modifier" onClick={() => ouvrirEdition(m)}>Modifier</button>
-                          <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(m); setErreurModal(''); }}>Supprimer</button>
+                          {gestionAutorisee ? (
+                            <>
+                              <button type="button" className="mat-modifier" onClick={() => ouvrirEdition(m)}>Modifier</button>
+                              <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(m); setErreurModal(''); }}>Supprimer</button>
+                            </>
+                          ) : <span className="texte-gris">—</span>}
                         </td>
                       </tr>
                     ))}

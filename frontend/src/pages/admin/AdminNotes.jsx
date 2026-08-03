@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { adminApi } from '../../services/api.js';
+import { adminApi, permissionsApi } from '../../services/api.js';
 import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
@@ -34,6 +34,14 @@ export default function AdminNotes() {
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
+
+  // Le propriétaire peut désactiver la saisie — voir /proprietaire.
+  const [saisieAutorisee, setSaisieAutorisee] = useState(true);
+  useEffect(() => {
+    permissionsApi.lister()
+      .then((d) => setSaisieAutorisee(d.permissions.find((p) => p.cle === 'notes_saisie')?.autorise ?? true))
+      .catch(() => {});
+  }, []);
 
   // Modales
   const [edition, setEdition] = useState(null);       // note en cours de modification
@@ -161,6 +169,11 @@ export default function AdminNotes() {
       </div>
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
+      {!saisieAutorisee && (
+        <Alerte type="info">
+          La saisie des notes a été désactivée par le propriétaire de l'école. Vous pouvez consulter les notes, mais pas les modifier.
+        </Alerte>
+      )}
 
       {!niveau ? (
         <div className="insc-vide">
@@ -170,33 +183,38 @@ export default function AdminNotes() {
       ) : (
         <>
           {/* Nouvelle note */}
-          <div className="notes-section-titre" ref={formRef}>Nouvelle note</div>
-          <div className="carte">
-            {msg && <Alerte type="info">{msg}</Alerte>}
-            <form onSubmit={saisir} className="notes-form-grille">
-              <div className="notes-champ">
-                <label>Élève</label>
-                <select value={form.idEleve} onChange={majForm('idEleve')}>
-                  <option value="">— Choisir —</option>
-                  {eleves.map((el) => <option key={el.id} value={el.id}>{el.nom}</option>)}
-                </select>
+          {saisieAutorisee && (
+            <>
+              <div className="notes-section-titre" ref={formRef}>Nouvelle note</div>
+              <div className="carte">
+                {msg && <Alerte type="info">{msg}</Alerte>}
+                <form onSubmit={saisir} className="notes-form-grille">
+                  <div className="notes-champ">
+                    <label>Élève</label>
+                    <select value={form.idEleve} onChange={majForm('idEleve')}>
+                      <option value="">— Choisir —</option>
+                      {eleves.map((el) => <option key={el.id} value={el.id}>{el.nom}</option>)}
+                    </select>
+                  </div>
+                  <div className="notes-champ">
+                    <label>Matière</label>
+                    <select value={form.idMatiere} onChange={majForm('idMatiere')}>
+                      <option value="">— Choisir —</option>
+                      {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom} (coef {Number(m.coefficient).toFixed(2)})</option>)}
+                    </select>
+                  </div>
+                  <div className="notes-champ">
+                    <label>Note /100</label>
+                    <input type="number" min="0" max="100" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 110 }} />
+                  </div>
+                  <button type="submit" className="notes-saisir" disabled={enCours}>{enCours ? 'Saisie…' : 'Saisir'}</button>
+                </form>
+                {eleves.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucun élève pour ce niveau.</p>}
+                {matieres.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucune matière configurée pour ce niveau (voir Direction).</p>}
               </div>
-              <div className="notes-champ">
-                <label>Matière</label>
-                <select value={form.idMatiere} onChange={majForm('idMatiere')}>
-                  <option value="">— Choisir —</option>
-                  {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom} (coef {Number(m.coefficient).toFixed(2)})</option>)}
-                </select>
-              </div>
-              <div className="notes-champ">
-                <label>Note /100</label>
-                <input type="number" min="0" max="100" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 110 }} />
-              </div>
-              <button type="submit" className="notes-saisir" disabled={enCours}>{enCours ? 'Saisie…' : 'Saisir'}</button>
-            </form>
-            {eleves.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucun élève pour ce niveau.</p>}
-            {matieres.length === 0 && <p className="texte-gris" style={{ marginTop: '.6rem' }}>Aucune matière configurée pour ce niveau (voir Direction).</p>}
-          </div>
+            </>
+          )}
+          {!saisieAutorisee && msg && <Alerte type="info">{msg}</Alerte>}
 
           {/* Notes saisies */}
           <div className="notes-section-titre">Notes saisies</div>
@@ -206,7 +224,9 @@ export default function AdminNotes() {
             <div className="insc-vide">
               <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
               <p>Aucune note saisie pour ce trimestre.</p>
-              <button type="button" className="notes-saisir" onClick={allerAuFormulaire}>Saisir une note</button>
+              {saisieAutorisee && (
+                <button type="button" className="notes-saisir" onClick={allerAuFormulaire}>Saisir une note</button>
+              )}
             </div>
           ) : (
             <>
@@ -228,11 +248,15 @@ export default function AdminNotes() {
                           </span>
                         </td>
                         <td>
-                          {n.statut_validation === 'saisie' && (
-                            <button type="button" className="paie-btn paie-valider" onClick={() => valider(n.id)}>Valider</button>
-                          )}
-                          <button type="button" className="paie-btn paie-details" onClick={() => { setEdition(n); setEditVal(String(n.valeur)); setErreurModal(''); }}>Modifier</button>
-                          <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(n); setErreurModal(''); }}>Supprimer</button>
+                          {saisieAutorisee ? (
+                            <>
+                              {n.statut_validation === 'saisie' && (
+                                <button type="button" className="paie-btn paie-valider" onClick={() => valider(n.id)}>Valider</button>
+                              )}
+                              <button type="button" className="paie-btn paie-details" onClick={() => { setEdition(n); setEditVal(String(n.valeur)); setErreurModal(''); }}>Modifier</button>
+                              <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(n); setErreurModal(''); }}>Supprimer</button>
+                            </>
+                          ) : <span className="texte-gris">—</span>}
                         </td>
                       </tr>
                     ))}
@@ -240,10 +264,12 @@ export default function AdminNotes() {
                 </table>
               </div>
 
-              <div className="eco-batch">
-                <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => { setBatch('valider'); setErreurModal(''); }}><Icone nom="check" /> Valider toutes les notes</button>
-                <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => { setBatch('supprimer'); setErreurModal(''); }}><Icone nom="close" /> Supprimer toutes les notes</button>
-              </div>
+              {saisieAutorisee && (
+                <div className="eco-batch">
+                  <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => { setBatch('valider'); setErreurModal(''); }}><Icone nom="check" /> Valider toutes les notes</button>
+                  <button type="button" className="eco-batch-btn eco-batch-non" onClick={() => { setBatch('supprimer'); setErreurModal(''); }}><Icone nom="close" /> Supprimer toutes les notes</button>
+                </div>
+              )}
 
               {nbPages > 1 && (
                 <nav className="insc-pagination" aria-label="Pagination">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { directionApi, adminApi, urlDocumentOfficiel } from '../../services/api.js';
+import { directionApi, adminApi, permissionsApi, urlDocumentOfficiel } from '../../services/api.js';
 import { dateHeureFr, anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
@@ -42,6 +42,14 @@ export default function Publications() {
 
   const formRef = useRef(null);
   const bulletinsRef = useRef(null);
+
+  // Le propriétaire peut désactiver la publication — voir /proprietaire.
+  const [publicationAutorisee, setPublicationAutorisee] = useState(true);
+  useEffect(() => {
+    permissionsApi.lister()
+      .then((d) => setPublicationAutorisee(d.permissions.find((p) => p.cle === 'notes_publication')?.autorise ?? true))
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     adminApi.elevesCodes('')
@@ -142,39 +150,48 @@ export default function Publications() {
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
       {msg && <Alerte type="info">{msg}</Alerte>}
+      {!publicationAutorisee && (
+        <Alerte type="info">
+          La publication des notes a été désactivée par le propriétaire de l'école. Vous pouvez consulter les publications existantes, mais pas en créer ni en retirer.
+        </Alerte>
+      )}
 
       {/* Formulaire de publication */}
-      <div className="notes-section-titre" ref={formRef}><Icone nom="upload" /> Publier un niveau / trimestre</div>
-      <div className="carte">
-        <form onSubmit={ouvrirConfirmation} className="notes-form-grille">
-          <div className="notes-champ">
-            <label>Niveau (classe)</label>
-            <select value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })}>
-              <option value="">Choisir un niveau…</option>
-              {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+      {publicationAutorisee && (
+        <>
+          <div className="notes-section-titre" ref={formRef}><Icone nom="upload" /> Publier un niveau / trimestre</div>
+          <div className="carte">
+            <form onSubmit={ouvrirConfirmation} className="notes-form-grille">
+              <div className="notes-champ">
+                <label>Niveau (classe)</label>
+                <select value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })}>
+                  <option value="">Choisir un niveau…</option>
+                  {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="notes-champ">
+                <label>Année scolaire</label>
+                <select value={form.anneeScolaire} onChange={(e) => setForm({ ...form, anneeScolaire: e.target.value })}>
+                  {anneesScolaires().map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+              <div className="notes-champ">
+                <label>Trimestre</label>
+                <select value={form.trimestre} onChange={(e) => setForm({ ...form, trimestre: e.target.value })}>
+                  {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
+                </select>
+              </div>
+              <label className="pub-regenerer">
+                <input type="checkbox" checked={regenerer} onChange={(e) => setRegenerer(e.target.checked)} />
+                <span>Régénérer les bulletins existants (applique le nouveau format)</span>
+              </label>
+              <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
+                {enCours ? 'Publication…' : (regenerer ? 'Publier & régénérer' : 'Publier')}
+              </button>
+            </form>
           </div>
-          <div className="notes-champ">
-            <label>Année scolaire</label>
-            <select value={form.anneeScolaire} onChange={(e) => setForm({ ...form, anneeScolaire: e.target.value })}>
-              {anneesScolaires().map((a) => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
-          <div className="notes-champ">
-            <label>Trimestre</label>
-            <select value={form.trimestre} onChange={(e) => setForm({ ...form, trimestre: e.target.value })}>
-              {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
-            </select>
-          </div>
-          <label className="pub-regenerer">
-            <input type="checkbox" checked={regenerer} onChange={(e) => setRegenerer(e.target.checked)} />
-            <span>Régénérer les bulletins existants (applique le nouveau format)</span>
-          </label>
-          <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
-            {enCours ? 'Publication…' : (regenerer ? 'Publier & régénérer' : 'Publier')}
-          </button>
-        </form>
-      </div>
+        </>
+      )}
 
       {/* Publications effectuées */}
       <div className="notes-section-titre"><Icone nom="clipboard" /> Publications effectuées</div>
@@ -187,7 +204,9 @@ export default function Publications() {
         <div className="insc-vide">
           <div className="insc-vide-ico" aria-hidden="true"><Icone nom="inbox" size={44} /></div>
           <p>Aucune publication effectuée.</p>
-          <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}>Effectuer une publication</button>
+          {publicationAutorisee && (
+            <button type="button" className="eco-batch-btn eco-batch-ok" onClick={() => formRef.current?.scrollIntoView({ behavior: 'smooth' })}>Effectuer une publication</button>
+          )}
         </div>
       ) : (
         <>
@@ -207,7 +226,9 @@ export default function Publications() {
                     <td>
                       <div className="rangee" style={{ gap: '.4rem', flexWrap: 'wrap' }}>
                         <button type="button" className="paie-btn paie-details" onClick={() => voirBulletins(p.niveau)}>Voir bulletins</button>
-                        <button type="button" className="paie-btn paie-rejeter" onClick={() => setSuppression(p)}><Icone nom="trash" /> Supprimer</button>
+                        {publicationAutorisee && (
+                          <button type="button" className="paie-btn paie-rejeter" onClick={() => setSuppression(p)}><Icone nom="trash" /> Supprimer</button>
+                        )}
                       </div>
                     </td>
                   </tr>
