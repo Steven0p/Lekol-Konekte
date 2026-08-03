@@ -37,6 +37,19 @@ export async function mettreEntete({ nom, adresse, telephone, courriel }) {
   return res.insertId;
 }
 
+// Met à jour uniquement le seuil de réussite (note de passage /100)
+export async function mettreSeuilReussite(seuil) {
+  const existante = await obtenir();
+  if (existante) {
+    await pool.query('UPDATE ecole SET seuil_reussite = ? WHERE id = ?', [seuil, existante.id]);
+    return existante.id;
+  }
+  const [res] = await pool.query(
+    'INSERT INTO ecole (nom, seuil_reussite) VALUES (?, ?)', ['Lekòl Konekte', seuil]
+  );
+  return res.insertId;
+}
+
 // Crée la fiche si absente, sinon la met à jour
 export async function definir({ nom, coordonneesBancaires, coordonneesMoncash, adresse, telephone, courriel }) {
   const existante = await obtenir();

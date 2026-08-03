@@ -120,6 +120,7 @@ export const adminApi = {
   badgeEleve: (id) => request(`/admin/eleves/${id}/badge`),
   majInfosBadge: (id, body) => request(`/admin/eleves/${id}/badge-infos`, { method: 'PATCH', body: json(body) }),
   majEnteteEcole: (body) => request('/ecole-entete', { method: 'PUT', body: json(body) }),
+  majSeuilReussite: (seuil) => request('/ecole-seuil-reussite', { method: 'PUT', body: json({ seuil }) }),
   televerserPhotoEleve: (id, fichier) => {
     const fd = new FormData();
     fd.append('photo', fichier);

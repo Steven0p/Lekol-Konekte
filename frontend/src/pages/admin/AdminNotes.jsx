@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { adminApi, permissionsApi } from '../../services/api.js';
+import { adminApi, directionApi, permissionsApi } from '../../services/api.js';
 import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
@@ -42,6 +42,30 @@ export default function AdminNotes() {
       .then((d) => setSaisieAutorisee(d.permissions.find((p) => p.cle === 'notes_saisie')?.autorise ?? true))
       .catch(() => {});
   }, []);
+
+  // Seuil de réussite (note de passage /100) — colore les notes, modifiable par le secrétariat.
+  const [seuil, setSeuil] = useState(60);
+  const [seuilForm, setSeuilForm] = useState('60');
+  const [seuilEnCours, setSeuilEnCours] = useState(false);
+  const [seuilMsg, setSeuilMsg] = useState('');
+  useEffect(() => {
+    directionApi.ecole()
+      .then((d) => { setSeuil(d.seuilReussite); setSeuilForm(String(d.seuilReussite)); })
+      .catch(() => {});
+  }, []);
+
+  const enregistrerSeuil = async () => {
+    setSeuilMsg('');
+    const val = Number(seuilForm);
+    if (!Number.isFinite(val) || val < 0 || val > 100) { setSeuilMsg('Le seuil doit être un nombre entre 0 et 100.'); return; }
+    setSeuilEnCours(true);
+    try {
+      await adminApi.majSeuilReussite(val);
+      setSeuil(val);
+      setSeuilMsg('Seuil de réussite enregistré.');
+    } catch (err) { setSeuilMsg(err.message); }
+    finally { setSeuilEnCours(false); }
+  };
 
   // Modales
   const [edition, setEdition] = useState(null);       // note en cours de modification
@@ -153,6 +177,23 @@ export default function AdminNotes() {
         <p>Saisissez et validez les notes par niveau, matière et trimestre.</p>
       </div>
 
+      {/* Seuil de réussite : colore les notes ci-dessous (vert = réussi, rouge = échec) */}
+      <div className="carte" style={{ marginBottom: '1rem' }}>
+        <div className="notes-section-titre" style={{ marginTop: 0 }}>Note de passage</div>
+        <div className="rangee" style={{ gap: '.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span className="texte-gris" style={{ fontSize: '.88rem' }}>
+            Une note supérieure ou égale au seuil est marquée <span style={{ color: 'var(--s-vert, #38A169)', fontWeight: 700 }}>réussie</span>,
+            en dessous <span style={{ color: 'var(--s-rouge, #E53E3E)', fontWeight: 700 }}>échec</span>.
+          </span>
+          <input type="number" min="0" max="100" step="0.5" value={seuilForm}
+            onChange={(e) => setSeuilForm(e.target.value)} style={{ width: 90 }} />
+          <button type="button" className="notes-saisir" onClick={enregistrerSeuil} disabled={seuilEnCours}>
+            {seuilEnCours ? 'Enregistrement…' : 'Enregistrer'}
+          </button>
+        </div>
+        {seuilMsg && <p style={{ fontSize: '.85rem', margin: '.5rem 0 0' }}>{seuilMsg}</p>}
+      </div>
+
       {/* Filtres */}
       <div className="insc-barre">
         <select value={niveau} onChange={(e) => setNiveau(e.target.value)} aria-label="Niveau">
@@ -241,7 +282,11 @@ export default function AdminNotes() {
                         <td className="insc-nom">{n.eleve_nom}</td>
                         <td>{n.matiere}</td>
                         <td>{n.coefficient != null ? Number(n.coefficient).toFixed(2) : '—'}</td>
-                        <td className="notes-note-val">{Number(n.valeur).toFixed(2)}</td>
+                        <td className="notes-note-val">
+                          <span style={{ color: Number(n.valeur) >= seuil ? 'var(--s-vert, #38A169)' : 'var(--s-rouge, #E53E3E)', fontWeight: 700 }}>
+                            {Number(n.valeur).toFixed(2)}
+                          </span>
+                        </td>
                         <td>
                           <span className={`insc-badge ${n.statut_validation === 'validee' ? 'insc-badge-vert' : 'insc-badge-or'}`}>
                             {n.statut_validation === 'validee' ? 'Validée' : 'En attente'}

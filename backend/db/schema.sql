@@ -77,7 +77,8 @@ CREATE TABLE IF NOT EXISTS ecole (
   logo_url              VARCHAR(500),
   adresse               VARCHAR(255),
   telephone             VARCHAR(50),
-  courriel              VARCHAR(150)
+  courriel              VARCHAR(150),
+  seuil_reussite        DECIMAL(5,2) NOT NULL DEFAULT 60  -- note de passage (/100), configurable par le secrétariat
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS inscriptions (

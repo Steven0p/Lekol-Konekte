@@ -93,7 +93,22 @@ export async function coordonneesEcole(req, res, next) {
       telephone: ecole?.telephone || null,
       courriel: ecole?.courriel || null,
       aLogo: !!(ecole && ecole.logo_url),
+      seuilReussite: ecole ? Number(ecole.seuil_reussite) : 60,
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PUT /api/ecole-seuil-reussite (admin, direction) — note de passage /100
+export async function majSeuilReussite(req, res, next) {
+  try {
+    const seuil = Number(req.body.seuil);
+    if (!Number.isFinite(seuil) || seuil < 0 || seuil > 100) {
+      return res.status(400).json({ erreur: 'Le seuil doit être un nombre entre 0 et 100.' });
+    }
+    await ecoleModel.mettreSeuilReussite(seuil);
+    return res.json({ seuilReussite: seuil });
   } catch (err) {
     next(err);
   }
