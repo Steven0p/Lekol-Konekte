@@ -10,6 +10,7 @@ import { calculerMoyenne } from './moyenne.service.js';
 import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -19,6 +20,53 @@ const LIBELLE_TRIMESTRE = {
   '3e_trimestre': '3e trimestre',
 };
 const ORDRE_TRIM = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
+const SITE_URL = 'https://lekolkonekte.online';
+
+// Appréciation du bulletin envoyée aux parents par courriel : un paragraphe
+// d'une dizaine de phrases, positif si la moyenne dépasse le seuil de
+// réussite, honnête mais constructif sinon. Utilise l'IA (Groq) quand elle
+// est configurée ; sinon un message plus court mais toujours pertinent, pour
+// que l'envoi ne dépende jamais de la disponibilité de l'IA.
+async function genererAppreciation({
+  eleveNom, niveau, trimestre, anneeScolaire, moyenneCourante, seuilReussite, notesMap, moyenneAnnuelle,
+}) {
+  const admis = moyenneCourante >= seuilReussite;
+  const fallback = admis
+    ? `${eleveNom} a obtenu une moyenne de ${moyenneCourante.toFixed(2)}/100 ce trimestre, au-dessus du seuil de réussite (${seuilReussite}/100). C'est un résultat encourageant : continuez à soutenir cette régularité à la maison.`
+    : `${eleveNom} a obtenu une moyenne de ${moyenneCourante.toFixed(2)}/100 ce trimestre, en-dessous du seuil de réussite (${seuilReussite}/100). Un accompagnement supplémentaire, notamment dans les matières les plus faibles, aiderait à redresser la situation avant le prochain trimestre.`;
+
+  if (!iaConfiguree()) return fallback;
+  try {
+    const lignes = Object.entries(notesMap || {}).map(([mat, v]) => `- ${mat} : ${Number(v).toFixed(2)}/100`);
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.6,
+      max_tokens: 700,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu es un conseiller pédagogique bienveillant de l'école « Lekòl Konekte ». Tu rédiges, à l'intention des parents, une appréciation du bulletin de leur enfant, en français, dans un paragraphe fluide d'environ 10 phrases, sans titre ni liste. Si la moyenne est au-dessus du seuil de réussite, la tonalité est largement positive et félicite l'élève tout en donnant des pistes pour progresser encore. Si elle est en-dessous, reste honnête sur la situation mais constructif et encourageant, avec des conseils concrets d'amélioration. Base-toi UNIQUEMENT sur les données fournies, n'invente aucun chiffre ni matière. N'utilise pas d'emojis.",
+        },
+        {
+          role: 'user',
+          content: `Élève : ${eleveNom} (${niveau}).\n`
+            + `${LIBELLE_TRIMESTRE[trimestre] || trimestre}, année ${anneeScolaire}.\n`
+            + `Moyenne pondérée du trimestre : ${moyenneCourante.toFixed(2)}/100.\n`
+            + `Seuil de réussite de l'école : ${seuilReussite}/100.\n`
+            + (moyenneAnnuelle != null ? `Moyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.\n` : '')
+            + `Notes par matière :\n${lignes.join('\n')}\n\n`
+            + 'Rédige une appréciation globale du bulletin pour les parents.',
+        },
+      ],
+    });
+    const texte = (completion.choices?.[0]?.message?.content || '').trim();
+    return texte || fallback;
+  } catch (err) {
+    console.error('Appréciation IA échouée :', err.message);
+    return fallback;
+  }
+}
 
 async function infosEcole() {
   const [rows] = await pool.query('SELECT nom, seuil_reussite FROM ecole ORDER BY id LIMIT 1');
@@ -131,18 +179,33 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection, r
       ? `\nMoyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.` : '';
     const bilanHtml = moyenneAnnuelle != null
       ? `<p>Moyenne générale annuelle : <strong>${moyenneAnnuelle.toFixed(2)}/100</strong>.</p>` : '';
+
+    const appreciation = await genererAppreciation({
+      eleveNom: eleve.nom, niveau, trimestre, anneeScolaire, moyenneCourante, seuilReussite,
+      notesMap: notesParTrim[trimestre], moyenneAnnuelle,
+    });
+    const pdfBuffer = await fs.readFile(path.resolve(UPLOAD_ROOT, urlPdf)).catch(() => null);
+    const attachments = pdfBuffer
+      ? [{ filename: `bulletin-${libelle.replace(/\s+/g, '-')}-${anneeScolaire}.pdf`, content: pdfBuffer.toString('base64') }]
+      : undefined;
+
     try {
       await envoyerCourriel({
         to: eleve.parent_courriel,
         subject: `Lekòl Konekte — bulletin ${libelle} disponible`,
         text: `Bonjour ${eleve.parent_nom},\n\nLe bulletin du ${libelle} (année ${anneeScolaire}) ` +
-              `de ${eleve.nom} est disponible dans votre compte.\nMoyenne du trimestre : ${moyenneCourante.toFixed(2)}/100.` +
-              bilanTexte,
+              `de ${eleve.nom} est disponible en pièce jointe et dans votre compte.\n` +
+              `Moyenne du trimestre : ${moyenneCourante.toFixed(2)}/100.` + bilanTexte +
+              `\n\n${appreciation}` +
+              `\n\nConsultez tous les résultats et bulletins sur ${SITE_URL}`,
         html: `<p>Bonjour ${eleve.parent_nom},</p>` +
               `<p>Le bulletin du <strong>${libelle}</strong> (année ${anneeScolaire}) de ` +
-              `<strong>${eleve.nom}</strong> est disponible dans votre compte.</p>` +
+              `<strong>${eleve.nom}</strong> est disponible en pièce jointe et dans votre compte.</p>` +
               `<p>Moyenne du trimestre : <strong>${moyenneCourante.toFixed(2)}/100</strong>.</p>` +
-              bilanHtml,
+              bilanHtml +
+              `<p>${appreciation}</p>` +
+              `<p>Consultez tous les résultats et bulletins sur <a href="${SITE_URL}">${SITE_URL}</a>.</p>`,
+        attachments,
       });
     } catch (err) {
       console.error('Notification bulletin échouée :', err.message);

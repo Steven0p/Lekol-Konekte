@@ -77,10 +77,14 @@ export async function verifierMailer() {
 
 // Envoie un courriel. `previewUrl` est toujours null (plus d'aperçu bac à
 // sable) : les appelants qui l'exposent encore ne montreront simplement rien.
-export async function envoyerCourriel({ to, subject, text, html }) {
+// `attachments` (optionnel) : [{ filename, content }] — content en base64.
+export async function envoyerCourriel({ to, subject, text, html, attachments }) {
   const corps = await appelAPI('/emails', {
     method: 'POST',
-    body: JSON.stringify({ from: expediteur(), to, subject, text, html }),
+    body: JSON.stringify({
+      from: expediteur(), to, subject, text, html,
+      ...(attachments?.length ? { attachments } : {}),
+    }),
   });
 
   console.log(`✉ Courriel envoyé à ${to} — ${subject}`);
