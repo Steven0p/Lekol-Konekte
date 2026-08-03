@@ -20,9 +20,11 @@ const LIBELLE_TRIMESTRE = {
 };
 const ORDRE_TRIM = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 
-async function nomEcole() {
-  const [rows] = await pool.query('SELECT nom FROM ecole ORDER BY id LIMIT 1');
-  return rows[0] ? rows[0].nom : 'Lekòl Konekte';
+async function infosEcole() {
+  const [rows] = await pool.query('SELECT nom, seuil_reussite FROM ecole ORDER BY id LIMIT 1');
+  return rows[0]
+    ? { nom: rows[0].nom, seuilReussite: Number(rows[0].seuil_reussite) }
+    : { nom: 'Lekòl Konekte', seuilReussite: 60 };
 }
 
 // Publie (niveau, année, trimestre) : marque publié et génère un bulletin par élève
@@ -37,7 +39,7 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection, r
     await creerPublication({ niveau, anneeScolaire, trimestre, publiePar: idDirection });
   }
 
-  const ecoleNom = await nomEcole();
+  const { nom: ecoleNom, seuilReussite } = await infosEcole();
   const eleves = await listerParNiveau(niveau);
   const matieres = (await listerMatieres(niveau)).filter((m) => m.actif !== 0);
 
@@ -114,6 +116,7 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection, r
     const { urlPdf, identifiantUnique } = await genererBulletinPDF({
       eleve, niveau, trimestre, anneeScolaire, ecoleNom,
       matieres, notesParTrim, moyennesParTrim, placesParTrim, trimestresAffiches, moyenneAnnuelle,
+      seuilReussite,
     });
 
     await creerDocumentOfficiel({

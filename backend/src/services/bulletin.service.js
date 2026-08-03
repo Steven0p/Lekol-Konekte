@@ -35,10 +35,11 @@ const fmtNote = (v) => {
 //  placesParTrim : { trim: place|null }
 //  trimestresAffiches : [trim, ...]                         (colonnes à afficher)
 //  moyenneAnnuelle : number|null                            (renseigné au 3e trimestre)
+//  seuilReussite : number                                   (note de passage /100, défaut 60)
 export async function genererBulletinPDF({
   eleve, niveau, trimestre, anneeScolaire, ecoleNom,
   matieres = [], notesParTrim = {}, moyennesParTrim = {}, placesParTrim = {},
-  trimestresAffiches = [], moyenneAnnuelle = null,
+  trimestresAffiches = [], moyenneAnnuelle = null, seuilReussite = 60,
 }) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([842, 595]); // A4 paysage
@@ -47,6 +48,9 @@ export async function genererBulletinPDF({
   const noir = rgb(0.1, 0.1, 0.1);
   const gris = rgb(0.5, 0.5, 0.5);
   const trait = rgb(0.3, 0.3, 0.3);
+  const vert = rgb(0.13, 0.5, 0.13);
+  const rouge = rgb(0.72, 0.11, 0.11);
+  const couleurSeuil = (v) => (v == null ? noir : (Number(v) >= seuilReussite ? vert : rouge));
 
   const T = (t, x, y, size = 9, b = false, color = noir) =>
     page.drawText(String(t ?? ''), { x, y, size, font: b ? gras : police, color });
@@ -107,7 +111,7 @@ export async function genererBulletinPDF({
     centre(fmtNote(Number(mat.coefficient)), xCoef, wCoef, yTexte, sizeCell);
     cols.forEach((tr, i) => {
       const v = notesParTrim[tr] ? notesParTrim[tr][mat.nom] : undefined;
-      centre(fmtNote(v == null ? null : Number(v)), xT0 + i * wTrim, wTrim, yTexte, sizeCell);
+      centre(fmtNote(v == null ? null : Number(v)), xT0 + i * wTrim, wTrim, yTexte, sizeCell, false, couleurSeuil(v));
     });
     yy -= rowH;
   }
@@ -124,14 +128,14 @@ export async function genererBulletinPDF({
   };
   const lignesBilan = [
     { libelle: 'Total', coef: fmtNote(sommeCoef), valeur: (tr) => (moyennesParTrim[tr] != null ? String(totalTrim(tr)) : ''), b: true },
-    { libelle: 'Moyenne', coef: '', valeur: (tr) => (moyennesParTrim[tr] != null ? Number(moyennesParTrim[tr]).toFixed(2) : ''), b: true },
+    { libelle: 'Moyenne', coef: '', valeur: (tr) => (moyennesParTrim[tr] != null ? Number(moyennesParTrim[tr]).toFixed(2) : ''), b: true, couleur: (tr) => couleurSeuil(moyennesParTrim[tr]) },
     { libelle: 'Place', coef: '', valeur: (tr) => (placesParTrim[tr] ? `${placesParTrim[tr]}e` : ''), b: false },
   ];
   for (const lb of lignesBilan) {
     const yTexte = yy - rowH + (rowH - sizeCell) / 2 + 1;
     T(lb.libelle, xMat + 4, yTexte, sizeCell, true);
     centre(lb.coef, xCoef, wCoef, yTexte, sizeCell, true);
-    cols.forEach((tr, i) => centre(lb.valeur(tr), xT0 + i * wTrim, wTrim, yTexte, sizeCell, lb.b));
+    cols.forEach((tr, i) => centre(lb.valeur(tr), xT0 + i * wTrim, wTrim, yTexte, sizeCell, lb.b, lb.couleur ? lb.couleur(tr) : noir));
     yy -= rowH;
   }
 
@@ -175,7 +179,7 @@ export async function genererBulletinPDF({
   ry = sy - 22;
   T('Moyenne Générale :', rx, ry, 11, true);
   const mgx = rx + gras.widthOfTextAtSize('Moyenne Générale :', 11) + 6;
-  T(moyenneAnnuelle != null ? `${Number(moyenneAnnuelle).toFixed(2)} / 100` : '', mgx, ry, 11, true, rgb(0.1, 0.21, 0.36));
+  T(moyenneAnnuelle != null ? `${Number(moyenneAnnuelle).toFixed(2)} / 100` : '', mgx, ry, 11, true, couleurSeuil(moyenneAnnuelle));
   ligneH(mgx, rEnd, ry - 2, 0.5, gris);
 
   // Observation
@@ -192,16 +196,16 @@ export async function genererBulletinPDF({
   ry -= 6;
   T("Décision de fin d'année", rx, ry, 11, true);
   ry -= 18;
-  const admis = moyenneAnnuelle != null && Number(moyenneAnnuelle) >= 50;
+  const admis = moyenneAnnuelle != null && Number(moyenneAnnuelle) >= seuilReussite;
   T("L'élève est admis(e) en :", rx, ry, 9);
   if (moyenneAnnuelle != null) {
-    T(admis ? 'classe supérieure' : '', rx + police.widthOfTextAtSize("L'élève est admis(e) en :", 9) + 6, ry, 9, true, rgb(0.13, 0.5, 0.13));
+    T(admis ? 'classe supérieure' : '', rx + police.widthOfTextAtSize("L'élève est admis(e) en :", 9) + 6, ry, 9, true, vert);
   }
   ligneH(rx + police.widthOfTextAtSize("L'élève est admis(e) en :", 9) + 4, rEnd, ry - 2, 0.5, gris);
   ry -= 20;
   T('Doit être réévalué(e) en :', rx, ry, 9);
   if (moyenneAnnuelle != null && !admis) {
-    T('reprise', rx + police.widthOfTextAtSize('Doit être réévalué(e) en :', 9) + 6, ry, 9, true, rgb(0.72, 0.11, 0.11));
+    T('reprise', rx + police.widthOfTextAtSize('Doit être réévalué(e) en :', 9) + 6, ry, 9, true, rouge);
   }
   ligneH(rx + police.widthOfTextAtSize('Doit être réévalué(e) en :', 9) + 4, rEnd, ry - 2, 0.5, gris);
 
