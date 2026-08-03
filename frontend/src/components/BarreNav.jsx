@@ -27,6 +27,7 @@ const ICONES = {
   tarifs: 'M21.41 11.58 12.41 2.58A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.42l9 9a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.84zM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8z',
   ecole: 'M12 3 1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z',
   resultats: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2V7h2v10zm4 0h-2v-8h2v8z',
+  statistiques: 'M5 21V9h3v12H5zm6 0V3h3v18h-3zm6 0v-7h3v7h-3z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -62,6 +63,7 @@ const MENUS = {
       { to: '/direction/publications', libelle: 'Publications', icone: 'publications' },
       { to: '/direction/tarifs', libelle: 'Tarifs', icone: 'tarifs' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
+      { to: '/direction/statistiques', libelle: 'Statistiques', icone: 'statistiques' },
     ] },
   ],
   eleve: [

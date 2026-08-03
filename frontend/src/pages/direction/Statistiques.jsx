@@ -1,44 +1,170 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { directionApi } from '../../services/api.js';
 import { dateHeureFr } from '../../utils/libelles.js';
 import Carte from '../../components/Carte.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 
+// Palette validée (voir skill dataviz) : catégorielle pour l'identité (rôles),
+// statut fixe et réservée pour les états (jamais utilisée pour une série
+// « normale »). Le texte reste toujours en encre de texte, jamais dans la
+// couleur de la marque — voir BarreHorizontale.
+const CATEGORIEL = { bleu: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', jaune: '#eda100' };
+const STATUT = { bon: '#0ca30c', attention: '#fab219', serieux: '#ec835a', critique: '#d03b3b' };
+const GRIS_TRAME = '#e1e0d9';
+const GRIS_AXE = '#898781';
+
 const LIBELLE_ROLE = { parent: 'Parents', eleve: 'Élèves', admin: 'Secrétariat', direction: 'Direction' };
+const COULEUR_ROLE = { parent: CATEGORIEL.bleu, eleve: CATEGORIEL.orange, admin: CATEGORIEL.aqua, direction: CATEGORIEL.jaune };
+
 const LIBELLE_INSCRIPTION = {
   en_attente: 'En attente', complement_demande: 'Complément demandé',
   accepte: 'Accepté', refuse: 'Refusé', confirmee: 'Confirmé',
 };
-const LIBELLE_PAIEMENT = { en_attente: 'En attente', valide: 'Validé', rejete: 'Rejeté' };
+const COULEUR_INSCRIPTION = {
+  en_attente: STATUT.attention, complement_demande: STATUT.serieux,
+  accepte: STATUT.bon, refuse: STATUT.critique, confirmee: STATUT.bon,
+};
 
-// « 202631 » (format YEARWEEK MySQL, mode 3) -> « Semaine 31 · 2026 »
+const LIBELLE_PAIEMENT = { en_attente: 'En attente', valide: 'Validé', rejete: 'Rejeté' };
+const COULEUR_PAIEMENT = { en_attente: STATUT.attention, valide: STATUT.bon, rejete: STATUT.critique };
+
+// « 202631 » (AAAA*100+semaine ISO) -> « 3 août »  (lundi de cette semaine-là)
 function libelleSemaine(yearweek) {
   const s = String(yearweek);
-  return `Semaine ${s.slice(4)} · ${s.slice(0, 4)}`;
+  const annee = Number(s.slice(0, 4));
+  const semaine = Number(s.slice(4));
+  const d = new Date(Date.UTC(annee, 0, 1 + (semaine - 1) * 7));
+  const jour = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 1 - jour);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-function Pastille({ ok, texte }) {
-  return <span className={`tdb-badge ${ok ? 'tdb-badge-vert' : 'tdb-badge-rouge'}`}>{texte}</span>;
-}
-
-function BarreEvolution({ donnees }) {
-  const max = Math.max(1, ...donnees.map((d) => d.n));
+function StatTuile({ libelle, valeur, ton }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '.5rem' }}>
+    <div className="stx-tuile">
+      <span className={`stx-puce stx-puce-${ton}`} aria-hidden="true" />
+      <p className="stx-tuile-valeur">{valeur}</p>
+      <p className="stx-tuile-libelle">{libelle}</p>
+    </div>
+  );
+}
+
+// Barres horizontales : 24px max, bout arrondi 4px, valeur en clair au bout
+// (jamais dans la couleur de la barre), légende textuelle toujours visible —
+// donc rien ici ne dépend du survol pour être lisible.
+function BarreHorizontale({ donnees }) {
+  const max = Math.max(1, ...donnees.map((d) => d.valeur));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {donnees.map((d) => (
-        <div key={d.semaine} style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}>
-          <span style={{ width: 130, fontSize: '.82rem', color: 'var(--s-txt2)' }}>{libelleSemaine(d.semaine)}</span>
-          <div style={{ flex: 1, background: 'rgba(26,54,93,.08)', borderRadius: 6, overflow: 'hidden' }}>
+        <div key={d.cle} style={{ display: 'flex', alignItems: 'center', gap: '.75rem' }}
+          title={`${d.libelle} : ${d.valeur}`}>
+          <span style={{ width: 150, fontSize: '.82rem', color: 'var(--s-txt2)', flexShrink: 0 }}>{d.libelle}</span>
+          <div style={{ flex: 1, background: GRIS_TRAME, borderRadius: 4, height: 18 }}>
             <div style={{
-              width: `${(d.n / max) * 100}%`, background: 'var(--s-navy)',
-              height: 10, borderRadius: 6, minWidth: d.n ? 6 : 0,
+              width: `${Math.max((d.valeur / max) * 100, d.valeur ? 3 : 0)}%`,
+              background: d.couleur, height: 18, borderRadius: 4,
+              transition: 'width .3s ease',
             }} />
           </div>
-          <strong style={{ width: 24, textAlign: 'right', fontSize: '.85rem' }}>{d.n}</strong>
+          <strong style={{ width: 28, textAlign: 'right', fontSize: '.85rem', color: 'var(--s-txt)' }}>{d.valeur}</strong>
         </div>
       ))}
-      {donnees.length === 0 && <p className="texte-gris" style={{ fontSize: '.85rem' }}>Aucune donnée sur cette période.</p>}
+      {donnees.every((d) => d.valeur === 0) && (
+        <p className="texte-gris" style={{ fontSize: '.85rem', margin: 0 }}>Aucune donnée pour le moment.</p>
+      )}
+    </div>
+  );
+}
+
+// Ligne d'évolution à deux séries (comptes vs inscriptions), avec crosshair +
+// info-bulle au survol/focus. Chaque série se termine par une étiquette
+// directe (nom + dernière valeur) — le survol enrichit, il ne conditionne
+// jamais l'accès à la valeur.
+function LigneEvolution({ semaines, serieA, serieB, nomA, nomB }) {
+  const L = 640;
+  const H = 200;
+  const M = { haut: 16, bas: 28, gauche: 8, droite: 8 };
+  const [survol, setSurvol] = useState(null);
+
+  const maxY = Math.max(1, ...serieA, ...serieB);
+  const largeurUtile = L - M.gauche - M.droite;
+  const hauteurUtile = H - M.haut - M.bas;
+  const n = semaines.length;
+
+  const x = (i) => M.gauche + (n <= 1 ? largeurUtile / 2 : (i / (n - 1)) * largeurUtile);
+  const y = (v) => M.haut + hauteurUtile - (v / maxY) * hauteurUtile;
+
+  const chemin = (serie) => serie.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i)} ${y(v)}`).join(' ');
+
+  const surMouvement = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const posX = ((e.clientX - rect.left) / rect.width) * L;
+    let plusProche = 0;
+    let ecartMin = Infinity;
+    for (let i = 0; i < n; i += 1) {
+      const ecart = Math.abs(x(i) - posX);
+      if (ecart < ecartMin) { ecartMin = ecart; plusProche = i; }
+    }
+    setSurvol(plusProche);
+  };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '.6rem', fontSize: '.8rem' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--s-txt2)' }}>
+          <span style={{ width: 14, height: 2, background: CATEGORIEL.bleu, display: 'inline-block' }} /> {nomA}
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '.4rem', color: 'var(--s-txt2)' }}>
+          <span style={{ width: 14, height: 2, background: CATEGORIEL.orange, display: 'inline-block' }} /> {nomB}
+        </span>
+      </div>
+
+      <svg viewBox={`0 0 ${L} ${H}`} width="100%" height={H} role="img" aria-label={`Évolution de ${nomA} et ${nomB} par semaine`}
+        onMouseMove={surMouvement} onMouseLeave={() => setSurvol(null)}
+        onFocus={() => setSurvol(n - 1)} onBlur={() => setSurvol(null)} tabIndex={0}
+        style={{ overflow: 'visible', cursor: 'crosshair' }}>
+        {/* Grille horizontale, hairline, recessive */}
+        {[0, 0.5, 1].map((f) => (
+          <line key={f} x1={M.gauche} x2={L - M.droite} y1={M.haut + hauteurUtile * f} y2={M.haut + hauteurUtile * f}
+            stroke={GRIS_TRAME} strokeWidth="1" />
+        ))}
+
+        <path d={chemin(serieA)} fill="none" stroke={CATEGORIEL.bleu} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={chemin(serieB)} fill="none" stroke={CATEGORIEL.orange} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+
+        {/* Étiquette directe : valeur de fin de chaque série */}
+        <circle cx={x(n - 1)} cy={y(serieA[n - 1])} r="4" fill={CATEGORIEL.bleu} stroke="#fff" strokeWidth="2" />
+        <circle cx={x(n - 1)} cy={y(serieB[n - 1])} r="4" fill={CATEGORIEL.orange} stroke="#fff" strokeWidth="2" />
+        <text x={x(n - 1) + 8} y={y(serieA[n - 1])} dominantBaseline="middle" fontSize="12" fill="var(--s-txt)" fontWeight="700">
+          {serieA[n - 1]}
+        </text>
+        <text x={x(n - 1) + 8} y={y(serieB[n - 1])} dominantBaseline="middle" fontSize="12" fill="var(--s-txt)" fontWeight="700">
+          {serieB[n - 1]}
+        </text>
+
+        {/* Axe X : première et dernière semaine seulement (sobriété) */}
+        <text x={x(0)} y={H - 6} fontSize="11" fill={GRIS_AXE} textAnchor="start">{libelleSemaine(semaines[0])}</text>
+        <text x={x(n - 1)} y={H - 6} fontSize="11" fill={GRIS_AXE} textAnchor="end">{libelleSemaine(semaines[n - 1])}</text>
+
+        {survol !== null && (
+          <>
+            <line x1={x(survol)} x2={x(survol)} y1={M.haut} y2={M.haut + hauteurUtile}
+              stroke={GRIS_AXE} strokeWidth="1" />
+            <circle cx={x(survol)} cy={y(serieA[survol])} r="5" fill={CATEGORIEL.bleu} stroke="#fff" strokeWidth="2" />
+            <circle cx={x(survol)} cy={y(serieB[survol])} r="5" fill={CATEGORIEL.orange} stroke="#fff" strokeWidth="2" />
+          </>
+        )}
+      </svg>
+
+      {survol !== null && (
+        <div className="stx-infobulle" role="status">
+          <strong>{libelleSemaine(semaines[survol])}</strong>
+          <span><span style={{ color: CATEGORIEL.bleu }}>●</span> {nomA} : <strong>{serieA[survol]}</strong></span>
+          <span><span style={{ color: CATEGORIEL.orange }}>●</span> {nomB} : <strong>{serieB[survol]}</strong></span>
+        </div>
+      )}
     </div>
   );
 }
@@ -51,25 +177,81 @@ export default function Statistiques() {
     directionApi.statistiques().then(setD).catch((e) => setErreur(e.message));
   }, []);
 
+  const donneesRole = useMemo(() => {
+    if (!d) return [];
+    const carte = Object.fromEntries(d.compteurs.parRole.map((r) => [r.role, r.n]));
+    return Object.entries(LIBELLE_ROLE).map(([cle, libelle]) => ({
+      cle, libelle, valeur: carte[cle] || 0, couleur: COULEUR_ROLE[cle],
+    }));
+  }, [d]);
+
+  const donneesInscription = useMemo(() => {
+    if (!d) return [];
+    const carte = Object.fromEntries(d.compteurs.parInscriptionStatut.map((r) => [r.statut, r.n]));
+    return Object.entries(LIBELLE_INSCRIPTION).map(([cle, libelle]) => ({
+      cle, libelle, valeur: carte[cle] || 0, couleur: COULEUR_INSCRIPTION[cle],
+    }));
+  }, [d]);
+
+  const donneesPaiement = useMemo(() => {
+    if (!d) return [];
+    const carte = Object.fromEntries(d.compteurs.parPaiementStatut.map((r) => [r.statut, r.n]));
+    return Object.entries(LIBELLE_PAIEMENT).map(([cle, libelle]) => ({
+      cle, libelle, valeur: carte[cle] || 0, couleur: COULEUR_PAIEMENT[cle],
+    }));
+  }, [d]);
+
   if (erreur) return <Alerte type="erreur">{erreur}</Alerte>;
   if (!d) return <Chargement />;
 
   const { compteurs, croissance, sante } = d;
-  const parRole = Object.fromEntries(compteurs.parRole.map((r) => [r.role, r.n]));
-  const parInscription = Object.fromEntries(compteurs.parInscriptionStatut.map((r) => [r.statut, r.n]));
-  const parPaiement = Object.fromEntries(compteurs.parPaiementStatut.map((r) => [r.statut, r.n]));
+  const dossiersATraiter = (compteurs.parInscriptionStatut.find((r) => r.statut === 'en_attente')?.n || 0)
+    + (compteurs.parInscriptionStatut.find((r) => r.statut === 'complement_demande')?.n || 0);
+  const paiementsEnAttente = compteurs.parPaiementStatut.find((r) => r.statut === 'en_attente')?.n || 0;
 
   return (
-    <div style={{ maxWidth: 900 }}>
+    <div style={{ maxWidth: 960 }}>
       <div className="page-entete">
         <h1>Statistiques & santé du site</h1>
         <p>Vue d'ensemble technique et évolution de l'utilisation de la plateforme.</p>
       </div>
 
-      <Carte titre="Santé du serveur">
-        <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
-          <Pastille ok={sante.courrielConfigure} texte={sante.courrielConfigure ? 'Courriel actif' : 'Courriel inactif'} />
-          <Pastille ok={sante.iaConfiguree} texte={sante.iaConfiguree ? 'Assistant IA actif' : 'Assistant IA inactif'} />
+      <div className="stx-tuiles">
+        <StatTuile libelle="Comptes" valeur={compteurs.totalUtilisateurs} ton="navy" />
+        <StatTuile libelle="Élèves" valeur={compteurs.totalEleves} ton="info" />
+        <StatTuile libelle="Dossiers à traiter" valeur={dossiersATraiter} ton="or" />
+        <StatTuile libelle="Paiements en attente" valeur={paiementsEnAttente} ton="or" />
+      </div>
+
+      <Carte titre="Évolution hebdomadaire (8 dernières semaines)" style={{ marginTop: '1rem' }}>
+        <LigneEvolution
+          semaines={croissance.comptes.map((c) => c.semaine)}
+          serieA={croissance.comptes.map((c) => c.n)}
+          serieB={croissance.inscriptions.map((c) => c.n)}
+          nomA="Nouveaux comptes" nomB="Nouvelles inscriptions"
+        />
+      </Carte>
+
+      <div className="rangee" style={{ gap: '1rem', alignItems: 'stretch', flexWrap: 'wrap', marginTop: '1rem' }}>
+        <Carte titre="Comptes par rôle" style={{ flex: '1 1 280px' }}>
+          <BarreHorizontale donnees={donneesRole} />
+        </Carte>
+        <Carte titre="Dossiers d'inscription" style={{ flex: '1 1 280px' }}>
+          <BarreHorizontale donnees={donneesInscription} />
+        </Carte>
+        <Carte titre="Paiements" style={{ flex: '1 1 280px' }}>
+          <BarreHorizontale donnees={donneesPaiement} />
+        </Carte>
+      </div>
+
+      <Carte titre="Santé du serveur" style={{ marginTop: '1rem' }}>
+        <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', marginBottom: '.75rem' }}>
+          <span className={`tdb-badge ${sante.courrielConfigure ? 'tdb-badge-vert' : 'tdb-badge-rouge'}`}>
+            {sante.courrielConfigure ? 'Courriel actif' : 'Courriel inactif'}
+          </span>
+          <span className={`tdb-badge ${sante.iaConfiguree ? 'tdb-badge-vert' : 'tdb-badge-rouge'}`}>
+            {sante.iaConfiguree ? 'Assistant IA actif' : 'Assistant IA inactif'}
+          </span>
         </div>
         <p className="texte-gris" style={{ fontSize: '.85rem' }}>
           Serveur démarré le {dateHeureFr(sante.demarreLe)} (redémarre à chaque mise à jour du site).
@@ -86,42 +268,6 @@ export default function Statistiques() {
           </ul>
         )}
       </Carte>
-
-      <div className="rangee" style={{ gap: '1rem', alignItems: 'stretch', flexWrap: 'wrap', marginTop: '1rem' }}>
-        <Carte titre="Comptes" style={{ flex: '1 1 260px' }}>
-          <p style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 .5rem' }}>{compteurs.totalUtilisateurs}</p>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '.85rem' }}>
-            {Object.entries(LIBELLE_ROLE).map(([role, libelle]) => (
-              <li key={role}>{libelle} : {parRole[role] || 0}</li>
-            ))}
-          </ul>
-        </Carte>
-
-        <Carte titre="Dossiers d'inscription" style={{ flex: '1 1 260px' }}>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '.85rem' }}>
-            {Object.entries(LIBELLE_INSCRIPTION).map(([statut, libelle]) => (
-              <li key={statut}>{libelle} : {parInscription[statut] || 0}</li>
-            ))}
-          </ul>
-        </Carte>
-
-        <Carte titre="Paiements" style={{ flex: '1 1 260px' }}>
-          <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '.85rem' }}>
-            {Object.entries(LIBELLE_PAIEMENT).map(([statut, libelle]) => (
-              <li key={statut}>{libelle} : {parPaiement[statut] || 0}</li>
-            ))}
-          </ul>
-        </Carte>
-      </div>
-
-      <div className="rangee" style={{ gap: '1rem', alignItems: 'stretch', flexWrap: 'wrap', marginTop: '1rem' }}>
-        <Carte titre="Nouveaux comptes par semaine" style={{ flex: '1 1 400px' }}>
-          <BarreEvolution donnees={croissance.comptes} />
-        </Carte>
-        <Carte titre="Nouvelles inscriptions par semaine" style={{ flex: '1 1 400px' }}>
-          <BarreEvolution donnees={croissance.inscriptions} />
-        </Carte>
-      </div>
     </div>
   );
 }

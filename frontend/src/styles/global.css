@@ -1673,3 +1673,24 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 /* Option régénérer les bulletins (Publication des notes) */
 .pub-regenerer { display: flex; align-items: center; gap: .5rem; font-size: .85rem; color: #4A5568; cursor: pointer; }
 .pub-regenerer input { width: 16px; height: 16px; accent-color: #1A365D; cursor: pointer; }
+
+/* Statistiques direction : tuiles KPI + info-bulle du graphique d'évolution */
+.stx-tuiles { display: grid; gap: .9rem; grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 760px) { .stx-tuiles { grid-template-columns: repeat(2, 1fr); } }
+.stx-tuile {
+  background: #fff; border: 1px solid var(--s-bord); border-radius: 14px;
+  padding: 1rem 1.1rem; position: relative;
+}
+.stx-puce { position: absolute; top: 1rem; right: 1rem; width: 10px; height: 10px; border-radius: 50%; }
+.stx-puce-navy { background: var(--s-navy); }
+.stx-puce-or { background: var(--s-or); }
+.stx-puce-vert { background: var(--s-vert); }
+.stx-puce-info { background: var(--s-info); }
+.stx-tuile-valeur { font-size: 1.7rem; font-weight: 800; color: var(--s-txt); margin: 0; }
+.stx-tuile-libelle { font-size: .82rem; color: var(--s-txt2); margin: .2rem 0 0; }
+.stx-infobulle {
+  display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
+  margin-top: .6rem; padding: .5rem .75rem; background: #F9FAFB;
+  border: 1px solid var(--s-bord); border-radius: 8px; font-size: .82rem; color: var(--s-txt2);
+}
+.stx-infobulle strong { color: var(--s-txt); }

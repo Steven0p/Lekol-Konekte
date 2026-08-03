@@ -11,22 +11,51 @@ export async function compteurs() {
   return { totalUtilisateurs, totalEleves, parRole, parInscriptionStatut, parPaiementStatut };
 }
 
-// Nouveaux comptes et nouvelles inscriptions par semaine, sur les N dernières semaines.
+// Semaine ISO (lundi -> dimanche), même convention que YEARWEEK(..., 3) en MySQL.
+// Encodée en entier AAAA*100+SS (ex. 202631) pour rester triable et comparable.
+function semaineISO(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const jour = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - jour);
+  const debutAnnee = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const semaine = Math.ceil(((d - debutAnnee) / 86400000 + 1) / 7);
+  return d.getUTCFullYear() * 100 + semaine;
+}
+
+// Nouveaux comptes et nouvelles inscriptions par semaine, sur les N dernières
+// semaines. La grille de semaines est générée explicitement (avec des zéros
+// pour les semaines sans activité) : un simple GROUP BY omettrait ces
+// semaines, ce qui casserait la continuité du graphique d'évolution.
 export async function croissanceHebdo(semaines = 8) {
-  const [comptes] = await pool.query(
-    `SELECT YEARWEEK(cree_le, 3) AS semaine, COUNT(*) AS n
-     FROM utilisateurs
-     WHERE cree_le >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)
-     GROUP BY semaine ORDER BY semaine`,
+  const [lignesComptes] = await pool.query(
+    'SELECT cree_le AS date_ligne FROM utilisateurs WHERE cree_le >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)',
     [semaines]
   );
-  const [inscriptions] = await pool.query(
-    `SELECT YEARWEEK(date_soumission, 3) AS semaine, COUNT(*) AS n
-     FROM inscriptions
-     WHERE date_soumission >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)
-     GROUP BY semaine ORDER BY semaine`,
+  const [lignesInscriptions] = await pool.query(
+    'SELECT date_soumission AS date_ligne FROM inscriptions WHERE date_soumission >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)',
     [semaines]
   );
 
-  return { comptes, inscriptions };
+  const grille = [];
+  const aujourdHui = new Date();
+  for (let i = semaines - 1; i >= 0; i -= 1) {
+    const d = new Date(aujourdHui);
+    d.setDate(d.getDate() - i * 7);
+    grille.push(semaineISO(d));
+  }
+  const grilleUnique = Array.from(new Set(grille)).sort((a, b) => a - b);
+
+  const compterParSemaine = (lignes) => {
+    const carte = new Map(grilleUnique.map((s) => [s, 0]));
+    for (const { date_ligne: dateLigne } of lignes) {
+      const s = semaineISO(new Date(dateLigne));
+      if (carte.has(s)) carte.set(s, carte.get(s) + 1);
+    }
+    return grilleUnique.map((semaine) => ({ semaine, n: carte.get(semaine) }));
+  };
+
+  return {
+    comptes: compterParSemaine(lignesComptes),
+    inscriptions: compterParSemaine(lignesInscriptions),
+  };
 }
