@@ -81,8 +81,13 @@ async function infosEcole() {
 // (le 3e trimestre rassemble les 3), avec Total/Moyenne/Place + Moyenne générale annuelle.
 // Idempotent : un bulletin par (élève, trimestre, année).
 // regenerer=true : remplace les bulletins déjà existants (applique le nouveau format).
+// forcerNotification=true : renvoie le courriel même pour un bulletin régénéré (par défaut,
+// une régénération ne re-notifie pas les parents — utile pour appliquer un nouveau format
+// à des bulletins déjà publiés puis, une fois, renvoyer le courriel avec la pièce jointe).
 // Résultat : { ok:true, nbBulletins, nbSansNotes, nbDejaFaits, nbRegeneres }
-export async function publier({ niveau, anneeScolaire, trimestre, idDirection, regenerer = false }) {
+export async function publier({
+  niveau, anneeScolaire, trimestre, idDirection, regenerer = false, forcerNotification = false,
+}) {
   if (!(await existe(niveau, anneeScolaire, trimestre))) {
     await creerPublication({ niveau, anneeScolaire, trimestre, publiePar: idDirection });
   }
@@ -174,7 +179,7 @@ export async function publier({ niveau, anneeScolaire, trimestre, idDirection, r
 
     // Notification au parent — uniquement pour un nouveau bulletin (pas lors d'une régénération).
     const libelle = LIBELLE_TRIMESTRE[trimestre] || trimestre;
-    if (existant) continue; // régénération : bulletin remplacé, on ne re-notifie pas
+    if (existant && !forcerNotification) continue; // régénération : bulletin remplacé, on ne re-notifie pas
     const bilanTexte = moyenneAnnuelle != null
       ? `\nMoyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.` : '';
     const bilanHtml = moyenneAnnuelle != null

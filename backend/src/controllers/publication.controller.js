@@ -46,7 +46,10 @@ export async function publierCtrl(req, res, next) {
     }
 
     const regenerer = req.body.regenerer === true || req.body.regenerer === 'true';
-    const r = await publier({ niveau, anneeScolaire, trimestre, idDirection: req.session.userId, regenerer });
+    const forcerNotification = req.body.forcerNotification === true || req.body.forcerNotification === 'true';
+    const r = await publier({
+      niveau, anneeScolaire, trimestre, idDirection: req.session.userId, regenerer, forcerNotification,
+    });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
 
     return res.status(201).json({

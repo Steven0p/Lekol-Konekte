@@ -24,6 +24,7 @@ export default function Publications() {
   const [niveaux, setNiveaux] = useState([]);
   const [form, setForm] = useState({ niveau: '', anneeScolaire: anneeScolaireCourante(), trimestre: '1er_trimestre' });
   const [regenerer, setRegenerer] = useState(false);
+  const [forcerNotification, setForcerNotification] = useState(false);
   const [suppression, setSuppression] = useState(null); // publication à supprimer
   const [suppEnCours, setSuppEnCours] = useState(false);
 
@@ -96,7 +97,7 @@ export default function Publications() {
   const publier = async () => {
     setErreur(''); setMsg(''); setEnCours(true);
     try {
-      const d = await directionApi.publier({ ...form, regenerer });
+      const d = await directionApi.publier({ ...form, regenerer, forcerNotification: regenerer && forcerNotification });
       setMsg(`Publié. ${d.bulletinsGeneres} bulletin(s) généré(s)`
         + `${d.bulletinsRegeneres ? `, ${d.bulletinsRegeneres} régénéré(s)` : ''}`
         + `, ${d.elevesSansNotes} élève(s) sans notes validées`
@@ -185,6 +186,12 @@ export default function Publications() {
                 <input type="checkbox" checked={regenerer} onChange={(e) => setRegenerer(e.target.checked)} />
                 <span>Régénérer les bulletins existants (applique le nouveau format)</span>
               </label>
+              {regenerer && (
+                <label className="pub-regenerer">
+                  <input type="checkbox" checked={forcerNotification} onChange={(e) => setForcerNotification(e.target.checked)} />
+                  <span>Renvoyer le courriel aux parents (bulletin en pièce jointe)</span>
+                </label>
+              )}
               <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
                 {enCours ? 'Publication…' : (regenerer ? 'Publier & régénérer' : 'Publier')}
               </button>
@@ -297,6 +304,7 @@ export default function Publications() {
             <p style={{ color: '#4A5568', marginBottom: '1rem' }}>
               Voulez-vous vraiment publier les notes de <strong>{form.niveau}</strong> — <strong>{libTrim(form.trimestre)}</strong> ({form.anneeScolaire}) ? Les bulletins seront générés et les parents notifiés.
               {regenerer && <><br /><strong>Les bulletins déjà existants seront régénérés</strong> au nouveau format.</>}
+              {regenerer && forcerNotification && <><br /><strong>Un courriel réel sera renvoyé à chaque parent</strong>, même si le bulletin avait déjà été publié.</>}
             </p>
             <div className="pub-stats">
               <span className="pub-stat"><Icone nom="users" /> <strong>{statsModal ? (statsModal.eleves ?? '—') : '…'}</strong> élèves</span>
