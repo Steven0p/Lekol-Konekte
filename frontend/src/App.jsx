@@ -42,6 +42,10 @@ import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Tarifs from './pages/direction/Tarifs.jsx';
 import Ecole from './pages/direction/Ecole.jsx';
+import Statistiques from './pages/proprietaire/Statistiques.jsx';
+import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
+import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
+import MonCompte from './pages/proprietaire/MonCompte.jsx';
 
 export default function App() {
   return (
@@ -113,6 +117,12 @@ export default function App() {
         <Route path="/direction/publications" element={<RoutePrivee roles={['direction']}><Publications /></RoutePrivee>} />
         <Route path="/direction/tarifs" element={<RoutePrivee roles={['direction']}><Tarifs /></RoutePrivee>} />
         <Route path="/direction/ecole" element={<RoutePrivee roles={['direction']}><Ecole /></RoutePrivee>} />
+
+        {/* Propriétaire — Contrôle d'accès */}
+        <Route path="/proprietaire/statistiques" element={<RoutePrivee roles={['proprietaire']}><Statistiques /></RoutePrivee>} />
+        <Route path="/proprietaire/sante" element={<RoutePrivee roles={['proprietaire']}><SanteServeur /></RoutePrivee>} />
+        <Route path="/proprietaire/messages" element={<RoutePrivee roles={['proprietaire']}><BoiteReception /></RoutePrivee>} />
+        <Route path="/proprietaire/compte" element={<RoutePrivee roles={['proprietaire']}><MonCompte /></RoutePrivee>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

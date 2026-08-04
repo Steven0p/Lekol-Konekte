@@ -29,6 +29,9 @@ const ICONES = {
   resultats: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2V7h2v10zm4 0h-2v-8h2v8z',
   statistiques: 'M5 21V9h3v12H5zm6 0V3h3v18h-3zm6 0v-7h3v7h-3z',
   verrou: 'M12 1a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-9a2 2 0 0 0-2-2h-1V6a5 5 0 0 0-5-5zm3 8H9V6a3 3 0 0 1 6 0v3z',
+  sante: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
+  inbox: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H5V5h14v10zm-9-8h4v2h-4v-2z',
+  compte: 'M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.2c-3.3 0-9.8 1.6-9.8 4.9V21h19.6v-1.9c0-3.3-6.5-4.9-9.8-4.9z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -69,6 +72,10 @@ const MENUS = {
   proprietaire: [
     { titre: null, items: [
       { to: '/tableau-de-bord', libelle: 'Contrôle d\'accès', icone: 'verrou', fin: true },
+      { to: '/proprietaire/statistiques', libelle: 'Statistiques & santé du site', icone: 'statistiques' },
+      { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
+      { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
+      { to: '/proprietaire/compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
   eleve: [
