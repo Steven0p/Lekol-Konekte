@@ -103,7 +103,7 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
   if (paiement.statut !== 'en_attente') {
     return { ok: false, code: 409, erreur: 'Ce paiement a déjà été traité.' };
   }
-  if (!paiement.preuve_url) {
+  if (statut === 'valide' && !paiement.preuve_url) {
     return { ok: false, code: 400, erreur: 'Aucune preuve téléversée : validation impossible.' };
   }
 

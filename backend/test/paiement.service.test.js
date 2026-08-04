@@ -228,6 +228,16 @@ describe('traiterValidation', () => {
     assert.equal(appels.validationMaj.length, 0);
   });
 
+  test('permet de rejeter un paiement même sans preuve téléversée', async () => {
+    faux.paiement = { ...paiementEnAttente(), preuve_url: null };
+    faux.eleve = eleveDe();
+    const r = await traiterValidation({
+      idPaiement: 77, statut: 'rejete', commentaire: 'Aucun justificatif reçu', idAdmin: 1,
+    });
+    assert.equal(r.ok, true);
+    assert.deepEqual(appels.validationMaj, [{ id: 77, statut: 'rejete', validePar: 1 }]);
+  });
+
   test('un rejet ne génère aucun document et notifie le motif', async () => {
     faux.paiement = paiementEnAttente('releve');
     faux.eleve = eleveDe();
