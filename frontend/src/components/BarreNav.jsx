@@ -64,7 +64,6 @@ const MENUS = {
       { to: '/direction/publications', libelle: 'Publications', icone: 'publications' },
       { to: '/direction/tarifs', libelle: 'Tarifs', icone: 'tarifs' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
-      { to: '/direction/statistiques', libelle: 'Statistiques', icone: 'statistiques' },
     ] },
   ],
   proprietaire: [

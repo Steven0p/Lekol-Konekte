@@ -4,7 +4,7 @@ import { etatServeur } from '../config/etatServeur.js';
 import { courrielConfigure } from '../config/mailer.js';
 import { iaConfiguree } from '../config/ia.js';
 
-// GET /api/direction/statistiques (direction)
+// GET /api/direction/statistiques (proprietaire)
 export async function statistiques(req, res, next) {
   try {
     const [c, croissance] = await Promise.all([compteurs(), croissanceHebdo(8)]);

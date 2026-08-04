@@ -210,12 +210,7 @@ export default function Statistiques() {
   const paiementsEnAttente = compteurs.parPaiementStatut.find((r) => r.statut === 'en_attente')?.n || 0;
 
   return (
-    <div style={{ maxWidth: 960 }}>
-      <div className="page-entete">
-        <h1>Statistiques & santé du site</h1>
-        <p>Vue d'ensemble technique et évolution de l'utilisation de la plateforme.</p>
-      </div>
-
+    <div>
       <div className="stx-tuiles">
         <StatTuile libelle="Comptes" valeur={compteurs.totalUtilisateurs} ton="navy" />
         <StatTuile libelle="Élèves" valeur={compteurs.totalEleves} ton="info" />

@@ -8,6 +8,7 @@ import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
+import Statistiques from './Statistiques.jsx';
 
 const DESCRIPTION = {
   matieres_gestion: "Direction ne peut plus créer, modifier ni supprimer de matière ou coefficient tant que c'est désactivé (la consultation reste possible).",
@@ -38,7 +39,7 @@ export default function Permissions() {
 
   if (erreur && !permissions) {
     return (
-      <div style={{ maxWidth: 720 }}>
+      <div style={{ maxWidth: 960 }}>
         <div className="page-entete"><h1>Contrôle d'accès</h1></div>
         <Alerte type="erreur">{erreur}</Alerte>
         <Bouton type="button" onClick={charger}>Réessayer</Bouton>
@@ -86,6 +87,9 @@ export default function Permissions() {
           </div>
         ))}
       </Carte>
+
+      <div className="notes-section-titre" style={{ marginTop: '1.5rem' }}><Icone nom="chart" /> Statistiques & santé du site</div>
+      <Statistiques />
 
       <div className="notes-section-titre" style={{ marginTop: '1.5rem' }}><Icone nom="inbox" /> Boîte de réception</div>
       <BoiteReception />
