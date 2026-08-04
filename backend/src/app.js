@@ -20,6 +20,7 @@ import academieRoutes from './routes/academie.routes.js';
 import examensRoutes from './routes/examens.routes.js';
 import direstatsRoutes from './routes/direction.routes.js';
 import permissionsRoutes from './routes/permissions.routes.js';
+import contactMessageRoutes from './routes/contactMessage.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
 
@@ -108,6 +109,9 @@ app.use('/api', direstatsRoutes);
 
 // Permissions gérées par le propriétaire
 app.use('/api', permissionsRoutes);
+
+// Formulaire de contact public + boîte de réception (propriétaire)
+app.use('/api', contactMessageRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';

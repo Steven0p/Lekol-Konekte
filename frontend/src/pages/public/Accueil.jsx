@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-
-// Adresse de contact de l'école — à remplacer par l'adresse réelle.
-const COURRIEL_ECOLE = 'info@lekolkonekte.ht';
+import { contactApi } from '../../services/api.js';
 
 // Icônes des avantages (SVG en ligne, couleur héritée via currentColor)
 const IcoInscription = () => (
@@ -46,13 +44,23 @@ const AVANTAGES = [
 export default function Accueil() {
   const [form, setForm] = useState({ nom: '', email: '', message: '' });
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [envoye, setEnvoye] = useState(false);
+  const [erreur, setErreur] = useState('');
 
-  // Ouvre le client de messagerie avec le contenu du formulaire (pas de backend contact).
-  const envoyer = (e) => {
+  const envoyer = async (e) => {
     e.preventDefault();
-    const sujet = encodeURIComponent(`Message du site — ${form.nom}`);
-    const corps = encodeURIComponent(`${form.message}\n\n— ${form.nom} (${form.email})`);
-    window.location.href = `mailto:${COURRIEL_ECOLE}?subject=${sujet}&body=${corps}`;
+    setErreur('');
+    setEnvoiEnCours(true);
+    try {
+      await contactApi.envoyer({ nom: form.nom, courriel: form.email, message: form.message });
+      setEnvoye(true);
+      setForm({ nom: '', email: '', message: '' });
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnvoiEnCours(false);
+    }
   };
 
   return (
@@ -125,7 +133,13 @@ export default function Accueil() {
       {/* 4. Contact */}
       <section className="acc-bande acc-contact">
         <h2 className="acc-titre-souligne acc-souligne-centre">Restons en contact</h2>
+        {envoye ? (
+          <p className="acc-note" style={{ textAlign: 'center', fontWeight: 700 }}>
+            Message envoyé — merci ! Nous vous répondrons par courriel.
+          </p>
+        ) : (
         <form className="acc-form" onSubmit={envoyer}>
+          {erreur && <p className="acc-note" style={{ color: '#C53030' }}>{erreur}</p>}
           <div className="acc-form-rangee">
             <div>
               <label htmlFor="acc-nom">Nom</label>
@@ -141,10 +155,13 @@ export default function Accueil() {
             <textarea id="acc-message" rows={4} value={form.message} onChange={maj('message')} required placeholder="Comment pouvons-nous vous aider ?" />
           </div>
           <div className="acc-form-actions">
-            <button type="submit" className="acc-btn acc-btn-or">Envoyer</button>
+            <button type="submit" className="acc-btn acc-btn-or" disabled={envoiEnCours}>
+              {envoiEnCours ? 'Envoi…' : 'Envoyer'}
+            </button>
             <span className="acc-note">Nous répondons en moins de 24 h.</span>
           </div>
         </form>
+        )}
       </section>
     </div>
   );

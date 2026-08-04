@@ -28,3 +28,12 @@ export const uploadLimiter = rateLimit({
   legacyHeaders: false,
   message: { erreur: 'Trop de téléversements. Réessayez plus tard.' },
 });
+
+// Formulaire de contact public : 5 messages / 15 min par IP (anti-spam)
+export const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: 'Trop de messages envoyés. Réessayez plus tard.' },
+});

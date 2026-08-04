@@ -844,6 +844,7 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 }
 .tdb-badge-rouge { background: #FED7D7; color: #C53030; }
 .tdb-badge-vert { background: #C6F6D5; color: #276749; }
+.tdb-badge-gris { background: #E2E8F0; color: #4A5568; }
 
 /* Pied de page */
 .tdb-pied {

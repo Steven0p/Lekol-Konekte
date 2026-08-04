@@ -246,6 +246,17 @@ export const permissionsApi = {
   modifierCompte: (body) => request('/proprietaire/compte', { method: 'PATCH', body: json(body) }),
 };
 
+export const contactApi = {
+  envoyer: (payload) => request('/contact', { method: 'POST', body: json(payload) }),
+};
+
+export const messagesApi = {
+  lister: (statut) => request(`/proprietaire/messages${statut ? `?statut=${statut}` : ''}`),
+  detail: (id) => request(`/proprietaire/messages/${id}`),
+  reponseIa: (id) => request(`/proprietaire/messages/${id}/reponse-ia`, { method: 'POST' }),
+  repondre: (id, reponse) => request(`/proprietaire/messages/${id}/repondre`, { method: 'POST', body: json({ reponse }) }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;

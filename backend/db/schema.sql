@@ -128,6 +128,22 @@ CREATE TABLE IF NOT EXISTS permissions (
   FOREIGN KEY (modifie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- messages_contact : messages soumis via le formulaire « Restons en contact »
+-- de la page d'accueil. Le propriétaire les consulte et y répond (avec
+-- brouillon IA) depuis « Contrôle d'accès ».
+CREATE TABLE IF NOT EXISTS messages_contact (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  nom          VARCHAR(150) NOT NULL,
+  courriel     VARCHAR(190) NOT NULL,
+  message      TEXT NOT NULL,
+  statut       ENUM('non_lu','lu','repondu') NOT NULL DEFAULT 'non_lu',
+  reponse      TEXT,
+  repondu_par  INT,
+  repondu_le   DATETIME,
+  cree_le      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (repondu_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- frais_divers : catalogue de frais géré par la direction (écolage, cantine, livres…)
 -- Liste de prix informative — indépendante du module Paiements.
 -- niveau NULL => s'applique à toutes les classes.
