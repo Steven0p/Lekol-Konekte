@@ -1679,19 +1679,89 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .stx-tuiles { display: grid; gap: .9rem; grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 760px) { .stx-tuiles { grid-template-columns: repeat(2, 1fr); } }
 .stx-tuile {
-  background: #fff; border: 1px solid var(--s-bord); border-radius: 14px;
-  padding: 1rem 1.1rem; position: relative;
+  background: var(--blanc); border: 1px solid var(--s-bord); border-radius: 14px;
+  padding: 1.1rem; position: relative;
 }
-.stx-puce { position: absolute; top: 1rem; right: 1rem; width: 10px; height: 10px; border-radius: 50%; }
-.stx-puce-navy { background: var(--s-navy); }
-.stx-puce-or { background: var(--s-or); }
-.stx-puce-vert { background: var(--s-vert); }
-.stx-puce-info { background: var(--s-info); }
+.stx-icone {
+  position: absolute; top: 1rem; right: 1rem; width: 38px; height: 38px;
+  border-radius: 10px; display: grid; place-items: center; font-size: 1.05rem; color: #fff;
+}
+.stx-icone-navy { background: var(--s-navy); }
+.stx-icone-or { background: var(--s-or); }
+.stx-icone-vert { background: var(--s-vert); }
+.stx-icone-info { background: var(--s-info); }
 .stx-tuile-valeur { font-size: 1.7rem; font-weight: 800; color: var(--s-txt); margin: 0; }
 .stx-tuile-libelle { font-size: .82rem; color: var(--s-txt2); margin: .2rem 0 0; }
 .stx-infobulle {
   display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;
-  margin-top: .6rem; padding: .5rem .75rem; background: #F9FAFB;
+  margin-top: .6rem; padding: .5rem .75rem; background: var(--gris-clair);
   border: 1px solid var(--s-bord); border-radius: 8px; font-size: .82rem; color: var(--s-txt2);
 }
 .stx-infobulle strong { color: var(--s-txt); }
+
+/* ============================================================
+   CONTRÔLE D'ACCÈS (rôle propriétaire) — thème sombre dédié à ce
+   rôle uniquement. Portée strictement limitée à .tema-proprio,
+   posé sur .app-shell par Layout.jsx quand role === 'proprietaire' ;
+   aucun autre rôle (direction, admin, parent, élève) n'est affecté.
+   Les jetons du site (--blanc, --bleu, --noir…) sont redéfinis ici :
+   Carte/Bouton/Champ/Alerte/tableaux en héritent automatiquement.
+   Palette validée — voir skill dataviz, mode dark.
+   ============================================================ */
+.app-shell.tema-proprio {
+  --blanc: #16161f;
+  --bleu: #9085e9;
+  --bleu-fonce: #7263d1;
+  --bleu-clair: rgba(144, 133, 233, .16);
+  --noir: #f5f5f7;
+  --gris: #a3a3b5;
+  --gris-clair: #1e1e2a;
+  --gris-bordure: rgba(255, 255, 255, .09);
+  --gris-champ: #1c1c27;
+  --erreur: #f28b82;
+  --erreur-fond: rgba(242, 139, 130, .14);
+  --ombre: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 28px rgba(0, 0, 0, .45);
+  --ombre-sm: 0 1px 2px rgba(0, 0, 0, .35);
+
+  /* Sous-systèmes réutilisés par cette page (Boîte de réception, Statistiques) */
+  --i-navy: #9085e9; --i-or: #d97a35; --i-vert: #22c55e; --i-rouge: #e66767;
+  --i-info: #3987e5; --i-info-h: #6ba6ee;
+  --i-txt: #f5f5f7; --i-txt2: #a3a3b5; --i-txt3: #75758a;
+  --i-bord: rgba(255, 255, 255, .09); --i-zebra: rgba(255, 255, 255, .025); --i-hover: rgba(255, 255, 255, .05);
+
+  --s-navy: #3987e5; --s-or: #d97a35; --s-vert: #22c55e; --s-info: #9085e9;
+  --s-txt: #f5f5f7; --s-txt2: #a3a3b5; --s-txt3: #75758a; --s-bord: rgba(255, 255, 255, .09);
+
+  background: #0b0b10;
+  color: var(--noir);
+}
+.app-shell.tema-proprio .contenu { background: #0b0b10; color: var(--noir); }
+
+/* Sidebar : nuit profonde + accent violet (le reste du site garde marine + or) */
+.app-shell.tema-proprio .sidebar { background: #121218; }
+.app-shell.tema-proprio .sb-entete,
+.app-shell.tema-proprio .sb-profil { border-color: rgba(255, 255, 255, .08); }
+.app-shell.tema-proprio .sb-reduire:hover { background: rgba(144, 133, 233, .18); }
+.app-shell.tema-proprio .sb-lien:hover { background: rgba(144, 133, 233, .14); color: #fff; }
+.app-shell.tema-proprio .sb-lien.actif { background: #6f5ee0; color: #fff; border-left-color: #cabdff; }
+.app-shell.tema-proprio .sb-section-titre { color: #6f6f85; }
+.app-shell.tema-proprio .sb-profil-role { color: #8a8aa0; }
+.app-shell.tema-proprio .sb-deconnexion { color: #d0d0dd; }
+
+/* En-têtes de section */
+.app-shell.tema-proprio .notes-section-titre { color: #c9c3ff; }
+.app-shell.tema-proprio .page-entete p { color: var(--gris); }
+
+/* Interrupteurs (Contrôle d'accès) */
+.app-shell.tema-proprio .eco-slider { background: #33333f; }
+.app-shell.tema-proprio .eco-switch input:checked + .eco-slider { background: #6f5ee0; }
+
+/* Champs de recherche/filtre (Boîte de réception réutilise .insc-*) */
+.app-shell.tema-proprio .insc-recherche input,
+.app-shell.tema-proprio .insc-barre select,
+.app-shell.tema-proprio .insc-btn-reinit { background: var(--gris-champ); }
+
+/* Badges de statut : versions sombres, plus saturées pour rester lisibles */
+.app-shell.tema-proprio .tdb-badge-vert { background: rgba(34, 197, 94, .16); color: #4ade80; }
+.app-shell.tema-proprio .tdb-badge-rouge { background: rgba(230, 103, 103, .18); color: #f28b82; }
+.app-shell.tema-proprio .tdb-badge-gris { background: rgba(255, 255, 255, .08); color: #a3a3b5; }

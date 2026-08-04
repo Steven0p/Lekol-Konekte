@@ -4,14 +4,16 @@ import { dateHeureFr } from '../../utils/libelles.js';
 import Carte from '../../components/Carte.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
-// Palette validée (voir skill dataviz) : catégorielle pour l'identité (rôles),
-// statut fixe et réservée pour les états (jamais utilisée pour une série
-// « normale »). Le texte reste toujours en encre de texte, jamais dans la
-// couleur de la marque — voir BarreHorizontale.
-const CATEGORIEL = { bleu: '#2a78d6', orange: '#eb6834', aqua: '#1baf7a', jaune: '#eda100' };
+// Palette validée (voir skill dataviz, mode dark — cette page ne s'affiche
+// que dans le thème sombre de « Contrôle d'accès »). Catégorielle pour
+// l'identité (rôles), statut fixe et réservée pour les états (jamais
+// utilisée pour une série « normale »). Le texte reste toujours en encre de
+// texte, jamais dans la couleur de la marque — voir BarreHorizontale.
+const CATEGORIEL = { bleu: '#3987e5', orange: '#d95926', aqua: '#199e70', jaune: '#c98500' };
 const STATUT = { bon: '#0ca30c', attention: '#fab219', serieux: '#ec835a', critique: '#d03b3b' };
-const GRIS_TRAME = '#e1e0d9';
+const GRIS_TRAME = '#2c2c2a';
 const GRIS_AXE = '#898781';
 
 const LIBELLE_ROLE = { parent: 'Parents', eleve: 'Élèves', admin: 'Secrétariat', direction: 'Direction' };
@@ -40,10 +42,10 @@ function libelleSemaine(yearweek) {
   return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 }
 
-function StatTuile({ libelle, valeur, ton }) {
+function StatTuile({ libelle, valeur, ton, icone }) {
   return (
     <div className="stx-tuile">
-      <span className={`stx-puce stx-puce-${ton}`} aria-hidden="true" />
+      <span className={`stx-icone stx-icone-${ton}`} aria-hidden="true"><Icone nom={icone} /></span>
       <p className="stx-tuile-valeur">{valeur}</p>
       <p className="stx-tuile-libelle">{libelle}</p>
     </div>
@@ -135,8 +137,8 @@ function LigneEvolution({ semaines, serieA, serieB, nomA, nomB }) {
         <path d={chemin(serieB)} fill="none" stroke={CATEGORIEL.orange} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
 
         {/* Étiquette directe : valeur de fin de chaque série */}
-        <circle cx={x(n - 1)} cy={y(serieA[n - 1])} r="4" fill={CATEGORIEL.bleu} stroke="#fff" strokeWidth="2" />
-        <circle cx={x(n - 1)} cy={y(serieB[n - 1])} r="4" fill={CATEGORIEL.orange} stroke="#fff" strokeWidth="2" />
+        <circle cx={x(n - 1)} cy={y(serieA[n - 1])} r="4" fill={CATEGORIEL.bleu} stroke="#16161f" strokeWidth="2" />
+        <circle cx={x(n - 1)} cy={y(serieB[n - 1])} r="4" fill={CATEGORIEL.orange} stroke="#16161f" strokeWidth="2" />
         <text x={x(n - 1) + 8} y={y(serieA[n - 1])} dominantBaseline="middle" fontSize="12" fill="var(--s-txt)" fontWeight="700">
           {serieA[n - 1]}
         </text>
@@ -152,8 +154,8 @@ function LigneEvolution({ semaines, serieA, serieB, nomA, nomB }) {
           <>
             <line x1={x(survol)} x2={x(survol)} y1={M.haut} y2={M.haut + hauteurUtile}
               stroke={GRIS_AXE} strokeWidth="1" />
-            <circle cx={x(survol)} cy={y(serieA[survol])} r="5" fill={CATEGORIEL.bleu} stroke="#fff" strokeWidth="2" />
-            <circle cx={x(survol)} cy={y(serieB[survol])} r="5" fill={CATEGORIEL.orange} stroke="#fff" strokeWidth="2" />
+            <circle cx={x(survol)} cy={y(serieA[survol])} r="5" fill={CATEGORIEL.bleu} stroke="#16161f" strokeWidth="2" />
+            <circle cx={x(survol)} cy={y(serieB[survol])} r="5" fill={CATEGORIEL.orange} stroke="#16161f" strokeWidth="2" />
           </>
         )}
       </svg>
@@ -212,10 +214,10 @@ export default function Statistiques() {
   return (
     <div>
       <div className="stx-tuiles">
-        <StatTuile libelle="Comptes" valeur={compteurs.totalUtilisateurs} ton="navy" />
-        <StatTuile libelle="Élèves" valeur={compteurs.totalEleves} ton="info" />
-        <StatTuile libelle="Dossiers à traiter" valeur={dossiersATraiter} ton="or" />
-        <StatTuile libelle="Paiements en attente" valeur={paiementsEnAttente} ton="or" />
+        <StatTuile libelle="Comptes" valeur={compteurs.totalUtilisateurs} ton="navy" icone="users" />
+        <StatTuile libelle="Élèves" valeur={compteurs.totalEleves} ton="info" icone="school" />
+        <StatTuile libelle="Dossiers à traiter" valeur={dossiersATraiter} ton="or" icone="clipboard" />
+        <StatTuile libelle="Paiements en attente" valeur={paiementsEnAttente} ton="or" icone="bank" />
       </div>
 
       <Carte titre="Évolution hebdomadaire (8 dernières semaines)" style={{ marginTop: '1rem' }}>
