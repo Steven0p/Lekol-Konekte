@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS presences (
   id_eleve      INT NOT NULL,
   date          DATE NOT NULL,
   heure_arrivee DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  heure_depart  DATETIME NULL,
   marque_par    INT,
   UNIQUE KEY uniq_eleve_date (id_eleve, date),
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE,

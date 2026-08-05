@@ -16,6 +16,9 @@ function extraireCode(texte) {
   return texte.trim();
 }
 
+const FUSEAU = { timeZone: 'America/Port-au-Prince', hour: '2-digit', minute: '2-digit' };
+const heureFr = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', FUSEAU) : '—');
+
 const COOLDOWN_MS = 4000; // évite de re-soumettre le même badge pendant qu'il reste dans le cadre
 
 export default function AdminPresences() {
@@ -25,11 +28,15 @@ export default function AdminPresences() {
   const dernierCode = useRef(null);
   const dernierScanLe = useRef(0);
   const enTraitement = useRef(false);
+  const typeRef = useRef('entree'); // lu par la boucle de scan (évite de la relancer à chaque changement de mode)
 
+  const [type, setType] = useState('entree'); // 'entree' | 'sortie'
   const [camActive, setCamActive] = useState(false);
   const [erreurCam, setErreurCam] = useState('');
-  const [resultat, setResultat] = useState(null); // { eleve, dejaMarque, heure } ou { erreur }
+  const [resultat, setResultat] = useState(null); // { eleve, dejaMarque, heure, type } ou { erreur }
   const [liste, setListe] = useState([]);
+
+  useEffect(() => { typeRef.current = type; }, [type]);
 
   const chargerListe = useCallback(() => {
     adminApi.presencesDuJour().then((d) => setListe(d.presences)).catch(() => {});
@@ -38,14 +45,16 @@ export default function AdminPresences() {
 
   const traiterCode = useCallback(async (texteScanne) => {
     const code = extraireCode(texteScanne);
+    const t = typeRef.current;
     const maintenant = Date.now();
-    if (code === dernierCode.current && maintenant - dernierScanLe.current < COOLDOWN_MS) return;
+    const cle = `${t}:${code}`;
+    if (cle === dernierCode.current && maintenant - dernierScanLe.current < COOLDOWN_MS) return;
     if (enTraitement.current) return;
-    dernierCode.current = code;
+    dernierCode.current = cle;
     dernierScanLe.current = maintenant;
     enTraitement.current = true;
     try {
-      const d = await adminApi.scannerPresence(code);
+      const d = await adminApi.scannerPresence(code, t);
       setResultat({ ...d, erreur: null });
       chargerListe();
     } catch (e) {
@@ -98,11 +107,22 @@ export default function AdminPresences() {
     <div style={{ maxWidth: 960 }}>
       <div className="page-entete">
         <h1>Présence quotidienne</h1>
-        <p>Scannez le QR au dos du badge de chaque élève pour confirmer sa présence — le parent est notifié par courriel automatiquement.</p>
+        <p>Scannez le QR au dos du badge de chaque élève pour confirmer son entrée ou sa sortie — le parent est notifié par courriel automatiquement.</p>
       </div>
 
       <div className="rangee" style={{ gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         <Carte style={{ flex: '1 1 340px' }}>
+          <div className="rangee" style={{ gap: '.5rem', marginBottom: '.9rem' }}>
+            <button type="button" onClick={() => setType('entree')}
+              className={`btn ${type === 'entree' ? 'btn-primaire' : 'btn-secondaire'}`} style={{ flex: 1 }}>
+              Entrée
+            </button>
+            <button type="button" onClick={() => setType('sortie')}
+              className={`btn ${type === 'sortie' ? 'btn-primaire' : 'btn-secondaire'}`} style={{ flex: 1 }}>
+              Sortie
+            </button>
+          </div>
+
           {erreurCam && <Alerte type="erreur">{erreurCam}</Alerte>}
           <div style={{
             position: 'relative', width: '100%', aspectRatio: '4/3', background: '#111',
@@ -134,7 +154,7 @@ export default function AdminPresences() {
                   <div>
                     <p style={{ margin: 0, fontWeight: 700 }}>{resultat.eleve.nom}</p>
                     <p className="texte-gris" style={{ margin: '.15rem 0 0', fontSize: '.85rem' }}>
-                      {resultat.eleve.niveau} — arrivé(e) à {resultat.heure}
+                      {resultat.eleve.niveau} — {resultat.type === 'sortie' ? 'reparti(e)' : 'arrivé(e)'} à {resultat.heure}
                     </p>
                     {resultat.dejaMarque && (
                       <p style={{ margin: '.3rem 0 0', fontSize: '.8rem', color: 'var(--gris)' }}>
@@ -154,13 +174,14 @@ export default function AdminPresences() {
           ) : (
             <div className="tableau-enveloppe">
               <table className="tableau">
-                <thead><tr><th>Élève</th><th>Classe</th><th>Heure</th></tr></thead>
+                <thead><tr><th>Élève</th><th>Classe</th><th>Entrée</th><th>Sortie</th></tr></thead>
                 <tbody>
                   {liste.map((p) => (
                     <tr key={p.id}>
                       <td>{[p.prenom, p.nom].filter(Boolean).join(' ')}</td>
                       <td>{p.niveau || '—'}</td>
-                      <td>{new Date(p.heure_arrivee).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Port-au-Prince' })}</td>
+                      <td>{heureFr(p.heure_arrivee)}</td>
+                      <td>{heureFr(p.heure_depart)}</td>
                     </tr>
                   ))}
                 </tbody>

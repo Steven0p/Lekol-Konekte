@@ -2,16 +2,17 @@
 import { marquerPresenceParCode } from '../services/presence.service.js';
 import { listerDuJour } from '../models/presence.model.js';
 
-// POST /api/admin/presences/scan (admin/direction) — body { code }
+// POST /api/admin/presences/scan (admin/direction) — body { code, type: 'entree'|'sortie' }
 export async function scanCtrl(req, res, next) {
   try {
     const code = (req.body.code || '').trim();
+    const type = req.body.type === 'sortie' ? 'sortie' : 'entree';
     if (!code) return res.status(400).json({ erreur: 'Code requis.' });
 
-    const r = await marquerPresenceParCode({ code, idAdmin: req.session.userId });
+    const r = await marquerPresenceParCode({ code, type, idAdmin: req.session.userId });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
 
-    return res.json({ eleve: r.eleve, dejaMarque: r.dejaMarque, heure: r.heure });
+    return res.json({ eleve: r.eleve, dejaMarque: r.dejaMarque, heure: r.heure, type: r.type });
   } catch (err) {
     next(err);
   }

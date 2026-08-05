@@ -126,8 +126,8 @@ export const adminApi = {
     fd.append('photo', fichier);
     return request(`/admin/eleves/${id}/photo`, { method: 'POST', body: fd });
   },
-  // Présence quotidienne (scan du QR du badge)
-  scannerPresence: (code) => request('/admin/presences/scan', { method: 'POST', body: json({ code }) }),
+  // Présence quotidienne (scan du QR du badge) — type: 'entree' | 'sortie'
+  scannerPresence: (code, type) => request('/admin/presences/scan', { method: 'POST', body: json({ code, type }) }),
   presencesDuJour: (niveau) => request(`/admin/presences${qs({ niveau })}`),
 };
 
