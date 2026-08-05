@@ -144,6 +144,19 @@ CREATE TABLE IF NOT EXISTS messages_contact (
   FOREIGN KEY (repondu_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- presences : présence quotidienne (scan du QR du badge). Une ligne = un
+-- élève confirmé présent un jour donné. Pas de ligne pour une date = non pointé.
+CREATE TABLE IF NOT EXISTS presences (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  id_eleve      INT NOT NULL,
+  date          DATE NOT NULL,
+  heure_arrivee DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  marque_par    INT,
+  UNIQUE KEY uniq_eleve_date (id_eleve, date),
+  FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE,
+  FOREIGN KEY (marque_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- frais_divers : catalogue de frais géré par la direction (écolage, cantine, livres…)
 -- Liste de prix informative — indépendante du module Paiements.
 -- niveau NULL => s'applique à toutes les classes.

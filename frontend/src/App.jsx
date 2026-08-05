@@ -38,6 +38,7 @@ import AdminCodesEleves from './pages/admin/AdminCodesEleves.jsx';
 import AdminBadges from './pages/admin/AdminBadges.jsx';
 import AdminPaiements from './pages/admin/AdminPaiements.jsx';
 import AdminEconomat from './pages/admin/AdminEconomat.jsx';
+import AdminPresences from './pages/admin/AdminPresences.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Tarifs from './pages/direction/Tarifs.jsx';
@@ -111,6 +112,7 @@ export default function App() {
         <Route path="/admin/badges" element={<RoutePrivee roles={['admin']}><AdminBadges /></RoutePrivee>} />
         <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
         <Route path="/admin/economat" element={<RoutePrivee roles={['admin', 'direction']}><AdminEconomat /></RoutePrivee>} />
+        <Route path="/admin/presences" element={<RoutePrivee roles={['admin', 'direction']}><AdminPresences /></RoutePrivee>} />
 
         {/* Direction */}
         <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />

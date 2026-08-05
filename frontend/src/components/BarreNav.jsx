@@ -32,6 +32,7 @@ const ICONES = {
   sante: 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z',
   inbox: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H5V5h14v10zm-9-8h4v2h-4v-2z',
   compte: 'M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.2c-3.3 0-9.8 1.6-9.8 4.9V21h19.6v-1.9c0-3.3-6.5-4.9-9.8-4.9z',
+  scan: 'M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm16 0h2v6h-6v-2h4v-4zM6 9h2v6H6V9zm10 0h2v6h-2V9zm-5 0h2v6h-2V9z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -54,6 +55,7 @@ const MENUS = {
       { to: '/admin/notes', libelle: 'Notes', icone: 'notes' },
       { to: '/admin/codes-eleves', libelle: 'Codes élèves', icone: 'codes' },
       { to: '/admin/badges', libelle: 'Badges', icone: 'badges' },
+      { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
       { to: '/admin/paiements', libelle: 'Paiements', icone: 'paiements', cle: 'paiements' },
     ] },
     { titre: 'Administration', items: [
@@ -67,6 +69,7 @@ const MENUS = {
       { to: '/direction/publications', libelle: 'Publications', icone: 'publications' },
       { to: '/direction/tarifs', libelle: 'Tarifs', icone: 'tarifs' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
+      { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
     ] },
   ],
   proprietaire: [
