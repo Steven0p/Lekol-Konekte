@@ -106,6 +106,9 @@ export async function repondreCtrl(req, res, next) {
 
     const msg = await modele.trouverParId(id);
     if (!msg) return res.status(404).json({ erreur: 'Message introuvable.' });
+    if (msg.statut === 'repondu') {
+      return res.status(409).json({ erreur: 'Ce message a déjà reçu une réponse.' });
+    }
 
     await envoyerCourriel({
       to: msg.courriel,
