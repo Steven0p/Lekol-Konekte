@@ -10,8 +10,67 @@ import { creer as creerDocumentOfficiel } from '../models/documentOfficiel.model
 import { journaliser } from '../models/historique.model.js';
 import { grouperTranscript, genererReleve } from './releve.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
+const LIBELLE_TYPE = {
+  inscription: "les frais d'inscription", releve: 'le relevé de notes', duplicata: 'le duplicata',
+};
+
+// Message envoyé au parent à l'issue d'un paiement (validé ou rejeté), adapté
+// au contexte (type de frais, motif du rejet le cas échéant) via l'IA (Groq).
+// Repli sur un message générique si l'IA n'est pas configurée ou échoue — la
+// notification ne doit jamais dépendre de la disponibilité de l'IA.
+async function genererMessagePaiement({ statut, typeFrais, montant, devise, commentaire, parentNom, eleveNom }) {
+  const salutation = `Bonjour ${parentNom || ''},\n\n`;
+  let fallback;
+  if (statut === 'rejete') {
+    fallback = `${salutation}Votre preuve de paiement a été rejetée.` +
+      (commentaire ? `\nMotif : ${commentaire}` : '') +
+      `\nVeuillez soumettre une nouvelle preuve.`;
+  } else if (typeFrais === 'inscription') {
+    fallback = `${salutation}Le paiement a été validé. L'inscription de ${eleveNom} est maintenant confirmée.`;
+  } else {
+    const libelle = typeFrais === 'duplicata' ? 'duplicata' : 'relevé de notes';
+    fallback = `${salutation}Le paiement a été validé. Votre ${libelle} pour ${eleveNom} est disponible dans votre compte.`;
+  }
+
+  if (!iaConfiguree()) return fallback;
+  try {
+    const client = clientIA();
+    const completion = await client.chat.completions.create({
+      model: MODELE_IA,
+      temperature: 0.5,
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'system',
+          content: "Tu rédiges, au nom de l'économat de l'école « Lekòl Konekte », le corps d'un courriel court (3 à 5 phrases, sans salutation ni signature — elles sont ajoutées séparément) informant un parent de l'issue du traitement d'un paiement. Sois clair, professionnel et bienveillant. Si le paiement est rejeté, explique le motif donné sans le déformer et indique clairement l'action attendue (soumettre une nouvelle preuve). Si le paiement est validé, confirme ce que cela débloque concrètement. N'invente STRICTEMENT AUCUN détail (montant, date, lieu, procédure de retrait, moyen de contact) qui n'est pas fourni explicitement dans le message de l'utilisateur — base-toi UNIQUEMENT sur le contexte « Ce que cela débloque » donné ci-dessous, ne décris pas d'autre démarche. Pas d'emojis, pas de titre.",
+        },
+        {
+          role: 'user',
+          content: `Élève concerné : ${eleveNom || 'N/A'}.\n`
+            + `Type de frais : ${LIBELLE_TYPE[typeFrais] || typeFrais}.\n`
+            + `Montant : ${montant != null ? `${Number(montant).toFixed(2)} ${devise}` : 'non précisé'}.\n`
+            + `Décision : ${statut === 'rejete' ? 'rejeté' : 'validé'}.\n`
+            + (statut === 'rejete'
+              ? `Motif du rejet : ${commentaire || 'non précisé'}.\n`
+              : `Ce que cela débloque (ne décris rien d'autre) : ${
+                typeFrais === 'inscription'
+                  ? `l'inscription de ${eleveNom || "l'élève"} est confirmée dans le système.`
+                  : `le document (${LIBELLE_TYPE[typeFrais] || typeFrais}) est téléchargeable en ligne, dans l'espace parent du site — aucun retrait physique n'est nécessaire.`
+              }\n`)
+            + 'Rédige le corps du courriel pour ce parent.',
+        },
+      ],
+    });
+    const texte = (completion.choices?.[0]?.message?.content || '').trim();
+    return texte ? `${salutation}${texte}` : fallback;
+  } catch (err) {
+    console.error('Message paiement IA échoué :', err.message);
+    return fallback;
+  }
+}
 
 // Résout le propriétaire + l'élève concerné selon le type de frais
 async function resoudreProprietaire(typeFrais, idReference) {
@@ -117,13 +176,9 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
 
   let document = null;
   let sujet;
-  let corps;
 
   if (statut === 'rejete') {
     sujet = 'Lekòl Konekte — paiement rejeté';
-    corps = `Bonjour ${prop?.parentNom || ''},\n\nVotre preuve de paiement a été rejetée.` +
-            (commentaire ? `\nMotif : ${commentaire}` : '') +
-            `\nVeuillez soumettre une nouvelle preuve.`;
   } else if (paiement.type_frais === 'inscription') {
     await majInscription(paiement.id_reference, 'confirmee');
     await journaliser({
@@ -132,16 +187,17 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
       commentaire: 'Paiement validé', idAuteur: idAdmin,
     });
     sujet = 'Lekòl Konekte — inscription confirmée';
-    corps = `Bonjour ${prop?.parentNom || ''},\n\nLe paiement a été validé. ` +
-            `L'inscription de ${prop?.eleveNom} est maintenant confirmée.`;
   } else {
     const duplicata = paiement.type_frais === 'duplicata';
     document = await genererDocument(prop, duplicata);
     const libelle = duplicata ? 'duplicata' : 'relevé de notes';
     sujet = `Lekòl Konekte — ${libelle} disponible`;
-    corps = `Bonjour ${prop?.parentNom || ''},\n\nLe paiement a été validé. ` +
-            `Votre ${libelle} pour ${prop?.eleveNom} est disponible dans votre compte.`;
   }
+
+  const corps = await genererMessagePaiement({
+    statut, typeFrais: paiement.type_frais, montant: paiement.montant, devise: paiement.devise,
+    commentaire, parentNom: prop?.parentNom, eleveNom: prop?.eleveNom,
+  });
 
   let previewUrl = null;
   try {
