@@ -1,5 +1,5 @@
 // Contrôleur — présence quotidienne (scan du QR du badge)
-import { marquerPresenceParCode } from '../services/presence.service.js';
+import { marquerPresenceParCode, reinitialiserJour } from '../services/presence.service.js';
 import { listerDuJour } from '../models/presence.model.js';
 
 // POST /api/admin/presences/scan (admin/direction) — body { code, type: 'entree'|'sortie' }
@@ -24,6 +24,16 @@ export async function listerCtrl(req, res, next) {
     const niveau = (req.query.niveau || '').trim();
     const presences = await listerDuJour({ niveau: niveau || undefined });
     return res.json({ presences });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/admin/presences/aujourdhui (admin/direction) — efface les pointages du jour
+export async function reinitialiserJourCtrl(req, res, next) {
+  try {
+    const n = await reinitialiserJour();
+    return res.json({ message: 'Liste du jour réinitialisée.', supprimes: n });
   } catch (err) {
     next(err);
   }

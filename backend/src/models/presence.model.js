@@ -42,3 +42,16 @@ export async function listerDuJour({ niveau } = {}) {
   );
   return lignes;
 }
+
+// Réinitialisation manuelle (secrétariat) : efface les pointages du jour même.
+export async function supprimerAujourdhui() {
+  const [r] = await pool.query('DELETE FROM presences WHERE date = CURDATE()');
+  return r.affectedRows;
+}
+
+// Purge automatique (voir server.js) : efface les pointages plus vieux que
+// `jours` jours, pour que la table ne grossisse pas indéfiniment.
+export async function supprimerAvant(jours) {
+  const [r] = await pool.query('DELETE FROM presences WHERE date < DATE_SUB(CURDATE(), INTERVAL ? DAY)', [jours]);
+  return r.affectedRows;
+}

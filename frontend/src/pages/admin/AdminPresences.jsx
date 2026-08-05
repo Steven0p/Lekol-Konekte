@@ -35,6 +35,8 @@ export default function AdminPresences() {
   const [erreurCam, setErreurCam] = useState('');
   const [resultat, setResultat] = useState(null); // { eleve, dejaMarque, heure, type } ou { erreur }
   const [liste, setListe] = useState([]);
+  const [confirmerReset, setConfirmerReset] = useState(false);
+  const [resetEnCours, setResetEnCours] = useState(false);
 
   useEffect(() => { typeRef.current = type; }, [type]);
 
@@ -102,6 +104,21 @@ export default function AdminPresences() {
   };
 
   useEffect(() => () => arreterCamera(), []);
+
+  const confirmerReinitialisation = async () => {
+    setResetEnCours(true);
+    try {
+      await adminApi.reinitialiserPresencesJour();
+      setListe([]);
+      setResultat(null);
+      setConfirmerReset(false);
+    } catch (e) {
+      setErreurCam(e.message);
+      setConfirmerReset(false);
+    } finally {
+      setResetEnCours(false);
+    }
+  };
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -172,24 +189,52 @@ export default function AdminPresences() {
           {liste.length === 0 ? (
             <p className="texte-gris">Aucun élève pointé pour l'instant.</p>
           ) : (
-            <div className="tableau-enveloppe">
-              <table className="tableau">
-                <thead><tr><th>Élève</th><th>Classe</th><th>Entrée</th><th>Sortie</th></tr></thead>
-                <tbody>
-                  {liste.map((p) => (
-                    <tr key={p.id}>
-                      <td>{[p.prenom, p.nom].filter(Boolean).join(' ')}</td>
-                      <td>{p.niveau || '—'}</td>
-                      <td>{heureFr(p.heure_arrivee)}</td>
-                      <td>{heureFr(p.heure_depart)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <>
+              <div className="tableau-enveloppe">
+                <table className="tableau">
+                  <thead><tr><th>Élève</th><th>Classe</th><th>Entrée</th><th>Sortie</th></tr></thead>
+                  <tbody>
+                    {liste.map((p) => (
+                      <tr key={p.id}>
+                        <td>{[p.prenom, p.nom].filter(Boolean).join(' ')}</td>
+                        <td>{p.niveau || '—'}</td>
+                        <td>{heureFr(p.heure_arrivee)}</td>
+                        <td>{heureFr(p.heure_depart)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ marginTop: '.75rem' }}>
+                <button type="button" className="btn btn-secondaire" onClick={() => setConfirmerReset(true)}>
+                  Réinitialiser la liste du jour
+                </button>
+              </div>
+            </>
           )}
         </Carte>
       </div>
+
+      {confirmerReset && (
+        <div className="prof-modal-fond" onClick={() => !resetEnCours && setConfirmerReset(false)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setConfirmerReset(false)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Réinitialiser la liste du jour ?</h2>
+            <p style={{ marginBottom: '1rem', color: '#4A5568' }}>
+              {liste.length > 1
+                ? `Les ${liste.length} pointages d'entrée/sortie enregistrés aujourd'hui seront effacés.`
+                : "Le pointage d'entrée/sortie enregistré aujourd'hui sera effacé."}
+              {' '}Cette action ne peut pas être annulée. Les élèves pourront être re-scannés ensuite.
+            </p>
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setConfirmerReset(false)} disabled={resetEnCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={confirmerReinitialisation} disabled={resetEnCours}>
+                {resetEnCours ? 'Réinitialisation…' : 'Confirmer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

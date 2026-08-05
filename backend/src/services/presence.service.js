@@ -1,21 +1,34 @@
 // Service — présence quotidienne (scan du QR du badge, déjà imprimé sur
 // chaque carte : il encode /eleve?code=<code_acces>, réutilisé tel quel).
 // Deux sens de scan : entrée (arrivée à l'école) et sortie (départ).
+import {
+  marquerEntree, marquerSortie, trouverDuJour,
+  supprimerAujourdhui, supprimerAvant,
+} from '../models/presence.model.js';
 import { trouverParCode, trouverAvecProprietaire } from '../models/eleve.model.js';
-import { marquerEntree, marquerSortie, trouverDuJour } from '../models/presence.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 const FUSEAU = 'America/Port-au-Prince';
+const RETENTION_JOURS = Number(process.env.PRESENCE_RETENTION_JOURS) || 90;
 const heureActuelle = () => new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: FUSEAU });
 
-// Message court et direct envoyé au parent — rédigé par l'IA (Groq) quand
-// elle est configurée, sinon un message factuel fixe. Ne bloque jamais
-// l'envoi : un échec IA retombe silencieusement sur le repli.
+// Message direct de 5 phrases envoyé au parent — rédigé par l'IA (Groq) quand
+// elle est configurée, sinon un message factuel fixe (5 phrases aussi, pour
+// rester cohérent). Ne bloque jamais l'envoi : un échec IA retombe
+// silencieusement sur le repli.
 async function genererMessagePresence({ type, eleveNom, heure }) {
   const fallback = type === 'entree'
-    ? `${eleveNom} est arrivé(e) à l'école aujourd'hui à ${heure}.`
-    : `${eleveNom} a quitté l'école aujourd'hui à ${heure}.`;
+    ? `${eleveNom} est arrivé(e) à l'école aujourd'hui à ${heure}. `
+      + `Son entrée a été enregistrée par le système de présence. `
+      + `Vous recevrez un second message lorsque ${eleveNom} quittera l'école. `
+      + `Si cette heure vous semble incorrecte, contactez le secrétariat. `
+      + `Merci de votre confiance envers Lekòl Konekte.`
+    : `${eleveNom} a quitté l'école aujourd'hui à ${heure}. `
+      + `Son départ a été enregistré par le système de présence. `
+      + `Assurez-vous qu'il/elle rentre en sécurité. `
+      + `Si cette heure vous semble incorrecte, contactez le secrétariat. `
+      + `Merci de votre confiance envers Lekòl Konekte.`;
 
   if (!iaConfiguree()) return fallback;
   try {
@@ -23,15 +36,15 @@ async function genererMessagePresence({ type, eleveNom, heure }) {
     const completion = await client.chat.completions.create({
       model: MODELE_IA,
       temperature: 0.4,
-      max_tokens: 100,
+      max_tokens: 220,
       messages: [
         {
           role: 'system',
-          content: "Tu rédiges, au nom de l'école « Lekòl Konekte », UNE SEULE phrase courte et directe pour informer un parent par courriel. Pas de salutation, pas de signature, pas de superflu — juste l'information : l'élève est arrivé(e) à l'école OU en est reparti(e), à l'heure donnée. Ton chaleureux mais bref. N'invente aucune information. Pas d'emojis.",
+          content: "Tu rédiges, au nom de l'école « Lekòl Konekte », un message direct de CINQ PHRASES COURTES (ni plus, ni moins) pour informer un parent par courriel. Pas de salutation, pas de signature — juste l'information, phrase par phrase : l'élève est arrivé(e) à l'école OU en est reparti(e) à l'heure donnée, que l'événement a été enregistré par le système, une note pertinente au contexte (rappel du prochain message pour une arrivée, rappel de sécurité du trajet du retour pour un départ), une invitation à contacter le secrétariat en cas d'erreur, et une formule de clôture brève. Ton chaleureux mais direct, sans superflu. N'invente aucune information (pas de nom de personnel, pas de numéro de téléphone). Pas d'emojis, pas de liste à puces — cinq phrases en un seul paragraphe.",
         },
         {
           role: 'user',
-          content: `Élève : ${eleveNom}.\nÉvénement : ${type === 'entree' ? 'arrivée à l\'école' : 'départ de l\'école'}.\nHeure : ${heure}.\nRédige la phrase.`,
+          content: `Élève : ${eleveNom}.\nÉvénement : ${type === 'entree' ? "arrivée à l'école" : "départ de l'école"}.\nHeure : ${heure}.\nRédige les cinq phrases.`,
         },
       ],
     });
@@ -93,4 +106,17 @@ export async function marquerPresenceParCode({ code, type, idAdmin }) {
     ok: true, dejaMarque: !nouveau, heure, type,
     eleve: { id: base.id, nom: base.nom, niveau: base.niveau },
   };
+}
+
+// Réinitialisation manuelle (bouton secrétariat) : efface les pointages du jour.
+export async function reinitialiserJour() {
+  return supprimerAujourdhui();
+}
+
+// Purge automatique (appelée au démarrage puis une fois par jour — voir
+// server.js) : évite que la table grossisse indéfiniment.
+export async function purgerAnciennesPresences() {
+  const n = await supprimerAvant(RETENTION_JOURS);
+  if (n > 0) console.log(`✔ Présences : ${n} pointage(s) de plus de ${RETENTION_JOURS} jours purgé(s).`);
+  return n;
 }

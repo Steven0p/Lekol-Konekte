@@ -129,6 +129,7 @@ export const adminApi = {
   // Présence quotidienne (scan du QR du badge) — type: 'entree' | 'sortie'
   scannerPresence: (code, type) => request('/admin/presences/scan', { method: 'POST', body: json({ code, type }) }),
   presencesDuJour: (niveau) => request(`/admin/presences${qs({ niveau })}`),
+  reinitialiserPresencesJour: () => request('/admin/presences/aujourdhui', { method: 'DELETE' }),
 };
 
 export const directionApi = {
