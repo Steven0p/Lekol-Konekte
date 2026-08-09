@@ -13,9 +13,14 @@ const TRIMESTRES = [
   { valeur: '3e_trimestre', libelle: '3e trimestre' },
 ];
 
+// Suggestions (45 dernières années scolaires) — n'importe quelle année au
+// format AAAA-AAAA reste saisissable, y compris pour des dossiers anciens
+// (anciens élèves) de plus de 30 ans.
 function anneesScolaires() {
   const a = new Date().getFullYear();
-  return [a - 1, a, a + 1].map((y) => `${y}-${y + 1}`);
+  const annees = [];
+  for (let y = a + 1; y >= a - 45; y -= 1) annees.push(`${y}-${y + 1}`);
+  return annees;
 }
 
 export default function AdminNotes() {
@@ -203,9 +208,11 @@ export default function AdminNotes() {
         <select value={periode} onChange={(e) => setPeriode(e.target.value)} aria-label="Trimestre">
           {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
         </select>
-        <select value={annee} onChange={(e) => setAnnee(e.target.value)} aria-label="Année scolaire">
-          {anneesScolaires().map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
+        <input list="notes-annees" value={annee} onChange={(e) => setAnnee(e.target.value)}
+          placeholder="2015-2016" aria-label="Année scolaire" style={{ width: 130 }} />
+        <datalist id="notes-annees">
+          {anneesScolaires().map((a) => <option key={a} value={a} />)}
+        </datalist>
         <button type="button" className="insc-btn-reinit" onClick={reinitialiser} disabled={!niveau}>Réinitialiser</button>
       </div>
 

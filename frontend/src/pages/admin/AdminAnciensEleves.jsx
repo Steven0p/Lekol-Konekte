@@ -16,12 +16,13 @@ const TRIMESTRES = [
 ];
 const libTrim = (v) => TRIMESTRES.find((t) => t.valeur === v)?.libelle || v;
 
-// Suggestions d'années scolaires (20 dernières) pour le datalist — la liste
-// n'est qu'une aide : n'importe quelle année au format AAAA-AAAA reste saisissable.
+// Suggestions d'années scolaires (45 dernières) pour le datalist — la liste
+// n'est qu'une aide : n'importe quelle année au format AAAA-AAAA reste saisissable,
+// y compris bien au-delà de 30 ans en arrière (dossiers d'anciens élèves anciens).
 function anneesSuggerees() {
   const a = new Date().getFullYear();
   const annees = [];
-  for (let y = a; y >= a - 20; y -= 1) annees.push(`${y}-${y + 1}`);
+  for (let y = a; y >= a - 45; y -= 1) annees.push(`${y}-${y + 1}`);
   return annees;
 }
 
