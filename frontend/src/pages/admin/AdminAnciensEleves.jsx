@@ -332,7 +332,7 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
   const genererBulletin = async (cle, niveau, anneeScolaire, periode) => {
     setBulletinEnCours(cle); setErreur('');
     try {
-      const d = await ancienEleveApi.genererBulletin(ancien.id, { niveau, anneeScolaire, periode });
+      const d = await ancienEleveApi.genererBulletin(ancien.id, { niveau, anneeScolaire, trimestre: periode });
       setBulletinsGeneres((prev) => ({ ...prev, [cle]: d }));
       setMsg('Bulletin généré — prêt à télécharger ou à transmettre à la famille.');
     } catch (e2) { setErreur(e2.message); } finally { setBulletinEnCours(null); }
