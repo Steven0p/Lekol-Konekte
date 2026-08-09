@@ -33,6 +33,7 @@ const ICONES = {
   inbox: 'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 12h-4c0 1.66-1.35 3-3 3s-3-1.34-3-3H5V5h14v10zm-9-8h4v2h-4v-2z',
   compte: 'M12 12c2.7 0 4.9-2.2 4.9-4.9S14.7 2.2 12 2.2 7.1 4.4 7.1 7.1 9.3 12 12 12zm0 2.2c-3.3 0-9.8 1.6-9.8 4.9V21h19.6v-1.9c0-3.3-6.5-4.9-9.8-4.9z',
   scan: 'M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm16 0h2v6h-6v-2h4v-4zM6 9h2v6H6V9zm10 0h2v6h-2V9zm-5 0h2v6h-2V9z',
+  archive: 'M20.54 5.23 19.15 3.55A1.99 1.99 0 0 0 17.63 3H6.37c-.61 0-1.19.26-1.52.68L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm3-9h8v2H8v-2z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -60,6 +61,7 @@ const MENUS = {
     ] },
     { titre: 'Administration', items: [
       { to: '/admin/economat', libelle: 'Économat', icone: 'economat' },
+      { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
     ] },
   ],
   direction: [
@@ -70,6 +72,7 @@ const MENUS = {
       { to: '/direction/tarifs', libelle: 'Tarifs', icone: 'tarifs' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
+      { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
     ] },
   ],
   proprietaire: [

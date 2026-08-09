@@ -166,6 +166,61 @@ export async function listerAvecCode({ recherche } = {}) {
   return rows;
 }
 
+// ---------- Anciens élèves (dossiers historiques, sans compte parent) ----------
+
+// Crée un dossier d'ancien élève : pas de parent, code d'accès généré aussitôt.
+export async function creerAncien({ nom, prenom, dateNaissance, niveau, courrielContact }) {
+  const [res] = await pool.query(
+    `INSERT INTO eleves (nom, prenom, date_naissance, niveau, ancien_eleve, courriel_contact, statut_inscription)
+     VALUES (?, ?, ?, ?, 1, ?, 'confirmee')`,
+    [nom, prenom || null, dateNaissance || null, niveau || null, courrielContact || null]
+  );
+  await genererCodeAcces(res.insertId);
+  return trouverParId(res.insertId);
+}
+
+export async function mettreAJourAncien(id, { nom, prenom, dateNaissance, niveau, courrielContact }) {
+  const champs = [];
+  const params = [];
+  if (nom !== undefined) { champs.push('nom = ?'); params.push(nom); }
+  if (prenom !== undefined) { champs.push('prenom = ?'); params.push(prenom || null); }
+  if (dateNaissance !== undefined) { champs.push('date_naissance = ?'); params.push(dateNaissance || null); }
+  if (niveau !== undefined) { champs.push('niveau = ?'); params.push(niveau || null); }
+  if (courrielContact !== undefined) { champs.push('courriel_contact = ?'); params.push(courrielContact || null); }
+  if (!champs.length) return;
+  params.push(id);
+  await pool.query(`UPDATE eleves SET ${champs.join(', ')} WHERE id = ? AND ancien_eleve = 1`, params);
+}
+
+// Liste des dossiers d'anciens élèves (recherche par nom/niveau/code)
+export async function listerAnciens({ recherche } = {}) {
+  const conditions = ['ancien_eleve = 1'];
+  const params = [];
+  if (recherche) {
+    conditions.push('(nom LIKE ? OR prenom LIKE ? OR niveau LIKE ? OR code_acces LIKE ?)');
+    const motif = `%${recherche}%`;
+    params.push(motif, motif, motif, motif);
+  }
+  const [rows] = await pool.query(
+    `SELECT id, TRIM(CONCAT(COALESCE(prenom,''),' ',nom)) AS nom, niveau, code_acces,
+            courriel_contact, date_naissance
+       FROM eleves WHERE ${conditions.join(' AND ')} ORDER BY nom`,
+    params
+  );
+  return rows;
+}
+
+// Tous les niveaux connus (matières définies ∪ élèves actuels/anciens) — pour
+// le sélecteur libre de la saisie historique (pas limité aux niveaux actifs).
+export async function listerNiveauxConnus() {
+  const [rows] = await pool.query(
+    `SELECT niveau FROM matieres WHERE niveau IS NOT NULL
+     UNION SELECT niveau FROM eleves WHERE niveau IS NOT NULL
+     ORDER BY niveau`
+  );
+  return rows.map((r) => r.niveau);
+}
+
 // Tous les élèves d'un niveau (pour la génération des bulletins)
 export async function listerParNiveau(niveau) {
   // Le courriel de notification = celui saisi sur la dernière inscription si présent,

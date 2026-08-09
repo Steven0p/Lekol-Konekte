@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS parents (
 -- eleves : rattaché à un parent (au moins un)
 CREATE TABLE IF NOT EXISTS eleves (
   id                 INT AUTO_INCREMENT PRIMARY KEY,
-  id_parent          INT NOT NULL,
+  id_parent          INT NULL,  -- NULL pour un ancien élève sans compte parent actif
   nom                VARCHAR(120) NOT NULL,
   prenom             VARCHAR(120),
   date_naissance     DATE,
@@ -62,7 +62,31 @@ CREATE TABLE IF NOT EXISTS eleves (
   badge_classe       VARCHAR(60),
   badge_annee        VARCHAR(9),
   statut_inscription ENUM('en_attente','accepte','refuse','confirmee') NOT NULL DEFAULT 'en_attente',
+  ancien_eleve       TINYINT(1) NOT NULL DEFAULT 0,
+  courriel_contact   VARCHAR(190),  -- ancien élève : où envoyer le code d'accès (pas de compte parent)
   FOREIGN KEY (id_parent) REFERENCES parents(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- demandes_anciens_eleves : demandes d'accès aux résultats soumises
+-- publiquement par d'anciens élèves (sans création de compte), traitées
+-- par le secrétariat qui les rattache à un dossier eleves (ancien_eleve=1).
+CREATE TABLE IF NOT EXISTS demandes_anciens_eleves (
+  id                 INT AUTO_INCREMENT PRIMARY KEY,
+  nom                VARCHAR(120) NOT NULL,
+  prenom             VARCHAR(120),
+  date_naissance     DATE,
+  dernier_niveau     VARCHAR(60),
+  annees_frequentees VARCHAR(100),
+  courriel           VARCHAR(190) NOT NULL,
+  telephone          VARCHAR(40),
+  message            VARCHAR(500),
+  statut             ENUM('en_attente','approuve','refuse') NOT NULL DEFAULT 'en_attente',
+  id_eleve           INT,
+  traite_par         INT,
+  traite_le          DATETIME,
+  cree_le            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE SET NULL,
+  FOREIGN KEY (traite_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ============================================================
@@ -225,6 +249,7 @@ CREATE TABLE IF NOT EXISTS notes (
   id_eleve          INT NOT NULL,
   id_matiere        INT,
   matiere           VARCHAR(100) NOT NULL,
+  niveau            VARCHAR(60),  -- snapshot du niveau de l'élève au moment de la saisie
   periode           ENUM('1er_trimestre','2e_trimestre','3e_trimestre') NOT NULL,
   annee_scolaire    VARCHAR(9) NOT NULL,
   valeur            DECIMAL(5,2) NOT NULL,

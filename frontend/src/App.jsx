@@ -15,6 +15,7 @@ import AcademieAdmin from './pages/public/AcademieAdmin.jsx';
 import Examens from './pages/public/Examens.jsx';
 import ExamensAdmin from './pages/public/ExamensAdmin.jsx';
 import Contact from './pages/public/Contact.jsx';
+import DemandeAncienEleve from './pages/public/DemandeAncienEleve.jsx';
 import Calendrier from './pages/public/Calendrier.jsx';
 import Support from './pages/public/Support.jsx';
 import Login from './pages/auth/Login.jsx';
@@ -39,6 +40,7 @@ import AdminBadges from './pages/admin/AdminBadges.jsx';
 import AdminPaiements from './pages/admin/AdminPaiements.jsx';
 import AdminEconomat from './pages/admin/AdminEconomat.jsx';
 import AdminPresences from './pages/admin/AdminPresences.jsx';
+import AdminAnciensEleves from './pages/admin/AdminAnciensEleves.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Tarifs from './pages/direction/Tarifs.jsx';
@@ -67,6 +69,7 @@ export default function App() {
         <Route path="/academie/primaire" element={<Academie niveau="primaire" />} />
         <Route path="/academie/secondaire" element={<Academie niveau="secondaire" />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/anciens-eleves" element={<DemandeAncienEleve />} />
         <Route path="/calendrier" element={<Calendrier />} />
         <Route path="/support" element={<Support />} />
       </Route>
@@ -113,6 +116,7 @@ export default function App() {
         <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
         <Route path="/admin/economat" element={<RoutePrivee roles={['admin', 'direction']}><AdminEconomat /></RoutePrivee>} />
         <Route path="/admin/presences" element={<RoutePrivee roles={['admin', 'direction']}><AdminPresences /></RoutePrivee>} />
+        <Route path="/admin/anciens-eleves" element={<RoutePrivee roles={['admin', 'direction']}><AdminAnciensEleves /></RoutePrivee>} />
 
         {/* Direction */}
         <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />

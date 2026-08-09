@@ -21,6 +21,7 @@ const MENUS = {
       { to: '/contact', label: 'Contact' },
       { to: '/calendrier', label: 'Calendrier' },
       { to: '/support', label: 'Support' },
+      { to: '/anciens-eleves', label: 'Anciens élèves' },
     ],
   },
 };

@@ -51,7 +51,7 @@ export async function creer(req, res, next) {
     if (!matiere) return res.status(404).json({ erreur: 'Matière introuvable.' });
 
     const id = await noteModel.creer({
-      idEleve, idMatiere, matiere: matiere.nom, periode, anneeScolaire, valeur,
+      idEleve, idMatiere, matiere: matiere.nom, niveau: matiere.niveau, periode, anneeScolaire, valeur,
       saisiePar: req.session.userId,
     });
     return res.status(201).json({ note: { id, idEleve, matiere: matiere.nom, periode, valeur, statut: 'saisie' } });

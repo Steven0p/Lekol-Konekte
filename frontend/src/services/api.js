@@ -261,6 +261,24 @@ export const messagesApi = {
   repondre: (id, reponse) => request(`/proprietaire/messages/${id}/repondre`, { method: 'POST', body: json({ reponse }) }),
 };
 
+// Demande publique d'accès aux résultats (ancien élève, sans compte)
+export const demandeAncienApi = {
+  envoyer: (payload) => request('/anciens-eleves/demandes', { method: 'POST', body: json(payload) }),
+};
+
+// Gestion secrétariat/direction des dossiers d'anciens élèves
+export const ancienEleveApi = {
+  niveaux: () => request('/admin/niveaux'),
+  lister: (recherche) => request(`/admin/anciens-eleves${qs({ recherche })}`),
+  creer: (body) => request('/admin/anciens-eleves', { method: 'POST', body: json(body) }),
+  majInfos: (id, body) => request(`/admin/anciens-eleves/${id}`, { method: 'PATCH', body: json(body) }),
+  notes: (id) => request(`/admin/anciens-eleves/${id}/notes`),
+  ajouterNotes: (id, body) => request(`/admin/anciens-eleves/${id}/notes`, { method: 'POST', body: json(body) }),
+  demandes: (statut) => request(`/admin/anciens-eleves/demandes${qs({ statut })}`),
+  approuverDemande: (id, idEleve) => request(`/admin/anciens-eleves/demandes/${id}/approuver`, { method: 'POST', body: json({ idEleve }) }),
+  refuserDemande: (id, motif) => request(`/admin/anciens-eleves/demandes/${id}/refuser`, { method: 'POST', body: json({ motif }) }),
+};
+
 // URLs directes de fichiers (téléchargement via navigation — le cookie de session est envoyé)
 export const urlDocumentSoumis = (id) => `${API_URL}/documents-soumis/${id}/fichier`;
 export const urlDocumentOfficiel = (id) => `${API_URL}/documents-officiels/${id}/fichier`;

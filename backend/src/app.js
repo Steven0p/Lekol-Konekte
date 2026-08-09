@@ -22,6 +22,7 @@ import direstatsRoutes from './routes/direction.routes.js';
 import permissionsRoutes from './routes/permissions.routes.js';
 import contactMessageRoutes from './routes/contactMessage.routes.js';
 import presenceRoutes from './routes/presence.routes.js';
+import ancienEleveRoutes from './routes/ancienEleve.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
 
@@ -116,6 +117,9 @@ app.use('/api', contactMessageRoutes);
 
 // Présence quotidienne (scan du QR du badge)
 app.use('/api', presenceRoutes);
+
+// Anciens élèves : saisie historique + demandes d'accès
+app.use('/api', ancienEleveRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';
