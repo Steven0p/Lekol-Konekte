@@ -3,6 +3,7 @@ import { requireRole } from '../middleware/auth.js';
 import { contactLimiter } from '../middleware/rateLimit.js';
 import {
   listerNiveauxCtrl, listerCtrl, creerCtrl, mettreAJourCtrl, listerNotesCtrl, creerNotesCtrl,
+  genererBulletinCtrl,
 } from '../controllers/ancienEleve.controller.js';
 import { creerCtrl as creerDemandeCtrl, listerCtrl as listerDemandesCtrl,
   approuverCtrl, refuserCtrl } from '../controllers/demandeAncien.controller.js';
@@ -19,6 +20,7 @@ router.post('/admin/anciens-eleves', requireRole('admin', 'direction'), creerCtr
 router.patch('/admin/anciens-eleves/:id', requireRole('admin', 'direction'), mettreAJourCtrl);
 router.get('/admin/anciens-eleves/:id/notes', requireRole('admin', 'direction'), listerNotesCtrl);
 router.post('/admin/anciens-eleves/:id/notes', requireRole('admin', 'direction'), creerNotesCtrl);
+router.post('/admin/anciens-eleves/:id/bulletins', requireRole('admin', 'direction'), genererBulletinCtrl);
 
 router.get('/admin/anciens-eleves/demandes', requireRole('admin', 'direction'), listerDemandesCtrl);
 router.post('/admin/anciens-eleves/demandes/:id/approuver', requireRole('admin', 'direction'), approuverCtrl);

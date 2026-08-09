@@ -274,6 +274,7 @@ export const ancienEleveApi = {
   majInfos: (id, body) => request(`/admin/anciens-eleves/${id}`, { method: 'PATCH', body: json(body) }),
   notes: (id) => request(`/admin/anciens-eleves/${id}/notes`),
   ajouterNotes: (id, body) => request(`/admin/anciens-eleves/${id}/notes`, { method: 'POST', body: json(body) }),
+  genererBulletin: (id, body) => request(`/admin/anciens-eleves/${id}/bulletins`, { method: 'POST', body: json(body) }),
   demandes: (statut) => request(`/admin/anciens-eleves/demandes${qs({ statut })}`),
   approuverDemande: (id, idEleve) => request(`/admin/anciens-eleves/demandes/${id}/approuver`, { method: 'POST', body: json({ idEleve }) }),
   refuserDemande: (id, motif) => request(`/admin/anciens-eleves/demandes/${id}/refuser`, { method: 'POST', body: json({ motif }) }),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { ancienEleveApi, adminApi } from '../../services/api.js';
+import { Link } from 'react-router-dom';
+import { ancienEleveApi, adminApi, urlDocumentOfficiel } from '../../services/api.js';
 import { dateHeureFr } from '../../utils/libelles.js';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -68,6 +69,7 @@ function SectionDemandes({ demandes, onTraite, setErreur, setMsg }) {
   const [optionsAncien, setOptionsAncien] = useState([]);
   const [motifRefus, setMotifRefus] = useState('');
   const [enCours, setEnCours] = useState(false);
+  const [creationRapide, setCreationRapide] = useState(false);
 
   useEffect(() => {
     if (!ouverte) return;
@@ -142,9 +144,21 @@ function SectionDemandes({ demandes, onTraite, setErreur, setMsg }) {
                   ))}
                 </select>
               } />
-              <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.5rem', marginBottom: '.75rem' }}>
-                Le dossier n'existe pas encore ? Créez-le d'abord dans « Dossiers d'anciens élèves » ci-dessous, puis revenez traiter la demande.
-              </p>
+              {optionsAncien.length === 0 ? (
+                <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.5rem', marginBottom: '.75rem' }}>
+                  Aucun dossier trouvé pour « {rechercheAncien} ».{' '}
+                  <button type="button" className="paie-btn paie-details" onClick={() => setCreationRapide(true)}>
+                    + Créer le dossier maintenant
+                  </button>
+                </p>
+              ) : (
+                <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.5rem', marginBottom: '.75rem' }}>
+                  Pas le bon dossier ?{' '}
+                  <button type="button" className="paie-btn paie-details" onClick={() => setCreationRapide(true)}>
+                    + Créer un nouveau dossier
+                  </button>
+                </p>
+              )}
             </div>
 
             <Champ label="Motif du refus (si vous refusez)" enfant={
@@ -157,6 +171,23 @@ function SectionDemandes({ demandes, onTraite, setErreur, setMsg }) {
             </div>
           </div>
         </div>
+      )}
+
+      {creationRapide && ouverte && (
+        <ModaleCreation
+          initial={{
+            nom: ouverte.nom, prenom: ouverte.prenom || '',
+            dateNaissance: ouverte.date_naissance ? ouverte.date_naissance.slice(0, 10) : '',
+            niveau: ouverte.dernier_niveau || '', courrielContact: ouverte.courriel,
+          }}
+          onFermer={() => setCreationRapide(false)}
+          onCree={(nouveauDossier) => {
+            setCreationRapide(false);
+            setAncienChoisi(String(nouveauDossier.id));
+            setOptionsAncien((prev) => [nouveauDossier, ...prev]);
+          }}
+          setErreur={setErreur}
+        />
       )}
     </div>
   );
@@ -208,8 +239,10 @@ function SectionDossiers({ anciens, recherche, setRecherche, onChange, setErreur
   );
 }
 
-function ModaleCreation({ onFermer, onCree, setErreur }) {
-  const [form, setForm] = useState({ nom: '', prenom: '', dateNaissance: '', niveau: '', courrielContact: '' });
+function ModaleCreation({ onFermer, onCree, setErreur, initial }) {
+  const [form, setForm] = useState({
+    nom: '', prenom: '', dateNaissance: '', niveau: '', courrielContact: '', ...initial,
+  });
   const [enCours, setEnCours] = useState(false);
   const maj = (c) => (e) => setForm({ ...form, [c]: e.target.value });
 
@@ -218,8 +251,8 @@ function ModaleCreation({ onFermer, onCree, setErreur }) {
     if (!form.nom.trim()) { setErreur('Le nom est requis.'); return; }
     setEnCours(true); setErreur('');
     try {
-      await ancienEleveApi.creer(form);
-      onCree();
+      const d = await ancienEleveApi.creer(form);
+      onCree(d.ancien);
     } catch (e2) { setErreur(e2.message); } finally { setEnCours(false); }
   };
 
@@ -253,6 +286,8 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
   const [saisie, setSaisie] = useState({ niveau: ancien.niveau || '', anneeScolaire: '', periode: '1er_trimestre' });
   const [valeurs, setValeurs] = useState({}); // { idMatiere: valeur }
   const [enCours, setEnCours] = useState(false);
+  const [bulletinEnCours, setBulletinEnCours] = useState(null); // clé du groupe en cours de génération
+  const [bulletinsGeneres, setBulletinsGeneres] = useState({}); // { cle: { id, urlPdf } }
 
   const chargerNotes = () => ancienEleveApi.notes(ancien.id).then((d) => setNotes(d.notes)).catch((e) => setErreur(e.message));
   useEffect(() => { chargerNotes(); ancienEleveApi.niveaux().then((d) => setNiveaux(d.niveaux)).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -277,6 +312,17 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
       chargerNotes();
       setMsg('Notes enregistrées.');
     } catch (e2) { setErreur(e2.message); } finally { setEnCours(false); }
+  };
+
+  // Génère (ou régénère) le bulletin PDF pour un (niveau, année, trimestre) donné —
+  // uniquement ce dossier : aucun autre élève n'est concerné.
+  const genererBulletin = async (cle, niveau, anneeScolaire, periode) => {
+    setBulletinEnCours(cle); setErreur('');
+    try {
+      const d = await ancienEleveApi.genererBulletin(ancien.id, { niveau, anneeScolaire, periode });
+      setBulletinsGeneres((prev) => ({ ...prev, [cle]: d }));
+      setMsg('Bulletin généré — prêt à télécharger ou à transmettre à la famille.');
+    } catch (e2) { setErreur(e2.message); } finally { setBulletinEnCours(null); }
   };
 
   // Regroupe l'historique déjà saisi par année + trimestre
@@ -315,7 +361,7 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
         {saisie.niveau && (
           matieres.length === 0 ? (
             <p className="texte-gris" style={{ fontSize: '.85rem' }}>
-              Aucune matière définie pour « {saisie.niveau} ». Ajoutez-en d'abord dans Direction → Matières.
+              Aucune matière définie pour « {saisie.niveau} ». <Link to="/direction/matieres" target="_blank">Ajoutez-en d'abord dans Matières & coefficients →</Link>
             </p>
           ) : (
             <>
@@ -336,7 +382,20 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
                   </tbody>
                 </table>
               </div>
-              <Bouton type="button" onClick={soumettreNotes} enCours={enCours}>Enregistrer ces notes</Bouton>
+              <div className="rangee" style={{ gap: '.6rem' }}>
+                <Bouton type="button" onClick={soumettreNotes} enCours={enCours}>Enregistrer ces notes</Bouton>
+                <Bouton type="button" variante="secondaire"
+                  onClick={() => genererBulletin('saisie', saisie.niveau, saisie.anneeScolaire, saisie.periode)}
+                  enCours={bulletinEnCours === 'saisie'}
+                  disabled={!/^\d{4}-\d{4}$/.test(saisie.anneeScolaire)}>
+                  Générer le bulletin (PDF)
+                </Bouton>
+              </div>
+              {bulletinsGeneres.saisie && (
+                <p style={{ marginTop: '.5rem' }}>
+                  <a href={urlDocumentOfficiel(bulletinsGeneres.saisie.id)} target="_blank" rel="noreferrer">Télécharger le bulletin généré →</a>
+                </p>
+              )}
             </>
           )
         )}
@@ -345,21 +404,38 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
         {!notes ? <Chargement /> : Object.keys(groupes).length === 0 ? (
           <p className="texte-gris">Aucune note saisie pour l'instant.</p>
         ) : (
-          Object.entries(groupes).map(([cle, lignes]) => (
-            <div key={cle} style={{ marginBottom: '.75rem' }}>
-              <p style={{ fontWeight: 700, fontSize: '.85rem', marginBottom: '.25rem' }}>{cle}</p>
-              <div className="tableau-enveloppe">
-                <table className="tableau">
-                  <thead><tr><th>Matière</th><th>Note</th><th>Niveau</th></tr></thead>
-                  <tbody>
-                    {lignes.map((n) => (
-                      <tr key={n.id}><td>{n.matiere}</td><td>{Number(n.valeur).toFixed(2)}</td><td>{n.niveau || '—'}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
+          Object.entries(groupes).map(([cle, lignes]) => {
+            const anneeScolaire = lignes[0].annee_scolaire;
+            const periode = lignes[0].periode;
+            const niveauGroupe = lignes[0].niveau;
+            return (
+              <div key={cle} style={{ marginBottom: '.75rem' }}>
+                <div className="rangee entre" style={{ marginBottom: '.25rem' }}>
+                  <p style={{ fontWeight: 700, fontSize: '.85rem', margin: 0 }}>{cle}</p>
+                  <Bouton type="button" sm variante="secondaire"
+                    onClick={() => genererBulletin(cle, niveauGroupe, anneeScolaire, periode)}
+                    enCours={bulletinEnCours === cle} disabled={!niveauGroupe}>
+                    Générer le bulletin
+                  </Bouton>
+                </div>
+                <div className="tableau-enveloppe">
+                  <table className="tableau">
+                    <thead><tr><th>Matière</th><th>Note</th><th>Niveau</th></tr></thead>
+                    <tbody>
+                      {lignes.map((n) => (
+                        <tr key={n.id}><td>{n.matiere}</td><td>{Number(n.valeur).toFixed(2)}</td><td>{n.niveau || '—'}</td></tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {bulletinsGeneres[cle] && (
+                  <p style={{ marginTop: '.35rem' }}>
+                    <a href={urlDocumentOfficiel(bulletinsGeneres[cle].id)} target="_blank" rel="noreferrer">Télécharger le bulletin →</a>
+                  </p>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>

@@ -8,7 +8,7 @@ import { listerPourEleve as listerBulletinsEleve, listerParNiveau as listerBulle
   trouverAvecProprietaire as trouverDocument, bulletinsPourPublication,
   supprimer as supprimerDocument }
   from '../models/documentOfficiel.model.js';
-import { trouverAvecProprietaire as trouverEleve } from '../models/eleve.model.js';
+import { trouverAvecProprietaire as trouverEleve, trouverParId as trouverEleveParId } from '../models/eleve.model.js';
 import { estAcquitte } from '../models/acquittement.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
@@ -115,7 +115,9 @@ export async function listerBulletinsNiveau(req, res, next) {
 export async function listerMesBulletinsEleve(req, res, next) {
   try {
     const tous = await listerBulletinsEleve(req.session.eleveId, 'bulletin');
-    const bulletins = await filtrerBulletinsAcquittes(tous, req.session.eleveId);
+    // Un ancien élève n'a pas d'économat à jour à vérifier (dossier historique).
+    const eleve = await trouverEleveParId(req.session.eleveId);
+    const bulletins = eleve?.ancien_eleve ? tous : await filtrerBulletinsAcquittes(tous, req.session.eleveId);
     return res.json({ bulletins });
   } catch (err) {
     next(err);
@@ -169,8 +171,10 @@ export async function servirFichier(req, res, next) {
     }
 
     // Économat : familles (parent/élève) — bulletin bloqué si le trimestre n'est pas acquitté.
+    // Un ancien élève (dossier historique) n'a pas d'économat à jour à vérifier.
     if (!estAdmin(req) && doc.type === 'bulletin' && doc.periode && doc.annee_scolaire) {
-      if (!(await estAcquitte(doc.id_eleve, doc.annee_scolaire, doc.periode))) {
+      const eleveDoc = await trouverEleveParId(doc.id_eleve);
+      if (!eleveDoc?.ancien_eleve && !(await estAcquitte(doc.id_eleve, doc.annee_scolaire, doc.periode))) {
         return res.status(403).json({ erreur: "Résultats indisponibles. Régularisez votre situation auprès de l'économat." });
       }
     }

@@ -80,13 +80,17 @@ export async function listerParNiveau(niveau, type = 'bulletin') {
 }
 
 // Document + chaîne de propriété pour servir le fichier
+// LEFT JOIN jusqu'à utilisateurs : un ancien élève (dossier historique) n'a
+// pas de compte parent — id_utilisateur vaut alors NULL, et l'autorisation
+// repose sur la vérification « élève concerné » (session par code) côté
+// contrôleur, pas sur la propriété parent.
 export async function trouverAvecProprietaire(id) {
   const [rows] = await pool.query(
     `SELECT d.id, d.type, d.periode, d.annee_scolaire, d.url_pdf, d.id_eleve, u.id AS id_utilisateur
        FROM documents_officiels d
        JOIN eleves e ON e.id = d.id_eleve
-       JOIN parents p ON p.id = e.id_parent
-       JOIN utilisateurs u ON u.id = p.id_utilisateur
+       LEFT JOIN parents p ON p.id = e.id_parent
+       LEFT JOIN utilisateurs u ON u.id = p.id_utilisateur
       WHERE d.id = ? LIMIT 1`,
     [id]
   );

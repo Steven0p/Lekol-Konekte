@@ -3,6 +3,13 @@
 import * as eleveModel from '../models/eleve.model.js';
 import * as noteModel from '../models/note.model.js';
 import * as matiereModel from '../models/matiere.model.js';
+import * as documentModel from '../models/documentOfficiel.model.js';
+import { obtenir as obtenirEcole } from '../models/ecole.model.js';
+import { calculerMoyenne } from '../services/moyenne.service.js';
+import { genererBulletinPDF } from '../services/bulletin.service.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
+import fs from 'fs/promises';
+import path from 'path';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 
@@ -116,6 +123,84 @@ export async function creerNotesCtrl(req, res, next) {
 
     if (!cree.length) return res.status(400).json({ erreur: "Aucune note valide n'a pu être enregistrée." });
     return res.status(201).json({ message: `${cree.length} note(s) enregistrée(s).`, ids: cree });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/admin/anciens-eleves/:id/bulletins (admin/direction)
+// body { niveau, anneeScolaire, trimestre } — génère le bulletin PDF pour CE
+// seul dossier (contrairement à /api/publications, qui publie tout un niveau :
+// ici aucun risque de republier/renotifier des élèves actifs par erreur,
+// puisque rien d'autre que ce dossier n'est touché).
+export async function genererBulletinCtrl(req, res, next) {
+  try {
+    const idEleve = Number(req.params.id);
+    const eleve = await eleveModel.trouverParId(idEleve);
+    if (!eleve || !eleve.ancien_eleve) return res.status(404).json({ erreur: 'Dossier ancien élève introuvable.' });
+
+    const niveau = (req.body.niveau || '').trim();
+    const anneeScolaire = (req.body.anneeScolaire || '').trim();
+    const trimestre = (req.body.trimestre || '').trim();
+    if (!niveau) return res.status(400).json({ erreur: 'Niveau requis.' });
+    if (!/^\d{4}-\d{4}$/.test(anneeScolaire)) {
+      return res.status(400).json({ erreur: 'Année scolaire invalide (format AAAA-AAAA).' });
+    }
+    if (!TRIMESTRES.includes(trimestre)) {
+      return res.status(400).json({ erreur: `Trimestre invalide (${TRIMESTRES.join(', ')}).` });
+    }
+
+    const matieres = (await matiereModel.lister(niveau)).filter((m) => m.actif !== 0);
+    const idx = TRIMESTRES.indexOf(trimestre);
+    const trimestresAffiches = TRIMESTRES.slice(0, idx + 1);
+
+    const notesParTrim = {};
+    const moyennesParTrim = {};
+    for (const tr of trimestresAffiches) {
+      const notes = await noteModel.notesValideesPourBulletin(idEleve, tr, anneeScolaire);
+      const notesMap = {};
+      notes.forEach((n) => { notesMap[n.matiere] = Number(n.valeur); });
+      notesParTrim[tr] = notesMap;
+      moyennesParTrim[tr] = notes.length ? calculerMoyenne(notes).moyenneGenerale : null;
+    }
+
+    if (!Object.values(moyennesParTrim).some((m) => m != null)) {
+      return res.status(400).json({ erreur: 'Aucune note saisie pour ce niveau/année/trimestre.' });
+    }
+
+    // Pas de classement : régénérer un bulletin isolé, des années après coup,
+    // ne reconstitue pas le classement réel de la cohorte de l'époque.
+    const placesParTrim = {};
+
+    let moyenneAnnuelle = null;
+    if (trimestre === '3e_trimestre') {
+      const dispo = TRIMESTRES.map((tr) => moyennesParTrim[tr]).filter((v) => v != null);
+      moyenneAnnuelle = dispo.length
+        ? Math.round((dispo.reduce((a, b) => a + b, 0) / dispo.length) * 100) / 100
+        : null;
+    }
+
+    // Remplace un éventuel bulletin déjà généré pour ce (dossier, trimestre, année).
+    const existant = await documentModel.trouverBulletin(idEleve, trimestre, anneeScolaire);
+    if (existant?.url_pdf) {
+      const chemin = path.resolve(UPLOAD_ROOT, existant.url_pdf);
+      if (chemin.startsWith(path.resolve(UPLOAD_ROOT))) await fs.unlink(chemin).catch(() => {});
+      await documentModel.supprimer(existant.id);
+    }
+
+    const ecole = await obtenirEcole();
+    const { urlPdf, identifiantUnique } = await genererBulletinPDF({
+      eleve: { nom_famille: eleve.nom, nom: eleve.nom, prenom: eleve.prenom },
+      niveau, trimestre, anneeScolaire, ecoleNom: ecole?.nom || 'Lekòl Konekte',
+      matieres, notesParTrim, moyennesParTrim, placesParTrim, trimestresAffiches, moyenneAnnuelle,
+      seuilReussite: ecole ? Number(ecole.seuil_reussite) : 60,
+    });
+
+    const idDoc = await documentModel.creer({
+      idEleve, type: 'bulletin', urlPdf, identifiantUnique, periode: trimestre, anneeScolaire,
+    });
+
+    return res.status(201).json({ message: 'Bulletin généré.', id: idDoc, urlPdf, identifiantUnique });
   } catch (err) {
     next(err);
   }
