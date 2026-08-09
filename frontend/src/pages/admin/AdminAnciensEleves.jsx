@@ -16,6 +16,15 @@ const TRIMESTRES = [
 ];
 const libTrim = (v) => TRIMESTRES.find((t) => t.valeur === v)?.libelle || v;
 
+// Suggestions d'années scolaires (20 dernières) pour le datalist — la liste
+// n'est qu'une aide : n'importe quelle année au format AAAA-AAAA reste saisissable.
+function anneesSuggerees() {
+  const a = new Date().getFullYear();
+  const annees = [];
+  for (let y = a; y >= a - 20; y -= 1) annees.push(`${y}-${y + 1}`);
+  return annees;
+}
+
 export default function AdminAnciensEleves() {
   const [demandes, setDemandes] = useState(null);
   const [anciens, setAnciens] = useState(null);
@@ -290,7 +299,10 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
   const [bulletinsGeneres, setBulletinsGeneres] = useState({}); // { cle: { id, urlPdf } }
 
   const chargerNotes = () => ancienEleveApi.notes(ancien.id).then((d) => setNotes(d.notes)).catch((e) => setErreur(e.message));
-  useEffect(() => { chargerNotes(); ancienEleveApi.niveaux().then((d) => setNiveaux(d.niveaux)).catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Rechargé à chaque ouverture (pas seulement au premier montage) : si une
+  // matière vient d'être ajoutée pour un nouveau niveau dans un autre onglet,
+  // ce niveau doit apparaître ici sans avoir à recharger toute la page.
+  useEffect(() => { chargerNotes(); ancienEleveApi.niveaux().then((d) => setNiveaux(d.niveaux)).catch(() => {}); }, [ancien.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!saisie.niveau) { setMatieres([]); return; }
@@ -332,6 +344,14 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
     return acc;
   }, {});
 
+  // Le niveau du dossier (saisi librement à la création) doit toujours rester
+  // sélectionnable ici, même s'il n'a pas encore de matières — donc pas de
+  // matières correspondantes dans la liste des niveaux connus.
+  const optionsNiveaux = niveaux.includes(saisie.niveau) || !saisie.niveau
+    ? niveaux : [saisie.niveau, ...niveaux];
+  const anneesDejaUtilisees = [...new Set((notes || []).map((n) => n.annee_scolaire))];
+  const optionsAnnees = [...new Set([...anneesDejaUtilisees, ...anneesSuggerees()])];
+
   return (
     <div className="prof-modal-fond" onClick={() => !enCours && onFermer()}>
       <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 720 }}>
@@ -344,13 +364,24 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
         <h3 style={{ fontSize: '.95rem', marginBottom: '.5rem' }}>Ajouter des notes</h3>
         <form onSubmit={soumettreNotes} className="notes-form-grille">
           <Champ label="Niveau" enfant={
-            <select value={saisie.niveau} onChange={(e) => setSaisie({ ...saisie, niveau: e.target.value })}>
-              <option value="">Choisir…</option>
-              {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <>
+              <input list="niveaux-connus" value={saisie.niveau}
+                onChange={(e) => setSaisie({ ...saisie, niveau: e.target.value })}
+                placeholder="Ex. : 9e année fondamentale" />
+              <datalist id="niveaux-connus">
+                {optionsNiveaux.map((n) => <option key={n} value={n} />)}
+              </datalist>
+            </>
           } />
-          <Champ label="Année scolaire" value={saisie.anneeScolaire}
-            onChange={(e) => setSaisie({ ...saisie, anneeScolaire: e.target.value })} placeholder="2015-2016" />
+          <Champ label="Année scolaire" enfant={
+            <>
+              <input list="annees-connues" value={saisie.anneeScolaire}
+                onChange={(e) => setSaisie({ ...saisie, anneeScolaire: e.target.value })} placeholder="2015-2016" />
+              <datalist id="annees-connues">
+                {optionsAnnees.map((a) => <option key={a} value={a} />)}
+              </datalist>
+            </>
+          } />
           <Champ label="Trimestre" enfant={
             <select value={saisie.periode} onChange={(e) => setSaisie({ ...saisie, periode: e.target.value })}>
               {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
