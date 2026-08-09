@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { directionApi, adminApi, permissionsApi } from '../../services/api.js';
+import { directionApi, ancienEleveApi, permissionsApi } from '../../services/api.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -33,10 +33,10 @@ export default function Matieres() {
 
   const formRef = useRef(null);
 
-  // Niveaux (dropdown dynamique)
+  // Niveaux connus (matières existantes + élèves actifs + anciens élèves)
   useEffect(() => {
-    adminApi.elevesCodes('')
-      .then((d) => setNiveaux([...new Set(d.eleves.map((e) => e.niveau).filter(Boolean))].sort()))
+    ancienEleveApi.niveaux()
+      .then((d) => setNiveaux(d.niveaux || []))
       .catch(() => {});
   }, []);
 
@@ -106,10 +106,11 @@ export default function Matieres() {
 
       {/* Filtre niveau */}
       <div className="insc-barre">
-        <select value={niveau} onChange={(e) => setNiveau(e.target.value)} aria-label="Niveau">
-          <option value="">Choisir un niveau…</option>
-          {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
-        </select>
+        <input list="matieres-niveaux" value={niveau} onChange={(e) => setNiveau(e.target.value)}
+          placeholder="Choisir ou saisir un niveau…" aria-label="Niveau" style={{ minWidth: 220 }} />
+        <datalist id="matieres-niveaux">
+          {niveaux.map((n) => <option key={n} value={n} />)}
+        </datalist>
         <button type="button" className="insc-btn-reinit" onClick={() => setNiveau('')} disabled={!niveau}>Réinitialiser</button>
       </div>
 
