@@ -34,7 +34,7 @@ export async function trouverParId(id) {
   const [rows] = await pool.query(
     `SELECT id, nom, prenom, niveau, id_parent, code_acces, photo_url,
             date_naissance, groupe_sanguin, badge_emis_le,
-            badge_nom, badge_prenom, badge_classe, badge_annee, ancien_eleve
+            badge_nom, badge_prenom, badge_classe, badge_annee, ancien_eleve, courriel_contact
        FROM eleves WHERE id = ? LIMIT 1`,
     [id]
   );

@@ -7,11 +7,19 @@ import * as documentModel from '../models/documentOfficiel.model.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { calculerMoyenne } from '../services/moyenne.service.js';
 import { genererBulletinPDF } from '../services/bulletin.service.js';
+import { envoyerCourriel } from '../config/mailer.js';
+import { echapperHtml } from '../utils/html.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import fs from 'fs/promises';
 import path from 'path';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
+const LIBELLE_TRIMESTRE = {
+  '1er_trimestre': '1er trimestre',
+  '2e_trimestre': '2e trimestre',
+  '3e_trimestre': '3e trimestre',
+};
+const SITE_URL = 'https://lekolkonekte.online';
 
 // GET /api/admin/niveaux (admin/direction)
 export async function listerNiveauxCtrl(req, res, next) {
@@ -199,6 +207,34 @@ export async function genererBulletinCtrl(req, res, next) {
     const idDoc = await documentModel.creer({
       idEleve, type: 'bulletin', urlPdf, identifiantUnique, periode: trimestre, anneeScolaire,
     });
+
+    // Transmet directement le PDF à l'ancien élève (pas de compte parent à
+    // notifier ici) — best-effort : un échec d'envoi ne fait pas échouer la
+    // génération, le bulletin reste de toute façon téléchargeable par l'admin.
+    if (eleve.courriel_contact) {
+      const libelle = LIBELLE_TRIMESTRE[trimestre] || trimestre;
+      const nomComplet = [eleve.prenom, eleve.nom].filter(Boolean).join(' ') || eleve.nom;
+      const pdfBuffer = await fs.readFile(path.resolve(UPLOAD_ROOT, urlPdf)).catch(() => null);
+      try {
+        await envoyerCourriel({
+          to: eleve.courriel_contact,
+          subject: `Lekòl Konekte — votre bulletin (${libelle}, ${anneeScolaire})`,
+          text: `Bonjour ${nomComplet},\n\nVotre bulletin du ${libelle} (année ${anneeScolaire}) ` +
+                `est disponible en pièce jointe.\n\nVous pouvez aussi le retrouver à tout moment en vous ` +
+                `connectant avec votre code d'accès sur ${SITE_URL}.`,
+          html: `<p>Bonjour ${echapperHtml(nomComplet)},</p>` +
+                `<p>Votre bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) ` +
+                `est disponible en pièce jointe.</p>` +
+                `<p>Vous pouvez aussi le retrouver à tout moment en vous connectant avec votre code d'accès ` +
+                `sur <a href="${SITE_URL}">${SITE_URL}</a>.</p>`,
+          attachments: pdfBuffer
+            ? [{ filename: `bulletin-${libelle.replace(/\s+/g, '-')}-${anneeScolaire}.pdf`, content: pdfBuffer.toString('base64') }]
+            : undefined,
+        });
+      } catch (err) {
+        console.error('Envoi du bulletin (ancien élève) échoué :', err.message);
+      }
+    }
 
     return res.status(201).json({ message: 'Bulletin généré.', id: idDoc, urlPdf, identifiantUnique });
   } catch (err) {
