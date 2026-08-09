@@ -44,7 +44,7 @@ export async function creer(req, res, next) {
       return res.status(400).json({ erreur: 'Valeur invalide (0 à 100).' });
     }
 
-    const eleve = await trouverEleve(idEleve);
+    const eleve = await trouverEleveParId(idEleve);
     if (!eleve) return res.status(404).json({ erreur: 'Élève introuvable.' });
 
     const matiere = await matiereModel.trouverParId(idMatiere);

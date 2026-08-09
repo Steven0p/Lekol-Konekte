@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { adminApi, directionApi, permissionsApi } from '../../services/api.js';
+import { adminApi, directionApi, ancienEleveApi, permissionsApi } from '../../services/api.js';
 import { anneeScolaireCourante } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
@@ -77,10 +77,10 @@ export default function AdminNotes() {
 
   const formRef = useRef(null);
 
-  // Niveaux (dropdown dynamique)
+  // Niveaux connus (matières existantes + élèves actifs + anciens élèves)
   useEffect(() => {
-    adminApi.elevesCodes('')
-      .then((d) => setNiveaux([...new Set(d.eleves.map((e) => e.niveau).filter(Boolean))].sort()))
+    ancienEleveApi.niveaux()
+      .then((d) => setNiveaux(d.niveaux || []))
       .catch(() => {});
   }, []);
 
