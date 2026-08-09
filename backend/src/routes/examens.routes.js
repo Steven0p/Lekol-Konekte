@@ -3,6 +3,7 @@ import { Router } from 'express';
 import * as examens from '../controllers/examens.controller.js';
 import { requireExamensAdmin } from '../middleware/auth.js';
 import { uploadExamen } from '../config/upload.js';
+import { authLimiter, iaLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -19,12 +20,12 @@ function televerserPhotoExamen(req, res, next) {
 }
 
 // Authentification admin Examens
-router.post('/examens/admin/login', examens.adminLogin);
+router.post('/examens/admin/login', authLimiter, examens.adminLogin);
 router.post('/examens/admin/logout', examens.adminLogout);
 router.get('/examens/admin/me', examens.adminMe);
 
 // Assistant IA — tuteur pour élève bloqué sur un exercice (public)
-router.post('/examens/aide-ia', examens.aideIA);
+router.post('/examens/aide-ia', iaLimiter, examens.aideIA);
 
 // Examens
 router.get('/examens', examens.lister);                                          // public

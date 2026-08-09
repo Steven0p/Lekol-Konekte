@@ -37,3 +37,13 @@ export const contactLimiter = rateLimit({
   legacyHeaders: false,
   message: { erreur: 'Trop de messages envoyés. Réessayez plus tard.' },
 });
+
+// Assistant IA public (aide aux examens) : 15 questions / 15 min par IP —
+// évite qu'un usage automatisé n'épuise le quota/budget de l'API IA.
+export const iaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: "Trop de questions à l'assistant. Réessayez plus tard." },
+});

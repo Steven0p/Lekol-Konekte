@@ -31,6 +31,13 @@ dotenv.config();
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
 
+// Échoue au démarrage plutôt que de signer les sessions avec le secret de dev
+// connu (visible dans le dépôt) — une session forgée avec ce secret serait
+// acceptée par le serveur comme légitime.
+if (isProd && !process.env.SESSION_SECRET) {
+  throw new Error('SESSION_SECRET manquant en production — configurez cette variable avant de démarrer.');
+}
+
 // Confiance au proxy (utile derrière un reverse proxy en production)
 if (isProd) app.set('trust proxy', 1);
 

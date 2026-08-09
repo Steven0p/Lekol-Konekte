@@ -11,6 +11,7 @@ import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { echapperHtml } from '../utils/html.js';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -203,12 +204,12 @@ export async function publier({
               `Moyenne du trimestre : ${moyenneCourante.toFixed(2)}/100.` + bilanTexte +
               `\n\n${appreciation}` +
               `\n\nConsultez tous les résultats et bulletins sur ${SITE_URL}`,
-        html: `<p>Bonjour ${eleve.parent_nom},</p>` +
-              `<p>Le bulletin du <strong>${libelle}</strong> (année ${anneeScolaire}) de ` +
-              `<strong>${eleve.nom}</strong> est disponible en pièce jointe et dans votre compte.</p>` +
+        html: `<p>Bonjour ${echapperHtml(eleve.parent_nom)},</p>` +
+              `<p>Le bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) de ` +
+              `<strong>${echapperHtml(eleve.nom)}</strong> est disponible en pièce jointe et dans votre compte.</p>` +
               `<p>Moyenne du trimestre : <strong>${moyenneCourante.toFixed(2)}/100</strong>.</p>` +
               bilanHtml +
-              `<p>${appreciation}</p>` +
+              `<p>${echapperHtml(appreciation)}</p>` +
               `<p>Consultez tous les résultats et bulletins sur <a href="${SITE_URL}">${SITE_URL}</a>.</p>`,
         attachments,
       });

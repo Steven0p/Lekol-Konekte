@@ -3,6 +3,7 @@ import { Router } from 'express';
 import * as vlog from '../controllers/vlog.controller.js';
 import { requireVlogAdmin } from '../middleware/auth.js';
 import { uploadVlog } from '../config/upload.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -19,7 +20,7 @@ function televerserPhotoVlog(req, res, next) {
 }
 
 // Authentification admin vlog
-router.post('/vlog/admin/login', vlog.adminLogin);
+router.post('/vlog/admin/login', authLimiter, vlog.adminLogin);
 router.post('/vlog/admin/logout', vlog.adminLogout);
 router.get('/vlog/admin/me', vlog.adminMe);
 

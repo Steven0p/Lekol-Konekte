@@ -8,6 +8,7 @@ import {
 import { trouverParCode, trouverAvecProprietaire } from '../models/eleve.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { echapperHtml } from '../utils/html.js';
 
 const FUSEAU = 'America/Port-au-Prince';
 const RETENTION_JOURS = Number(process.env.PRESENCE_RETENTION_JOURS) || 90;
@@ -63,7 +64,7 @@ async function notifierParent(prop, texte, sujet) {
       to: prop.parent_courriel,
       subject: sujet,
       text: `Bonjour ${prop.parent_nom || ''},\n\n${texte}\n\nCeci est un message automatique.`,
-      html: `<p>Bonjour ${prop.parent_nom || ''},</p><p>${texte}</p>`
+      html: `<p>Bonjour ${echapperHtml(prop.parent_nom || '')},</p><p>${echapperHtml(texte)}</p>`
         + `<p style="color:#888;font-size:.85em">Ceci est un message automatique.</p>`,
     });
   } catch (err) {

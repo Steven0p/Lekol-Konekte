@@ -2,11 +2,12 @@
 import { Router } from 'express';
 import * as apropos from '../controllers/apropos.controller.js';
 import { requireAproposAdmin } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
 // Authentification admin À propos
-router.post('/apropos/admin/login', apropos.adminLogin);
+router.post('/apropos/admin/login', authLimiter, apropos.adminLogin);
 router.post('/apropos/admin/logout', apropos.adminLogout);
 router.get('/apropos/admin/me', apropos.adminMe);
 

@@ -2,10 +2,9 @@
 import * as modele from '../models/contactMessage.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { echapperHtml } from '../utils/html.js';
 
 const COURRIEL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const echapperHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 // POST /api/contact (public)
 export async function creerCtrl(req, res, next) {

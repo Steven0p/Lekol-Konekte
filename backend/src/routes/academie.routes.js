@@ -2,11 +2,12 @@
 import { Router } from 'express';
 import * as academie from '../controllers/academie.controller.js';
 import { requireAcademieAdmin } from '../middleware/auth.js';
+import { authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
 // Authentification admin Académie
-router.post('/academie/admin/login', academie.adminLogin);
+router.post('/academie/admin/login', authLimiter, academie.adminLogin);
 router.post('/academie/admin/logout', academie.adminLogout);
 router.get('/academie/admin/me', academie.adminMe);
 

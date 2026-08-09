@@ -2,6 +2,7 @@
 import * as demandeModel from '../models/demandeAncien.model.js';
 import * as eleveModel from '../models/eleve.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { echapperHtml } from '../utils/html.js';
 
 const COURRIEL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SITE_URL = 'https://lekolkonekte.online';
@@ -12,16 +13,18 @@ export async function creerCtrl(req, res, next) {
     const nom = (req.body.nom || '').trim();
     const courriel = (req.body.courriel || '').trim().toLowerCase();
     if (!nom || nom.length > 120) return res.status(400).json({ erreur: 'Nom requis (120 caractères maximum).' });
-    if (!courriel || !COURRIEL_RE.test(courriel)) return res.status(400).json({ erreur: 'Courriel invalide.' });
+    if (!courriel || courriel.length > 190 || !COURRIEL_RE.test(courriel)) {
+      return res.status(400).json({ erreur: 'Courriel invalide.' });
+    }
 
     await demandeModel.creer({
       nom,
-      prenom: (req.body.prenom || '').trim() || null,
+      prenom: (req.body.prenom || '').trim().slice(0, 120) || null,
       dateNaissance: req.body.dateNaissance || null,
-      dernierNiveau: (req.body.dernierNiveau || '').trim() || null,
-      anneesFrequentees: (req.body.anneesFrequentees || '').trim() || null,
+      dernierNiveau: (req.body.dernierNiveau || '').trim().slice(0, 60) || null,
+      anneesFrequentees: (req.body.anneesFrequentees || '').trim().slice(0, 100) || null,
       courriel,
-      telephone: (req.body.telephone || '').trim() || null,
+      telephone: (req.body.telephone || '').trim().slice(0, 40) || null,
       message: (req.body.message || '').trim().slice(0, 500) || null,
     });
     return res.status(201).json({ message: 'Demande envoyée. Le secrétariat vous contactera par courriel.' });
@@ -54,7 +57,9 @@ export async function approuverCtrl(req, res, next) {
     if (!idEleve) return res.status(400).json({ erreur: 'idEleve requis (dossier ancien élève à rattacher).' });
 
     const eleve = await eleveModel.trouverParId(idEleve);
-    if (!eleve) return res.status(404).json({ erreur: 'Dossier ancien élève introuvable.' });
+    if (!eleve || !eleve.ancien_eleve) {
+      return res.status(400).json({ erreur: "Ce dossier n'est pas un dossier ancien élève." });
+    }
 
     const code = eleve.code_acces || await eleveModel.genererCodeAcces(idEleve);
     await demandeModel.approuver(id, { idEleve, traitePar: req.session.userId });
@@ -68,9 +73,9 @@ export async function approuverCtrl(req, res, next) {
           + `Code d'accès : ${code}\n\n`
           + `Rendez-vous sur ${SITE_URL}/eleve, saisissez ce code pour consulter et télécharger vos résultats pour toutes les années où vous avez fréquenté l'école.\n\n`
           + `Ce code est personnel et permanent : conservez-le.`,
-        html: `<p>Bonjour ${demande.prenom || demande.nom},</p>`
+        html: `<p>Bonjour ${echapperHtml(demande.prenom || demande.nom)},</p>`
           + `<p>Votre demande d'accès à vos résultats a été approuvée.</p>`
-          + `<p>Code d'accès : <strong style="font-family:monospace;font-size:1.1em">${code}</strong></p>`
+          + `<p>Code d'accès : <strong style="font-family:monospace;font-size:1.1em">${echapperHtml(code)}</strong></p>`
           + `<p>Rendez-vous sur <a href="${SITE_URL}/eleve">${SITE_URL}/eleve</a>, saisissez ce code pour consulter et télécharger vos résultats pour toutes les années où vous avez fréquenté l'école.</p>`
           + `<p style="color:#888;font-size:.85em">Ce code est personnel et permanent : conservez-le.</p>`,
       });
@@ -103,9 +108,9 @@ export async function refuserCtrl(req, res, next) {
           + `Nous n'avons pas pu valider votre demande d'accès aux résultats`
           + (motif ? ` : ${motif}` : '.')
           + `\n\nPour toute question, contactez le secrétariat de l'école.`,
-        html: `<p>Bonjour ${demande.prenom || demande.nom},</p>`
+        html: `<p>Bonjour ${echapperHtml(demande.prenom || demande.nom)},</p>`
           + `<p>Nous n'avons pas pu valider votre demande d'accès aux résultats`
-          + (motif ? ` : ${motif}` : '.') + `</p>`
+          + (motif ? ` : ${echapperHtml(motif)}` : '.') + `</p>`
           + `<p>Pour toute question, contactez le secrétariat de l'école.</p>`,
       });
     } catch (err) {

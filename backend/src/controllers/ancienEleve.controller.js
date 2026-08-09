@@ -65,6 +65,9 @@ export async function mettreAJourCtrl(req, res, next) {
 export async function listerNotesCtrl(req, res, next) {
   try {
     const idEleve = Number(req.params.id);
+    const eleve = await eleveModel.trouverParId(idEleve);
+    if (!eleve || !eleve.ancien_eleve) return res.status(404).json({ erreur: 'Dossier ancien élève introuvable.' });
+
     const notes = await noteModel.listerPourEleve(idEleve, {});
     return res.json({ notes });
   } catch (err) {
@@ -79,6 +82,9 @@ export async function listerNotesCtrl(req, res, next) {
 export async function creerNotesCtrl(req, res, next) {
   try {
     const idEleve = Number(req.params.id);
+    const eleve = await eleveModel.trouverParId(idEleve);
+    if (!eleve || !eleve.ancien_eleve) return res.status(404).json({ erreur: 'Dossier ancien élève introuvable.' });
+
     const anneeScolaire = (req.body.anneeScolaire || '').trim();
     const periode = (req.body.periode || '').trim();
     const lignes = Array.isArray(req.body.notes) ? req.body.notes : [];
