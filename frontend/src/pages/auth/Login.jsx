@@ -105,6 +105,9 @@ export default function Login() {
               Élève ? <Link to="/eleve">Accéder avec un code</Link>
             </p>
             <p className="auth-lien">
+              Ancien élève ? <Link to="/anciens-eleves">Demander l'accès à mes résultats</Link>
+            </p>
+            <p className="auth-lien">
               Administrateur du vlog ? <Link to="/vlog/admin">Accéder au vlog</Link>
             </p>
 
