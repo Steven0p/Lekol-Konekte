@@ -62,9 +62,9 @@ export async function genererReleve({ eleve, groupes, ecoleNom, duplicata = fals
     texte(`${LIBELLE_TRIMESTRE[g.periode] || g.periode} — Année ${g.annee}`, marge, y, 12, true);
     y -= 18;
     texte('Matière', marge, y, 10, true);
-    texte('Note /100', 320, y, 10, true);
-    texte('Coef.', 400, y, 10, true);
-    texte('Note×Coef', 470, y, 10, true);
+    texte('Note', 300, y, 10, true);
+    texte('Coef.', 410, y, 10, true);
+    texte('Contribution', 470, y, 10, true);
     y -= 4;
     page.drawLine({ start: { x: marge, y }, end: { x: 545, y }, thickness: 0.8, color: gris });
     y -= 14;
@@ -72,8 +72,8 @@ export async function genererReleve({ eleve, groupes, ecoleNom, duplicata = fals
       verifierEspace(70);
       texte(l.matiere, marge, y, 10);
       // valeur/produit sont null pour une matière non notée : colonne laissée vide
-      texte(l.valeur === null ? '—' : l.valeur.toFixed(2), 320, y, 10);
-      texte(l.coefficient.toFixed(2), 400, y, 10);
+      texte(l.valeur === null ? '—' : `${l.valeur.toFixed(2)} / ${l.bareme.toFixed(0)}`, 300, y, 9);
+      texte(l.coefficient.toFixed(2), 410, y, 10);
       texte(l.produit === null ? '—' : l.produit.toFixed(2), 470, y, 10);
       y -= 14;
     }

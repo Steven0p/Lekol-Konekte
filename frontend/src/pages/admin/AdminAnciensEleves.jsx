@@ -295,6 +295,7 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
   const [matieres, setMatieres] = useState([]);
   const [saisie, setSaisie] = useState({ niveau: ancien.niveau || '', anneeScolaire: '', periode: '1er_trimestre' });
   const [valeurs, setValeurs] = useState({}); // { idMatiere: valeur }
+  const [baremes, setBaremes] = useState({}); // { idMatiere: bareme } — défaut 100 si absent
   const [enCours, setEnCours] = useState(false);
   const [bulletinEnCours, setBulletinEnCours] = useState(null); // clé du groupe en cours de génération
   const [bulletinsGeneres, setBulletinsGeneres] = useState({}); // { cle: { id, urlPdf } }
@@ -315,13 +316,19 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
     if (!/^\d{4}-\d{4}$/.test(saisie.anneeScolaire)) { setErreur('Année scolaire au format AAAA-AAAA (ex. 2015-2016).'); return; }
     const lignes = Object.entries(valeurs)
       .filter(([, v]) => v !== '' && v !== undefined)
-      .map(([idMatiere, valeur]) => ({ idMatiere: Number(idMatiere), valeur: Number(valeur) }));
+      .map(([idMatiere, valeur]) => ({
+        idMatiere: Number(idMatiere), valeur: Number(valeur),
+        bareme: baremes[idMatiere] ? Number(baremes[idMatiere]) : 100,
+      }));
     if (!lignes.length) { setErreur('Entrez au moins une note.'); return; }
+    if (lignes.some((l) => !Number.isFinite(l.bareme) || l.bareme <= 0)) {
+      setErreur('Le barème (« sur X ») doit être un nombre positif.'); return;
+    }
 
     setEnCours(true); setErreur('');
     try {
       await ancienEleveApi.ajouterNotes(ancien.id, { anneeScolaire: saisie.anneeScolaire, periode: saisie.periode, notes: lignes });
-      setValeurs({});
+      setValeurs({}); setBaremes({});
       chargerNotes();
       setMsg('Notes enregistrées.');
     } catch (e2) { setErreur(e2.message); } finally { setEnCours(false); }
@@ -399,20 +406,29 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
             <>
               <div className="tableau-enveloppe" style={{ marginBottom: '.75rem' }}>
                 <table className="tableau">
-                  <thead><tr><th>Matière</th><th>Note /100</th></tr></thead>
+                  <thead><tr><th>Matière</th><th>Note</th><th>Sur</th></tr></thead>
                   <tbody>
                     {matieres.map((m) => (
                       <tr key={m.id}>
                         <td>{m.nom}</td>
                         <td>
-                          <input type="number" min="0" max="100" step="0.01" style={{ width: 90 }}
+                          <input type="number" min="0" step="0.01" style={{ width: 90 }}
                             value={valeurs[m.id] ?? ''}
                             onChange={(e) => setValeurs({ ...valeurs, [m.id]: e.target.value })} />
+                        </td>
+                        <td>
+                          <input list="notes-baremes" type="number" min="0.01" step="0.01" style={{ width: 90 }}
+                            placeholder="100"
+                            value={baremes[m.id] ?? ''}
+                            onChange={(e) => setBaremes({ ...baremes, [m.id]: e.target.value })} />
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                <datalist id="notes-baremes">
+                  <option value="10" /><option value="20" /><option value="100" />
+                </datalist>
               </div>
               <div className="rangee" style={{ gap: '.6rem' }}>
                 <Bouton type="button" onClick={soumettreNotes} enCours={enCours}>Enregistrer ces notes</Bouton>
@@ -455,7 +471,7 @@ function ModaleDossier({ ancien, onFermer, onChange, setErreur, setMsg }) {
                     <thead><tr><th>Matière</th><th>Note</th><th>Niveau</th></tr></thead>
                     <tbody>
                       {lignes.map((n) => (
-                        <tr key={n.id}><td>{n.matiere}</td><td>{Number(n.valeur).toFixed(2)}</td><td>{n.niveau || '—'}</td></tr>
+                        <tr key={n.id}><td>{n.matiere}</td><td>{Number(n.valeur).toFixed(2)}/{Number(n.bareme ?? 100).toFixed(0)}</td><td>{n.niveau || '—'}</td></tr>
                       ))}
                     </tbody>
                   </table>

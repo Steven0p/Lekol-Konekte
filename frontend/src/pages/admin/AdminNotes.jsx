@@ -35,7 +35,7 @@ export default function AdminNotes() {
   const [chargement, setChargement] = useState(false);
   const [page, setPage] = useState(1);
 
-  const [form, setForm] = useState({ idEleve: '', idMatiere: '', valeur: '' });
+  const [form, setForm] = useState({ idEleve: '', idMatiere: '', valeur: '', bareme: '100' });
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
@@ -75,6 +75,7 @@ export default function AdminNotes() {
   // Modales
   const [edition, setEdition] = useState(null);       // note en cours de modification
   const [editVal, setEditVal] = useState('');
+  const [editBareme, setEditBareme] = useState('100');
   const [suppression, setSuppression] = useState(null); // note à supprimer
   const [batch, setBatch] = useState(null);            // 'valider' | 'supprimer'
   const [modalEnCours, setModalEnCours] = useState(false);
@@ -117,13 +118,15 @@ export default function AdminNotes() {
     e.preventDefault();
     setErreur(''); setMsg('');
     if (!form.idEleve || !form.idMatiere) { setErreur('Choisissez un élève et une matière.'); return; }
+    const bareme = Number(form.bareme);
+    if (form.bareme === '' || Number.isNaN(bareme) || bareme <= 0) { setErreur('Le barème (« sur X ») doit être un nombre positif.'); return; }
     const val = Number(form.valeur);
-    if (form.valeur === '' || Number.isNaN(val) || val < 0 || val > 100) { setErreur('La note doit être comprise entre 0 et 100.'); return; }
+    if (form.valeur === '' || Number.isNaN(val) || val < 0 || val > bareme) { setErreur(`La note doit être comprise entre 0 et ${bareme}.`); return; }
     setEnCours(true);
     try {
       await adminApi.creerNote({
         idEleve: Number(form.idEleve), idMatiere: Number(form.idMatiere),
-        periode, anneeScolaire: annee, valeur: val,
+        periode, anneeScolaire: annee, valeur: val, bareme,
       });
       setMsg('Note saisie.');
       setForm({ ...form, valeur: '' });
@@ -139,12 +142,14 @@ export default function AdminNotes() {
   };
 
   const enregistrerEdition = async () => {
-    const val = Number(editVal);
+    const bareme = Number(editBareme);
     setErreurModal('');
-    if (editVal === '' || Number.isNaN(val) || val < 0 || val > 100) { setErreurModal('La note doit être comprise entre 0 et 100.'); return; }
+    if (editBareme === '' || Number.isNaN(bareme) || bareme <= 0) { setErreurModal('Le barème (« sur X ») doit être un nombre positif.'); return; }
+    const val = Number(editVal);
+    if (editVal === '' || Number.isNaN(val) || val < 0 || val > bareme) { setErreurModal(`La note doit être comprise entre 0 et ${bareme}.`); return; }
     setModalEnCours(true);
     try {
-      await adminApi.majNote(edition.id, { valeur: val });
+      await adminApi.majNote(edition.id, { valeur: val, bareme });
       setEdition(null); setMsg('Note mise à jour.'); chargerNotes();
     } catch (err) { setErreurModal(err.message); }
     finally { setModalEnCours(false); }
@@ -252,8 +257,16 @@ export default function AdminNotes() {
                     </select>
                   </div>
                   <div className="notes-champ">
-                    <label>Note /100</label>
-                    <input type="number" min="0" max="100" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 110 }} />
+                    <label>Note</label>
+                    <input type="number" min="0" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 90 }} />
+                  </div>
+                  <div className="notes-champ">
+                    <label>Sur</label>
+                    <input list="notes-baremes" type="number" min="0.01" step="0.01"
+                      value={form.bareme} onChange={majForm('bareme')} style={{ width: 90 }} />
+                    <datalist id="notes-baremes">
+                      <option value="10" /><option value="20" /><option value="100" />
+                    </datalist>
                   </div>
                   <button type="submit" className="notes-saisir" disabled={enCours}>{enCours ? 'Saisie…' : 'Saisir'}</button>
                 </form>
@@ -290,8 +303,8 @@ export default function AdminNotes() {
                         <td>{n.matiere}</td>
                         <td>{n.coefficient != null ? Number(n.coefficient).toFixed(2) : '—'}</td>
                         <td className="notes-note-val">
-                          <span style={{ color: Number(n.valeur) >= seuil ? 'var(--s-vert, #38A169)' : 'var(--s-rouge, #E53E3E)', fontWeight: 700 }}>
-                            {Number(n.valeur).toFixed(2)}
+                          <span style={{ color: (Number(n.valeur) / (Number(n.bareme) || 100)) * 100 >= seuil ? 'var(--s-vert, #38A169)' : 'var(--s-rouge, #E53E3E)', fontWeight: 700 }}>
+                            {Number(n.valeur).toFixed(2)}/{Number(n.bareme ?? 100).toFixed(0)}
                           </span>
                         </td>
                         <td>
@@ -305,7 +318,7 @@ export default function AdminNotes() {
                               {n.statut_validation === 'saisie' && (
                                 <button type="button" className="paie-btn paie-valider" onClick={() => valider(n.id)}>Valider</button>
                               )}
-                              <button type="button" className="paie-btn paie-details" onClick={() => { setEdition(n); setEditVal(String(n.valeur)); setErreurModal(''); }}>Modifier</button>
+                              <button type="button" className="paie-btn paie-details" onClick={() => { setEdition(n); setEditVal(String(n.valeur)); setEditBareme(String(n.bareme ?? 100)); setErreurModal(''); }}>Modifier</button>
                               <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(n); setErreurModal(''); }}>Supprimer</button>
                             </>
                           ) : <span className="texte-gris">—</span>}
@@ -351,8 +364,12 @@ export default function AdminNotes() {
             <p style={{ color: '#4A5568', marginBottom: '1rem' }}>{edition.eleve_nom} — {edition.matiere}</p>
             {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
             <div className="notes-modal-champ">
-              <label>Note /100</label>
-              <input type="number" min="0" max="100" step="0.01" value={editVal} onChange={(e) => setEditVal(e.target.value)} autoFocus />
+              <label>Note</label>
+              <input type="number" min="0" step="0.01" value={editVal} onChange={(e) => setEditVal(e.target.value)} autoFocus style={{ width: 90 }} />
+            </div>
+            <div className="notes-modal-champ">
+              <label>Sur</label>
+              <input type="number" min="0.01" step="0.01" value={editBareme} onChange={(e) => setEditBareme(e.target.value)} style={{ width: 90 }} />
             </div>
             <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="insc-btn-reinit" onClick={() => setEdition(null)} disabled={modalEnCours}>Annuler</button>

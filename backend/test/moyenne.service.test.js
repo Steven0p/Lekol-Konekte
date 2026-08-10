@@ -21,7 +21,7 @@ describe('calculerMoyenne', () => {
       { matiere: 'Maths', valeur: 90, coefficient: 3 },
     ]);
     assert.deepEqual(lignes, [
-      { matiere: 'Maths', valeur: 90, coefficient: 3, produit: 270 },
+      { matiere: 'Maths', valeur: 90, bareme: 100, coefficient: 3, produit: 270 },
     ]);
   });
 
@@ -75,6 +75,32 @@ describe('calculerMoyenne', () => {
   });
 });
 
+describe('calculerMoyenne — barèmes différents (note « sur X »)', () => {
+  test('des notes à barèmes différents sont converties en pourcentage pour la moyenne', () => {
+    // Maths 72/100 → 72% (coef 3) ; Conduite 15/20 → 75% (coef 1)
+    // (72×3 + 75×1) / 4 = 291/4 = 72.75
+    const r = calculerMoyenne([
+      { matiere: 'Maths', valeur: 72, bareme: 100, coefficient: 3 },
+      { matiere: 'Conduite', valeur: 15, bareme: 20, coefficient: 1 },
+    ]);
+    assert.equal(r.moyenneGenerale, 72.75);
+  });
+
+  test('un barème absent retombe sur 100 (compatibilité des notes existantes)', () => {
+    const r = calculerMoyenne([{ matiere: 'Maths', valeur: 80, coefficient: 1 }]);
+    assert.equal(r.lignes[0].bareme, 100);
+    assert.equal(r.moyenneGenerale, 80);
+  });
+
+  test('la valeur et le barème d’origine restent inchangés dans les lignes (jamais convertis)', () => {
+    const { lignes } = calculerMoyenne([
+      { matiere: 'Conduite', valeur: 15, bareme: 20, coefficient: 1 },
+    ]);
+    assert.equal(lignes[0].valeur, 15);
+    assert.equal(lignes[0].bareme, 20);
+  });
+});
+
 describe('calculerMoyenne — coefficient 0 (matière hors calcul)', () => {
   test('un coefficient 0 explicite exclut la matière de la moyenne', () => {
     // Sport est configuré à 0 par la Direction : seul Maths compte.
@@ -99,7 +125,7 @@ describe('calculerMoyenne — coefficient 0 (matière hors calcul)', () => {
       { matiere: 'Sport', valeur: 10, coefficient: 0 },
     ]);
     assert.deepEqual(lignes, [
-      { matiere: 'Sport', valeur: 10, coefficient: 0, produit: 0 },
+      { matiere: 'Sport', valeur: 10, bareme: 100, coefficient: 0, produit: 0 },
     ]);
   });
 
@@ -158,7 +184,7 @@ describe('calculerMoyenne — matière non notée', () => {
     // Conservée pour que le bulletin puisse l’afficher sans note,
     // plutôt que de faire disparaître la matière.
     assert.deepEqual(lignes, [
-      { matiere: 'Sport', valeur: null, coefficient: 2, produit: null },
+      { matiere: 'Sport', valeur: null, bareme: 100, coefficient: 2, produit: null },
     ]);
   });
 

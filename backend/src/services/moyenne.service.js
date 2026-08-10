@@ -9,8 +9,14 @@ function nombre(v) {
   return Number.isFinite(n) ? n : null;
 }
 
-// notes : [{ matiere, valeur, coefficient }]
-// Retourne { lignes: [{ matiere, valeur, coefficient, produit }], sommeCoef, moyenneGenerale }
+// notes : [{ matiere, valeur, bareme, coefficient }]
+// Retourne { lignes: [{ matiere, valeur, bareme, coefficient, produit }], sommeCoef, moyenneGenerale }
+//
+// Chaque note garde son barème d'origine (10, 20, 100...) tel qu'il a été
+// saisi — affiché sans conversion. Seule la moyenne pondérée (qui doit
+// combiner des matières à barèmes différents en un seul chiffre comparable
+// au seuil de réussite) convertit chaque note en pourcentage juste pour ce
+// calcul ; le barème et la valeur d'origine ne sont jamais altérés.
 //
 // Une matière sans note exploitable est conservée dans `lignes` avec
 // valeur/produit à null — elle reste visible sur le bulletin comme « non notée »
@@ -26,14 +32,17 @@ export function calculerMoyenne(notes) {
     const coefficient = coefLu === null ? 1 : coefLu;
 
     const valeur = nombre(n.valeur);
+    const baremeLu = nombre(n.bareme);
+    const bareme = baremeLu === null || baremeLu <= 0 ? 100 : baremeLu;
     if (valeur === null) {
-      return { matiere: n.matiere, valeur: null, coefficient, produit: null };
+      return { matiere: n.matiere, valeur: null, bareme, coefficient, produit: null };
     }
 
-    const produit = valeur * coefficient;
+    const pourcentage = (valeur / bareme) * 100;
+    const produit = pourcentage * coefficient;
     sommeProduits += produit;
     sommeCoef += coefficient;
-    return { matiere: n.matiere, valeur, coefficient, produit };
+    return { matiere: n.matiere, valeur, bareme, coefficient, produit };
   });
   const moyenneGenerale = sommeCoef > 0 ? sommeProduits / sommeCoef : 0;
   // Arrondi à 2 décimales

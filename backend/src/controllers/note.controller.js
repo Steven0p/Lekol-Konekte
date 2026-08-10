@@ -13,6 +13,7 @@ import { existe as publicationExiste } from '../models/publication.model.js';
 import { trimestresBloques as trimestresBloquesModel } from '../models/acquittement.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { calculerMoyenne } from '../services/moyenne.service.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 const LIBELLE_TRIMESTRE = {
@@ -33,6 +34,7 @@ export async function creer(req, res, next) {
     const periode = (req.body.periode || '').trim();
     const anneeScolaire = (req.body.anneeScolaire || '').trim();
     const valeur = Number(req.body.valeur);
+    const bareme = req.body.bareme === undefined || req.body.bareme === '' ? 100 : Number(req.body.bareme);
 
     if (!idEleve || !idMatiere || !anneeScolaire) {
       return res.status(400).json({ erreur: 'idEleve, idMatiere et anneeScolaire requis.' });
@@ -40,8 +42,11 @@ export async function creer(req, res, next) {
     if (!TRIMESTRES.includes(periode)) {
       return res.status(400).json({ erreur: `Trimestre invalide (${TRIMESTRES.join(', ')}).` });
     }
-    if (!Number.isFinite(valeur) || valeur < 0 || valeur > 100) {
-      return res.status(400).json({ erreur: 'Valeur invalide (0 à 100).' });
+    if (!Number.isFinite(bareme) || bareme <= 0) {
+      return res.status(400).json({ erreur: 'Barème invalide (doit être un nombre positif).' });
+    }
+    if (!Number.isFinite(valeur) || valeur < 0 || valeur > bareme) {
+      return res.status(400).json({ erreur: `Valeur invalide (0 à ${bareme}).` });
     }
 
     const eleve = await trouverEleveParId(idEleve);
@@ -51,10 +56,10 @@ export async function creer(req, res, next) {
     if (!matiere) return res.status(404).json({ erreur: 'Matière introuvable.' });
 
     const id = await noteModel.creer({
-      idEleve, idMatiere, matiere: matiere.nom, niveau: matiere.niveau, periode, anneeScolaire, valeur,
+      idEleve, idMatiere, matiere: matiere.nom, niveau: matiere.niveau, periode, anneeScolaire, valeur, bareme,
       saisiePar: req.session.userId,
     });
-    return res.status(201).json({ note: { id, idEleve, matiere: matiere.nom, periode, valeur, statut: 'saisie' } });
+    return res.status(201).json({ note: { id, idEleve, matiere: matiere.nom, periode, valeur, bareme, statut: 'saisie' } });
   } catch (err) {
     next(err);
   }
@@ -67,15 +72,19 @@ export async function mettreAJour(req, res, next) {
     if (!note) return res.status(404).json({ erreur: 'Note introuvable.' });
 
     const valeur = Number(req.body.valeur);
-    if (!Number.isFinite(valeur) || valeur < 0 || valeur > 100) {
-      return res.status(400).json({ erreur: 'Valeur invalide (0 à 100).' });
+    const bareme = req.body.bareme === undefined || req.body.bareme === '' ? Number(note.bareme) || 100 : Number(req.body.bareme);
+    if (!Number.isFinite(bareme) || bareme <= 0) {
+      return res.status(400).json({ erreur: 'Barème invalide (doit être un nombre positif).' });
+    }
+    if (!Number.isFinite(valeur) || valeur < 0 || valeur > bareme) {
+      return res.status(400).json({ erreur: `Valeur invalide (0 à ${bareme}).` });
     }
 
     if (await publicationExiste(note.niveau, note.annee_scolaire, note.periode)) {
       return res.status(409).json({ erreur: 'Trimestre déjà publié : la note ne peut plus être modifiée.' });
     }
 
-    await noteModel.mettreAJourValeur(note.id, valeur);
+    await noteModel.mettreAJourValeur(note.id, valeur, bareme);
     return res.json({ message: 'Note mise à jour.' });
   } catch (err) {
     next(err);
@@ -409,15 +418,13 @@ export async function appreciationIaEleve(req, res, next) {
       return res.status(400).json({ erreur: 'Aucune note disponible pour ce trimestre.' });
     }
 
-    // Moyenne pondérée + lignes de contexte pour l'IA.
-    let sommePond = 0, sommeCoef = 0;
-    const lignes = notes.map((n) => {
-      const c = Number(n.coefficient) || 1;
-      sommePond += Number(n.valeur) * c;
-      sommeCoef += c;
-      return `- ${n.matiere} : ${Number(n.valeur).toFixed(2)}/100 (coefficient ${c})`;
-    });
-    const moyenne = sommeCoef ? (sommePond / sommeCoef) : 0;
+    // Moyenne pondérée (chaque note conserve son propre barème) + lignes de
+    // contexte pour l'IA.
+    const { lignes: lignesMoyenne, moyenneGenerale } = calculerMoyenne(notes);
+    const moyenne = moyenneGenerale;
+    const lignes = lignesMoyenne
+      .filter((l) => l.valeur != null)
+      .map((l) => `- ${l.matiere} : ${Number(l.valeur).toFixed(2)}/${Number(l.bareme).toFixed(0)} (coefficient ${l.coefficient})`);
 
     const client = clientIA();
     const completion = await client.chat.completions.create({

@@ -26,6 +26,21 @@ const fmtNote = (v) => {
   return Number.isInteger(v) ? String(v) : Number(v).toFixed(1);
 };
 
+// n : { valeur, bareme } | null — affiche « valeur » seul si barème 100 (cas
+// courant, aucun changement visuel), sinon « valeur/barème » (ex. 15/20).
+const fmtCelluleNote = (n) => {
+  if (n == null || n.valeur == null) return '';
+  const bareme = Number(n.bareme) || 100;
+  return bareme === 100 ? fmtNote(Number(n.valeur)) : `${fmtNote(Number(n.valeur))}/${fmtNote(bareme)}`;
+};
+// Pourcentage (0-100) d'une note — seule valeur comparable au seuil de réussite
+// quand les barèmes diffèrent d'une matière à l'autre.
+const pourcentage = (n) => {
+  if (n == null || n.valeur == null) return null;
+  const bareme = Number(n.bareme) || 100;
+  return bareme > 0 ? (Number(n.valeur) / bareme) * 100 : null;
+};
+
 // Génère le PDF (paysage A4) et l'écrit sur le disque. Retourne { urlPdf, identifiantUnique }.
 // Params :
 //  eleve { nom_famille, prenom, nom }, niveau, trimestre, anneeScolaire, ecoleNom
@@ -110,19 +125,24 @@ export async function genererBulletinPDF({
     T(tronque(mat.nom, wMat > 150 ? 30 : 24), xMat + 4, yTexte, sizeCell);
     centre(fmtNote(Number(mat.coefficient)), xCoef, wCoef, yTexte, sizeCell);
     cols.forEach((tr, i) => {
-      const v = notesParTrim[tr] ? notesParTrim[tr][mat.nom] : undefined;
-      centre(fmtNote(v == null ? null : Number(v)), xT0 + i * wTrim, wTrim, yTexte, sizeCell, false, couleurSeuil(v));
+      const n = notesParTrim[tr] ? notesParTrim[tr][mat.nom] : undefined;
+      const sizeCellNote = n && Number(n.bareme) !== 100 ? sizeCell - 1 : sizeCell;
+      centre(fmtCelluleNote(n), xT0 + i * wTrim, wTrim, yTexte, sizeCellNote, false, couleurSeuil(pourcentage(n)));
     });
     yy -= rowH;
   }
 
   // Total / Moyenne / Place
   const sommeCoef = matieres.reduce((s, m) => s + (Number(m.coefficient) || 0), 0);
+  // Le total (comme la moyenne) combine les matières via leur pourcentage —
+  // seule façon cohérente de sommer des notes à barèmes différents (15/20 et
+  // 72/100 ne peuvent pas s'additionner directement).
   const totalTrim = (tr) => {
     let s = 0;
     for (const m of matieres) {
-      const v = notesParTrim[tr] ? notesParTrim[tr][m.nom] : undefined;
-      if (v != null) s += Number(v) * (Number(m.coefficient) || 1);
+      const n = notesParTrim[tr] ? notesParTrim[tr][m.nom] : undefined;
+      const pct = pourcentage(n);
+      if (pct != null) s += pct * (Number(m.coefficient) || 1);
     }
     return Math.round(s);
   };

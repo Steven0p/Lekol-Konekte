@@ -4,11 +4,11 @@ import { pool } from '../config/db.js';
 // `niveau` : snapshot du niveau au moment de la saisie (celui de la matière
 // choisie, pas forcément celui — actuel — de l'élève : un élève promu ou
 // diplômé garde ainsi des notes rattachées au bon niveau historique).
-export async function creer({ idEleve, idMatiere, matiere, niveau, periode, anneeScolaire, valeur, saisiePar, statutValidation }) {
+export async function creer({ idEleve, idMatiere, matiere, niveau, periode, anneeScolaire, valeur, bareme, saisiePar, statutValidation }) {
   const [res] = await pool.query(
-    `INSERT INTO notes (id_eleve, id_matiere, matiere, niveau, periode, annee_scolaire, valeur, saisie_par, statut_validation)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [idEleve, idMatiere, matiere, niveau || null, periode, anneeScolaire, valeur, saisiePar || null, statutValidation || 'saisie']
+    `INSERT INTO notes (id_eleve, id_matiere, matiere, niveau, periode, annee_scolaire, valeur, bareme, saisie_par, statut_validation)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [idEleve, idMatiere, matiere, niveau || null, periode, anneeScolaire, valeur, bareme || 100, saisiePar || null, statutValidation || 'saisie']
   );
   return res.insertId;
 }
@@ -25,8 +25,8 @@ export async function trouverParId(id) {
   return rows[0] || null;
 }
 
-export async function mettreAJourValeur(id, valeur) {
-  await pool.query('UPDATE notes SET valeur = ? WHERE id = ?', [valeur, id]);
+export async function mettreAJourValeur(id, valeur, bareme) {
+  await pool.query('UPDATE notes SET valeur = ?, bareme = ? WHERE id = ?', [valeur, bareme || 100, id]);
 }
 
 export async function valider(id) {
@@ -48,7 +48,7 @@ export async function listerAdmin({ niveau, periode, anneeScolaire }) {
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const [rows] = await pool.query(
     `SELECT n.id, n.id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, n.matiere, m.coefficient,
-            n.periode, n.annee_scolaire, n.valeur, n.statut_validation
+            n.periode, n.annee_scolaire, n.valeur, n.bareme, n.statut_validation
        FROM notes n
        JOIN eleves e ON e.id = n.id_eleve
        LEFT JOIN matieres m ON m.id = n.id_matiere
@@ -82,7 +82,7 @@ export async function listerPourEleve(idEleve, { periode, anneeScolaire, seuleme
   }
   const [rows] = await pool.query(
     `SELECT n.id, n.matiere, COALESCE(n.niveau, e.niveau) AS niveau, m.coefficient, n.periode, n.annee_scolaire,
-            n.valeur, n.statut_validation
+            n.valeur, n.bareme, n.statut_validation
        FROM notes n
        JOIN eleves e ON e.id = n.id_eleve
        LEFT JOIN matieres m ON m.id = n.id_matiere
@@ -96,7 +96,7 @@ export async function listerPourEleve(idEleve, { periode, anneeScolaire, seuleme
 // Toutes les notes validées d'un élève (transcript), avec coefficient
 export async function notesValideesToutes(idEleve) {
   const [rows] = await pool.query(
-    `SELECT n.annee_scolaire, n.periode, n.matiere, n.valeur,
+    `SELECT n.annee_scolaire, n.periode, n.matiere, n.valeur, n.bareme,
             COALESCE(m.coefficient, 1) AS coefficient
        FROM notes n
        LEFT JOIN matieres m ON m.id = n.id_matiere
@@ -110,7 +110,7 @@ export async function notesValideesToutes(idEleve) {
 // Notes validées d'un élève pour un trimestre (avec coefficient) — pour la moyenne / le bulletin
 export async function notesValideesPourBulletin(idEleve, periode, anneeScolaire) {
   const [rows] = await pool.query(
-    `SELECT n.matiere, n.valeur, COALESCE(m.coefficient, 1) AS coefficient
+    `SELECT n.matiere, n.valeur, n.bareme, COALESCE(m.coefficient, 1) AS coefficient
        FROM notes n
        LEFT JOIN matieres m ON m.id = n.id_matiere
       WHERE n.id_eleve = ? AND n.periode = ? AND n.annee_scolaire = ?

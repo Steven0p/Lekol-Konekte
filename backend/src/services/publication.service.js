@@ -38,7 +38,7 @@ async function genererAppreciation({
 
   if (!iaConfiguree()) return fallback;
   try {
-    const lignes = Object.entries(notesMap || {}).map(([mat, v]) => `- ${mat} : ${Number(v).toFixed(2)}/100`);
+    const lignes = Object.entries(notesMap || {}).map(([mat, n]) => `- ${mat} : ${Number(n.valeur).toFixed(2)}/${Number(n.bareme).toFixed(0)}`);
     const client = clientIA();
     const completion = await client.chat.completions.create({
       model: MODELE_IA,
@@ -107,7 +107,7 @@ export async function publier({
     for (const tr of trimestresAffiches) {
       const notes = await notesValideesPourBulletin(el.id, tr, anneeScolaire);
       const notesMap = {};
-      notes.forEach((n) => { notesMap[n.matiere] = Number(n.valeur); });
+      notes.forEach((n) => { notesMap[n.matiere] = { valeur: Number(n.valeur), bareme: Number(n.bareme) || 100 }; });
       parTrim[tr] = { notesMap, moyenne: notes.length ? calculerMoyenne(notes).moyenneGenerale : null };
     }
     donnees.set(el.id, parTrim);

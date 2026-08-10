@@ -23,7 +23,15 @@ function grouperNotes(notes) {
   }
   return [...map.values()].map((g) => {
     let sp = 0, sc = 0;
-    g.notes.forEach((n) => { const c = Number(n.coefficient) || 1; sp += Number(n.valeur) * c; sc += c; });
+    // Chaque note garde son barème d'origine (affiché tel quel) ; seule la
+    // moyenne pondérée convertit en pourcentage pour combiner des matières
+    // à barèmes différents en un seul chiffre comparable au seuil.
+    g.notes.forEach((n) => {
+      const c = Number(n.coefficient) || 1;
+      const bareme = Number(n.bareme) || 100;
+      sp += (Number(n.valeur) / bareme) * 100 * c;
+      sc += c;
+    });
     return { ...g, moyenne: sc ? Math.round((sp / sc) * 100) / 100 : 0 };
   });
 }
@@ -193,13 +201,13 @@ export default function NotesBulletins() {
                 <Carte key={`${g.annee}-${g.periode}`} titre={`${LIBELLE_TRIM[g.periode] || g.periode} — ${g.annee}`}>
                   <div className="tableau-enveloppe">
                     <table className="tableau">
-                      <thead><tr><th>Matière</th><th>Note /100</th><th>Coefficient</th></tr></thead>
+                      <thead><tr><th>Matière</th><th>Note</th><th>Coefficient</th></tr></thead>
                       <tbody>
                         {g.notes.map((n) => (
                           <tr key={n.id}>
                             <td>{n.matiere}</td>
-                            <td style={{ color: Number(n.valeur) >= seuil ? '#2F855A' : '#C53030', fontWeight: 700 }}>
-                              {Number(n.valeur).toFixed(2)}
+                            <td style={{ color: (Number(n.valeur) / (Number(n.bareme) || 100)) * 100 >= seuil ? '#2F855A' : '#C53030', fontWeight: 700 }}>
+                              {Number(n.valeur).toFixed(2)}/{Number(n.bareme ?? 100).toFixed(0)}
                             </td>
                             <td>{Number(n.coefficient || 1).toFixed(2)}</td>
                           </tr>

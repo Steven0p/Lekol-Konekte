@@ -91,7 +91,7 @@ export async function listerNotesCtrl(req, res, next) {
 }
 
 // POST /api/admin/anciens-eleves/:id/notes (admin/direction)
-// body { anneeScolaire, periode, notes: [{ idMatiere, valeur }] }
+// body { anneeScolaire, periode, notes: [{ idMatiere, valeur, bareme }] }
 // Saisie groupée, directement validée (dossier historique déjà arrêté —
 // pas de cycle brouillon/validation ni de publication à rejouer).
 export async function creerNotesCtrl(req, res, next) {
@@ -116,14 +116,16 @@ export async function creerNotesCtrl(req, res, next) {
     for (const ligne of lignes) {
       const idMatiere = Number(ligne.idMatiere);
       const valeur = Number(ligne.valeur);
-      if (!idMatiere || !Number.isFinite(valeur) || valeur < 0 || valeur > 100) continue;
+      const bareme = ligne.bareme === undefined || ligne.bareme === '' ? 100 : Number(ligne.bareme);
+      if (!idMatiere || !Number.isFinite(bareme) || bareme <= 0) continue;
+      if (!Number.isFinite(valeur) || valeur < 0 || valeur > bareme) continue;
 
       const matiere = await matiereModel.trouverParId(idMatiere);
       if (!matiere) continue;
 
       const id = await noteModel.creer({
         idEleve, idMatiere, matiere: matiere.nom, niveau: matiere.niveau,
-        periode, anneeScolaire, valeur, saisiePar: req.session.userId,
+        periode, anneeScolaire, valeur, bareme, saisiePar: req.session.userId,
         statutValidation: 'validee',
       });
       cree.push(id);
@@ -167,7 +169,7 @@ export async function genererBulletinCtrl(req, res, next) {
     for (const tr of trimestresAffiches) {
       const notes = await noteModel.notesValideesPourBulletin(idEleve, tr, anneeScolaire);
       const notesMap = {};
-      notes.forEach((n) => { notesMap[n.matiere] = Number(n.valeur); });
+      notes.forEach((n) => { notesMap[n.matiere] = { valeur: Number(n.valeur), bareme: Number(n.bareme) || 100 }; });
       notesParTrim[tr] = notesMap;
       moyennesParTrim[tr] = notes.length ? calculerMoyenne(notes).moyenneGenerale : null;
     }

@@ -253,6 +253,7 @@ CREATE TABLE IF NOT EXISTS notes (
   periode           ENUM('1er_trimestre','2e_trimestre','3e_trimestre') NOT NULL,
   annee_scolaire    VARCHAR(9) NOT NULL,
   valeur            DECIMAL(5,2) NOT NULL,
+  bareme            DECIMAL(6,2) NOT NULL DEFAULT 100, -- note « sur X » (10, 20, 100...)
   statut_validation ENUM('saisie','validee') NOT NULL DEFAULT 'saisie',
   saisie_par        INT,
   cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
