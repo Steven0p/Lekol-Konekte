@@ -52,7 +52,7 @@ export default function NouvelleInscription() {
             <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')} required />
           </div>
           <Champ label="Date de naissance" type="date" value={form.dateNaissance}
-            onChange={maj('dateNaissance')} required />
+            onChange={maj('dateNaissance')} max={new Date().toISOString().slice(0, 10)} required />
           <Champ label="Niveau scolaire visé" value={form.niveau}
             onChange={maj('niveau')} placeholder="ex. 6e année" required />
           <Champ label="Année scolaire" value={form.anneeScolaire}

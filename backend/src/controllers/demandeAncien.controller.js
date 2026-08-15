@@ -16,11 +16,15 @@ export async function creerCtrl(req, res, next) {
     if (!courriel || courriel.length > 190 || !COURRIEL_RE.test(courriel)) {
       return res.status(400).json({ erreur: 'Courriel invalide.' });
     }
+    const dateNaissance = req.body.dateNaissance || null;
+    if (dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
 
     await demandeModel.creer({
       nom,
       prenom: (req.body.prenom || '').trim().slice(0, 120) || null,
-      dateNaissance: req.body.dateNaissance || null,
+      dateNaissance,
       dernierNiveau: (req.body.dernierNiveau || '').trim().slice(0, 60) || null,
       anneesFrequentees: (req.body.anneesFrequentees || '').trim().slice(0, 100) || null,
       courriel,

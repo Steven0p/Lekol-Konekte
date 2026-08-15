@@ -46,10 +46,14 @@ export async function creerCtrl(req, res, next) {
   try {
     const nom = (req.body.nom || '').trim();
     if (!nom) return res.status(400).json({ erreur: 'Nom requis.' });
+    const dateNaissance = req.body.dateNaissance || null;
+    if (dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
     const ancien = await eleveModel.creerAncien({
       nom,
       prenom: (req.body.prenom || '').trim() || null,
-      dateNaissance: req.body.dateNaissance || null,
+      dateNaissance,
       niveau: (req.body.niveau || '').trim() || null,
       courrielContact: (req.body.courrielContact || '').trim() || null,
     });
@@ -63,6 +67,9 @@ export async function creerCtrl(req, res, next) {
 export async function mettreAJourCtrl(req, res, next) {
   try {
     const id = Number(req.params.id);
+    if (req.body.dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(req.body.dateNaissance)) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
     await eleveModel.mettreAJourAncien(id, {
       nom: req.body.nom !== undefined ? (req.body.nom || '').trim() : undefined,
       prenom: req.body.prenom !== undefined ? (req.body.prenom || '').trim() : undefined,

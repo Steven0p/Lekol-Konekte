@@ -51,7 +51,7 @@ export default function DemandeAncienEleve() {
               <Champ label="Prénom" value={form.prenom} onChange={maj('prenom')} />
             </div>
             <div className="notes-form-grille">
-              <Champ label="Date de naissance" type="date" value={form.dateNaissance} onChange={maj('dateNaissance')} />
+              <Champ label="Date de naissance" type="date" value={form.dateNaissance} onChange={maj('dateNaissance')} max={new Date().toISOString().slice(0, 10)} />
               <Champ label="Dernière classe fréquentée" value={form.dernierNiveau}
                 onChange={maj('dernierNiveau')} placeholder="Ex. : 9e année fondamentale" />
             </div>

@@ -46,6 +46,9 @@ export async function creer(req, res, next) {
     const anneeScolaire = (req.body.anneeScolaire || '').trim() || anneeScolaireCourante();
     const niveau = (req.body.niveau || '').trim();
     const dateNaissance = req.body.dateNaissance || null;
+    if (dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
 
     const t = (v) => (v ? String(v).trim() : null);
     const nomParent = t(req.body.nomParent);

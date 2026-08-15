@@ -277,7 +277,7 @@ function ModaleCreation({ onFermer, onCree, setErreur, initial }) {
             <Champ label="Prénom" value={form.prenom} onChange={maj('prenom')} />
           </div>
           <div className="notes-form-grille">
-            <Champ label="Date de naissance" type="date" value={form.dateNaissance} onChange={maj('dateNaissance')} />
+            <Champ label="Date de naissance" type="date" value={form.dateNaissance} onChange={maj('dateNaissance')} max={new Date().toISOString().slice(0, 10)} />
             <Champ label="Dernier niveau connu" value={form.niveau} onChange={maj('niveau')} placeholder="Ex. : 9e année fondamentale" />
           </div>
           <Champ label="Courriel de contact (pour envoyer le code d'accès)" type="email"
