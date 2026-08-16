@@ -35,10 +35,10 @@ router.patch('/admin/eleves/:id/badge-infos', requireRole('admin', 'direction'),
 router.get('/admin/eleves/:id/photo', requireRole('admin', 'direction'), note.servirPhotoEleveAdmin);
 router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), note.televerserPhotoEleveAdmin);
 
-// Économat : acquittement de scolarité par trimestre (admin/direction)
-router.get('/admin/acquittements', requireRole('admin', 'direction'), acquittement.lister);
-router.post('/admin/acquittements', requireRole('admin', 'direction'), acquittement.marquer);
-router.delete('/admin/acquittements', requireRole('admin', 'direction'), acquittement.retirer);
+// Économat : acquittement de scolarité par trimestre (admin)
+router.get('/admin/acquittements', requireRole('admin'), acquittement.lister);
+router.post('/admin/acquittements', requireRole('admin'), acquittement.marquer);
+router.delete('/admin/acquittements', requireRole('admin'), acquittement.retirer);
 
 // Liste des enfants du parent connecté
 router.get('/mes-eleves', requireRole('parent'), note.listerMesEleves);

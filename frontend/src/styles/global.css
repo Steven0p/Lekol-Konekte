@@ -872,6 +872,20 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 }
 .insc-page .page-entete h1 { color: var(--i-navy); }
 
+/* Onglets (page Économat) */
+.eco-onglets {
+  display: flex; flex-wrap: wrap; gap: .25rem;
+  border-bottom: 2px solid var(--i-bord); margin-bottom: 1.25rem;
+}
+.eco-onglet {
+  background: none; border: none; cursor: pointer;
+  padding: .65rem 1.1rem; margin-bottom: -2px;
+  font-size: .92rem; font-weight: 600; color: var(--i-txt2);
+  border-bottom: 2px solid transparent; transition: color var(--transition), border-color var(--transition);
+}
+.eco-onglet:hover { color: var(--i-navy); }
+.eco-onglet.actif { color: var(--bleu); border-bottom-color: var(--bleu); }
+
 /* Badges de résumé */
 .insc-resume { display: flex; flex-wrap: wrap; gap: .65rem; margin-bottom: 1.1rem; }
 .insc-stat {

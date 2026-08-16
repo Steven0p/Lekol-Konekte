@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { adminApi } from '../../services/api.js';
-import { anneeScolaireCourante } from '../../utils/libelles.js';
-import Alerte from '../../components/Alerte.jsx';
-import Chargement from '../../components/Chargement.jsx';
-import Icone from '../../components/Icone.jsx';
+import { adminApi } from '../../../services/api.js';
+import { anneeScolaireCourante } from '../../../utils/libelles.js';
+import Alerte from '../../../components/Alerte.jsx';
+import Chargement from '../../../components/Chargement.jsx';
+import Icone from '../../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 
@@ -19,7 +19,7 @@ function anneesScolaires() {
   return [a - 1, a, a + 1].map((y) => `${y}-${y + 1}`);
 }
 
-export default function AdminEconomat() {
+export default function AcquittementsTab() {
   const [niveaux, setNiveaux] = useState([]);       // liste déroulante dynamique
   const [niveau, setNiveau] = useState('');
   const [annee, setAnnee] = useState(anneeScolaireCourante());
@@ -90,12 +90,7 @@ export default function AdminEconomat() {
   const reinitialiser = () => { setNiveau(''); setAnnee(anneeScolaireCourante()); setTrimestre('1er_trimestre'); };
 
   return (
-    <div className="insc-page eco-page">
-      <div className="page-entete">
-        <h1>Économat</h1>
-        <p>Marquez les élèves « à jour » par trimestre. Un élève non à jour ne voit pas ses résultats.</p>
-      </div>
-
+    <div className="eco-onglet-corps eco-page">
       {/* Résumé (après sélection d'un niveau) */}
       {niveau && !charge && eleves.length > 0 && (
         <div className="insc-resume">
@@ -191,8 +186,6 @@ export default function AdminEconomat() {
           <p className="insc-compte">{eleves.length} élève{eleves.length > 1 ? 's' : ''} · page {pageCourante}/{nbPages}</p>
         </>
       )}
-
-      <footer className="insc-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
 
       {/* Modale de confirmation (action en masse) */}
       {batch && (

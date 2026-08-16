@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { adminApi, urlPreuvePaiement } from '../../services/api.js';
-import { libelleTypeFrais, montantFr, dateFr } from '../../utils/libelles.js';
-import Alerte from '../../components/Alerte.jsx';
-import Chargement from '../../components/Chargement.jsx';
-import Icone from '../../components/Icone.jsx';
+import { adminApi, urlPreuvePaiement } from '../../../services/api.js';
+import { libelleTypeFrais, montantFr, dateFr } from '../../../utils/libelles.js';
+import Alerte from '../../../components/Alerte.jsx';
+import Chargement from '../../../components/Chargement.jsx';
+import Icone from '../../../components/Icone.jsx';
 
 const PAR_PAGE = 10;
 
@@ -14,7 +14,7 @@ function BadgeStatut({ statut }) {
   return <span className={`insc-badge insc-badge-${tonStatut(statut)}`}>{LIBELLE_STATUT[statut] || statut}</span>;
 }
 
-export default function AdminPaiements() {
+export default function PaiementsTab() {
   const [tous, setTous] = useState(null);
   const [erreur, setErreur] = useState('');
 
@@ -91,12 +91,7 @@ export default function AdminPaiements() {
   };
 
   return (
-    <div className="insc-page">
-      <div className="page-entete">
-        <h1>File des paiements</h1>
-        <p>Vérifiez les preuves et validez ou rejetez les paiements.</p>
-      </div>
-
+    <div className="eco-onglet-corps">
       {/* Résumé */}
       <div className="insc-resume">
         <span className="insc-stat"><strong>{stats.total}</strong> Total</span>
@@ -182,8 +177,6 @@ export default function AdminPaiements() {
           </p>
         </>
       )}
-
-      <footer className="insc-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
 
       {/* Modale preuve / détails */}
       {details && (

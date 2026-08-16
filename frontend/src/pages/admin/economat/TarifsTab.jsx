@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { directionApi, adminApi } from '../../services/api.js';
-import { TYPES_FRAIS, libelleTypeFrais, montantFr, dateFr, tarifCourant } from '../../utils/libelles.js';
-import Alerte from '../../components/Alerte.jsx';
-import Chargement from '../../components/Chargement.jsx';
-import Icone from '../../components/Icone.jsx';
+import { useEffect, useRef, useState } from 'react';
+import { directionApi, adminApi } from '../../../services/api.js';
+import { TYPES_FRAIS, libelleTypeFrais, montantFr, dateFr, tarifCourant } from '../../../utils/libelles.js';
+import Alerte from '../../../components/Alerte.jsx';
+import Chargement from '../../../components/Chargement.jsx';
+import Icone from '../../../components/Icone.jsx';
 
 const PAR_PAGE = 15;
 const aujourdHui = () => new Date().toISOString().slice(0, 10);
@@ -14,7 +14,7 @@ function anneesScolaires() {
   return [a - 1, a, a + 1].map((y) => `${y}-${y + 1}`);
 }
 
-export default function Tarifs() {
+export default function TarifsTab() {
   const [tarifs, setTarifs] = useState(null);
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
@@ -48,12 +48,7 @@ export default function Tarifs() {
   };
 
   return (
-    <div className="insc-page tarifs-page">
-      <div className="page-entete">
-        <h1>Tarifs</h1>
-        <p>Définissez les frais d'inscription, de relevé de notes et de duplicata.</p>
-      </div>
-
+    <div className="eco-onglet-corps tarifs-page">
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
       {msg && <Alerte type="info">{msg}</Alerte>}
 
@@ -109,8 +104,6 @@ export default function Tarifs() {
           </table>
         </div>
       )}
-
-      <footer className="insc-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
 
       {/* Modale : modifier tarif principal */}
       {edition && (

@@ -57,10 +57,11 @@ const MENUS = {
       { to: '/admin/codes-eleves', libelle: 'Codes élèves', icone: 'codes' },
       { to: '/admin/badges', libelle: 'Badges', icone: 'badges' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
-      { to: '/admin/paiements', libelle: 'Paiements', icone: 'paiements', cle: 'paiements' },
+    ] },
+    { titre: 'Économat', items: [
+      { to: '/admin/economat', libelle: 'Économat', icone: 'economat', cle: 'paiements' },
     ] },
     { titre: 'Administration', items: [
-      { to: '/admin/economat', libelle: 'Économat', icone: 'economat' },
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
     ] },
   ],
@@ -69,7 +70,6 @@ const MENUS = {
     { titre: 'Direction', items: [
       { to: '/direction/matieres', libelle: 'Matières', icone: 'matieres' },
       { to: '/direction/publications', libelle: 'Publications', icone: 'publications' },
-      { to: '/direction/tarifs', libelle: 'Tarifs', icone: 'tarifs' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },

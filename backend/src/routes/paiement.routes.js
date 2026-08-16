@@ -34,9 +34,9 @@ function televerserLogoFichier(req, res, next) {
 }
 
 // Tarifs & coordonnées
-router.post('/tarifs', requireRole('direction'), tarif.creerTarif);
+router.post('/tarifs', requireRole('admin'), tarif.creerTarif);
 router.get('/tarifs', requireAuth, tarif.listerTarifs);
-router.put('/tarifs/:id', requireRole('direction'), tarif.mettreAJourTarif);
+router.put('/tarifs/:id', requireRole('admin'), tarif.mettreAJourTarif);
 router.put('/ecole', requireRole('direction'), tarif.definirEcole);
 router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
 router.put('/ecole-entete', requireRole('admin', 'direction'), tarif.majEnteteEcole);
@@ -48,11 +48,11 @@ router.get('/ecole/logo', tarif.servirLogo);
 // Marque publique (nom + présence d'un logo) — affichée dans l'en-tête du site.
 router.get('/ecole/marque', tarif.marqueEcole);
 
-// Frais divers (catalogue géré par la direction)
+// Frais divers (catalogue géré par l'économat)
 router.get('/frais-divers', requireAuth, fraisDivers.lister);
-router.post('/frais-divers', requireRole('direction'), fraisDivers.creer);
-router.put('/frais-divers/:id', requireRole('direction'), fraisDivers.mettreAJour);
-router.delete('/frais-divers/:id', requireRole('direction'), fraisDivers.supprimer);
+router.post('/frais-divers', requireRole('admin'), fraisDivers.creer);
+router.put('/frais-divers/:id', requireRole('admin'), fraisDivers.mettreAJour);
+router.delete('/frais-divers/:id', requireRole('admin'), fraisDivers.supprimer);
 
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiement.creer);
@@ -63,8 +63,8 @@ router.get('/paiements', requireRole('parent'), paiement.listerMiens);
 router.get('/paiements/:id', requireAuth, paiement.detail);
 router.get('/paiements/:id/preuve', requireAuth, paiement.servirPreuve);
 
-// Admin / direction
-router.get('/admin/paiements', requireRole('admin', 'direction'), paiement.listerAdmin);
-router.patch('/paiements/:id/validation', requireRole('admin', 'direction'), paiement.validation);
+// Économat (admin)
+router.get('/admin/paiements', requireRole('admin'), paiement.listerAdmin);
+router.patch('/paiements/:id/validation', requireRole('admin'), paiement.validation);
 
 export default router;

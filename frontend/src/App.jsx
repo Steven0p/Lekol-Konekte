@@ -37,13 +37,11 @@ import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
 import AdminNotes from './pages/admin/AdminNotes.jsx';
 import AdminCodesEleves from './pages/admin/AdminCodesEleves.jsx';
 import AdminBadges from './pages/admin/AdminBadges.jsx';
-import AdminPaiements from './pages/admin/AdminPaiements.jsx';
-import AdminEconomat from './pages/admin/AdminEconomat.jsx';
+import Economat from './pages/admin/Economat.jsx';
 import AdminPresences from './pages/admin/AdminPresences.jsx';
 import AdminAnciensEleves from './pages/admin/AdminAnciensEleves.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
-import Tarifs from './pages/direction/Tarifs.jsx';
 import Ecole from './pages/direction/Ecole.jsx';
 import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
@@ -113,15 +111,13 @@ export default function App() {
         <Route path="/admin/notes" element={<RoutePrivee roles={['admin']}><AdminNotes /></RoutePrivee>} />
         <Route path="/admin/codes-eleves" element={<RoutePrivee roles={['admin']}><AdminCodesEleves /></RoutePrivee>} />
         <Route path="/admin/badges" element={<RoutePrivee roles={['admin']}><AdminBadges /></RoutePrivee>} />
-        <Route path="/admin/paiements" element={<RoutePrivee roles={['admin']}><AdminPaiements /></RoutePrivee>} />
-        <Route path="/admin/economat" element={<RoutePrivee roles={['admin', 'direction']}><AdminEconomat /></RoutePrivee>} />
+        <Route path="/admin/economat" element={<RoutePrivee roles={['admin']}><Economat /></RoutePrivee>} />
         <Route path="/admin/presences" element={<RoutePrivee roles={['admin', 'direction']}><AdminPresences /></RoutePrivee>} />
         <Route path="/admin/anciens-eleves" element={<RoutePrivee roles={['admin', 'direction']}><AdminAnciensEleves /></RoutePrivee>} />
 
         {/* Direction */}
         <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />
         <Route path="/direction/publications" element={<RoutePrivee roles={['direction']}><Publications /></RoutePrivee>} />
-        <Route path="/direction/tarifs" element={<RoutePrivee roles={['direction']}><Tarifs /></RoutePrivee>} />
         <Route path="/direction/ecole" element={<RoutePrivee roles={['direction']}><Ecole /></RoutePrivee>} />
 
         {/* Propriétaire — Contrôle d'accès */}
