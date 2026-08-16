@@ -223,6 +223,15 @@ CREATE TABLE IF NOT EXISTS vlog_admins (
   cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- economat_admins : identifiants dédiés à l'Économat (paiements, tarifs,
+-- acquittements) — module autonome, détaché des rôles admin/direction.
+CREATE TABLE IF NOT EXISTS economat_admins (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  email             VARCHAR(190) NOT NULL UNIQUE,
+  mot_de_passe_hash VARCHAR(255) NOT NULL,
+  cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
+
 -- publications_vlog : billets publiés sur le vlog public
 CREATE TABLE IF NOT EXISTS publications_vlog (
   id            INT AUTO_INCREMENT PRIMARY KEY,

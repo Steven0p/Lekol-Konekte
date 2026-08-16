@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { directionApi, adminApi } from '../../../services/api.js';
+import { directionApi, economatApi } from '../../../services/api.js';
 import { TYPES_FRAIS, libelleTypeFrais, montantFr, dateFr, tarifCourant } from '../../../utils/libelles.js';
 import Alerte from '../../../components/Alerte.jsx';
 import Chargement from '../../../components/Chargement.jsx';
@@ -160,7 +160,7 @@ function AutresFrais() {
   const charger = () => directionApi.fraisDivers().then((d) => setFrais(d.frais)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
   useEffect(() => {
-    adminApi.elevesCodes('').then((d) => setNiveaux([...new Set(d.eleves.map((e) => e.niveau).filter(Boolean))].sort())).catch(() => {});
+    economatApi.niveaux().then((d) => setNiveaux(d.niveaux)).catch(() => {});
   }, []);
 
   const liste = frais || [];

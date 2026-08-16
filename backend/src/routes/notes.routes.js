@@ -4,7 +4,7 @@ import * as matiere from '../controllers/matiere.controller.js';
 import * as note from '../controllers/note.controller.js';
 import * as publication from '../controllers/publication.controller.js';
 import * as acquittement from '../controllers/acquittement.controller.js';
-import { requireAuth, requireRole, requireEleve, requirePermission } from '../middleware/auth.js';
+import { requireAuth, requireRole, requireEleve, requirePermission, requireEconomatAdmin } from '../middleware/auth.js';
 import { CLES } from '../services/permissions.service.js';
 import { uploadPhoto } from '../config/upload.js';
 
@@ -35,10 +35,10 @@ router.patch('/admin/eleves/:id/badge-infos', requireRole('admin', 'direction'),
 router.get('/admin/eleves/:id/photo', requireRole('admin', 'direction'), note.servirPhotoEleveAdmin);
 router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), note.televerserPhotoEleveAdmin);
 
-// Économat : acquittement de scolarité par trimestre (admin)
-router.get('/admin/acquittements', requireRole('admin'), acquittement.lister);
-router.post('/admin/acquittements', requireRole('admin'), acquittement.marquer);
-router.delete('/admin/acquittements', requireRole('admin'), acquittement.retirer);
+// Économat : acquittement de scolarité par trimestre (système indépendant)
+router.get('/admin/acquittements', requireEconomatAdmin, acquittement.lister);
+router.post('/admin/acquittements', requireEconomatAdmin, acquittement.marquer);
+router.delete('/admin/acquittements', requireEconomatAdmin, acquittement.retirer);
 
 // Liste des enfants du parent connecté
 router.get('/mes-eleves', requireRole('parent'), note.listerMesEleves);

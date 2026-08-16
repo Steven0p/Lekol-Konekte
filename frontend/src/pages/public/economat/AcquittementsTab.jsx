@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { adminApi } from '../../../services/api.js';
+import { adminApi, economatApi } from '../../../services/api.js';
 import { anneeScolaireCourante } from '../../../utils/libelles.js';
 import Alerte from '../../../components/Alerte.jsx';
 import Chargement from '../../../components/Chargement.jsx';
@@ -36,8 +36,8 @@ export default function AcquittementsTab() {
 
   // Niveaux disponibles (dérivés de la liste réelle des élèves)
   useEffect(() => {
-    adminApi.elevesCodes('')
-      .then((d) => setNiveaux([...new Set(d.eleves.map((e) => e.niveau).filter(Boolean))].sort()))
+    economatApi.niveaux()
+      .then((d) => setNiveaux(d.niveaux))
       .catch(() => { /* silencieux : dropdown vide */ });
   }, []);
 

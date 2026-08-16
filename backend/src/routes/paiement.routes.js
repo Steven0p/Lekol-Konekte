@@ -3,9 +3,10 @@ import { Router } from 'express';
 import * as tarif from '../controllers/tarif.controller.js';
 import * as fraisDivers from '../controllers/fraisDivers.controller.js';
 import * as paiement from '../controllers/paiement.controller.js';
-import { requireAuth, requireRole } from '../middleware/auth.js';
+import * as economatAuth from '../controllers/economatAuth.controller.js';
+import { requireAuth, requireRole, requireEconomatAdmin, requireAuthOuEconomatAdmin } from '../middleware/auth.js';
 import { uploadPreuve, uploadLogo } from '../config/upload.js';
-import { uploadLimiter } from '../middleware/rateLimit.js';
+import { uploadLimiter, authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -33,10 +34,16 @@ function televerserLogoFichier(req, res, next) {
   });
 }
 
+// Économat : authentification (système indépendant, hors comptes école)
+router.post('/economat/admin/login', authLimiter, economatAuth.adminLogin);
+router.post('/economat/admin/logout', economatAuth.adminLogout);
+router.get('/economat/admin/me', economatAuth.adminMe);
+router.get('/economat/niveaux', requireEconomatAdmin, tarif.niveaux);
+
 // Tarifs & coordonnées
-router.post('/tarifs', requireRole('admin'), tarif.creerTarif);
-router.get('/tarifs', requireAuth, tarif.listerTarifs);
-router.put('/tarifs/:id', requireRole('admin'), tarif.mettreAJourTarif);
+router.post('/tarifs', requireEconomatAdmin, tarif.creerTarif);
+router.get('/tarifs', requireAuthOuEconomatAdmin, tarif.listerTarifs);
+router.put('/tarifs/:id', requireEconomatAdmin, tarif.mettreAJourTarif);
 router.put('/ecole', requireRole('direction'), tarif.definirEcole);
 router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
 router.put('/ecole-entete', requireRole('admin', 'direction'), tarif.majEnteteEcole);
@@ -49,22 +56,22 @@ router.get('/ecole/logo', tarif.servirLogo);
 router.get('/ecole/marque', tarif.marqueEcole);
 
 // Frais divers (catalogue géré par l'économat)
-router.get('/frais-divers', requireAuth, fraisDivers.lister);
-router.post('/frais-divers', requireRole('admin'), fraisDivers.creer);
-router.put('/frais-divers/:id', requireRole('admin'), fraisDivers.mettreAJour);
-router.delete('/frais-divers/:id', requireRole('admin'), fraisDivers.supprimer);
+router.get('/frais-divers', requireEconomatAdmin, fraisDivers.lister);
+router.post('/frais-divers', requireEconomatAdmin, fraisDivers.creer);
+router.put('/frais-divers/:id', requireEconomatAdmin, fraisDivers.mettreAJour);
+router.delete('/frais-divers/:id', requireEconomatAdmin, fraisDivers.supprimer);
 
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiement.creer);
 router.post('/paiements/:id/preuve', requireRole('parent'), uploadLimiter, televerserPreuveFichier, paiement.televerserPreuve);
 router.get('/paiements', requireRole('parent'), paiement.listerMiens);
 
-// Propriétaire ou admin
-router.get('/paiements/:id', requireAuth, paiement.detail);
-router.get('/paiements/:id/preuve', requireAuth, paiement.servirPreuve);
+// Propriétaire du paiement (parent) ou admin Économat
+router.get('/paiements/:id', requireAuthOuEconomatAdmin, paiement.detail);
+router.get('/paiements/:id/preuve', requireAuthOuEconomatAdmin, paiement.servirPreuve);
 
-// Économat (admin)
-router.get('/admin/paiements', requireRole('admin'), paiement.listerAdmin);
-router.patch('/paiements/:id/validation', requireRole('admin'), paiement.validation);
+// Économat (système indépendant)
+router.get('/admin/paiements', requireEconomatAdmin, paiement.listerAdmin);
+router.patch('/paiements/:id/validation', requireEconomatAdmin, paiement.validation);
 
 export default router;

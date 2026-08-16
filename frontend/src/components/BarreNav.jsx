@@ -58,9 +58,6 @@ const MENUS = {
       { to: '/admin/badges', libelle: 'Badges', icone: 'badges' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
     ] },
-    { titre: 'Économat', items: [
-      { to: '/admin/economat', libelle: 'Économat', icone: 'economat', cle: 'paiements' },
-    ] },
     { titre: 'Administration', items: [
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
     ] },
@@ -109,13 +106,12 @@ export default function BarreNav() {
   // Ferme le tiroir mobile à chaque changement de page
   useEffect(() => { setOuvert(false); }, [location.pathname]);
 
-  // Compteurs dynamiques (secrétariat) : dossiers + paiements en attente
+  // Compteurs dynamiques (secrétariat) : dossiers d'inscription en attente
   useEffect(() => {
     if (role !== 'admin') return;
-    Promise.all([
-      adminApi.inscriptions({ statut: 'en_attente' }).then((d) => d.inscriptions.length).catch(() => 0),
-      adminApi.paiements('en_attente').then((d) => d.paiements.length).catch(() => 0),
-    ]).then(([inscriptions, paiements]) => setCompteurs({ inscriptions, paiements }));
+    adminApi.inscriptions({ statut: 'en_attente' })
+      .then((d) => setCompteurs({ inscriptions: d.inscriptions.length }))
+      .catch(() => {});
   }, [role]);
 
   const seDeconnecter = async () => { await logout(); navigate('/login'); };

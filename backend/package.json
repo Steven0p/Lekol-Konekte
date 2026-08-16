@@ -11,6 +11,7 @@
     "init:db": "node scripts/initDbRailway.js",
     "seed:admin:railway": "node scripts/seedAdminRailway.js",
     "seed:admins-modules:railway": "node scripts/seedAdminsModulesRailway.js",
+    "seed:economat:railway": "node scripts/seedEconomatRailway.js",
     "seed": "node scripts/seed.js",
     "seed:vlog": "node scripts/seedVlog.js",
     "seed:profs": "node scripts/seedProfs.js",

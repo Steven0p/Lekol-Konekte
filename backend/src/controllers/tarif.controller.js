@@ -3,10 +3,22 @@ import path from 'path';
 import fs from 'fs/promises';
 import * as tarifModel from '../models/tarif.model.js';
 import * as ecoleModel from '../models/ecole.model.js';
+import * as eleveModel from '../models/eleve.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
+
+// GET /api/economat/niveaux (admin Économat) — liste des niveaux connus,
+// sans exposer les dossiers élèves (contrairement à /admin/eleves-codes).
+export async function niveaux(req, res, next) {
+  try {
+    const niveaux = await eleveModel.listerNiveauxConnus();
+    return res.json({ niveaux });
+  } catch (err) {
+    next(err);
+  }
+}
 
 // POST /api/tarifs (direction)
 export async function creerTarif(req, res, next) {

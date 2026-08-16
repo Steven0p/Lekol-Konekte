@@ -159,6 +159,14 @@ export const directionApi = {
   supprimerLogo: () => request('/ecole/logo', { method: 'DELETE' }),
 };
 
+// Économat — système indépendant (propre authentification par courriel)
+export const economatApi = {
+  adminMe: () => request('/economat/admin/me'),
+  adminLogin: (body) => request('/economat/admin/login', { method: 'POST', body: json(body) }),
+  adminLogout: () => request('/economat/admin/logout', { method: 'POST' }),
+  niveaux: () => request('/economat/niveaux'),
+};
+
 // Vlog — système indépendant (propre authentification)
 export const vlogApi = {
   publications: () => request('/vlog'),

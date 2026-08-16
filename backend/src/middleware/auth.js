@@ -70,6 +70,22 @@ export function requireExamensAdmin(req, res, next) {
   next();
 }
 
+// Exige une session « admin de l'Économat » (système indépendant, hors comptes
+// école — détaché des rôles admin/direction : paiements, tarifs, acquittements)
+export function requireEconomatAdmin(req, res, next) {
+  if (!req.session || !req.session.economatAdminId) {
+    return res.status(401).json({ erreur: 'Connexion admin Économat requise.' });
+  }
+  next();
+}
+
+// Lecture de tarifs/frais partagée entre les comptes école (parents...) et
+// l'admin Économat (système indépendant) — accepte l'une ou l'autre session.
+export function requireAuthOuEconomatAdmin(req, res, next) {
+  if (req.session && (req.session.userId || req.session.economatAdminId)) return next();
+  return res.status(401).json({ erreur: 'Authentification requise.' });
+}
+
 // Exige qu'une action ne soit pas désactivée par le propriétaire (voir
 // permissions.service.js). À utiliser APRÈS requireRole sur les routes
 // direction/admin concernées — le propriétaire lui-même n'emprunte pas ces

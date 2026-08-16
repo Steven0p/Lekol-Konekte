@@ -5,8 +5,10 @@ import { findParentIdByUserId } from '../models/user.model.js';
 import { creerDemande, traiterValidation, proprietaireDe } from '../services/paiement.service.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
-function estAdmin(req) {
-  return req.session.role === 'admin' || req.session.role === 'direction';
+// Accès complet (tout paiement, pas seulement le sien) réservé à l'admin
+// Économat — module détaché des rôles admin/direction.
+function estAdminEconomat(req) {
+  return !!(req.session && req.session.economatAdminId);
 }
 
 // POST /api/paiements (parent)
@@ -56,7 +58,7 @@ export async function listerMiens(req, res, next) {
 async function chargerAutorise(req, res) {
   const paiement = await paiementModel.trouverParId(Number(req.params.id));
   if (!paiement) { res.status(404).json({ erreur: 'Paiement introuvable.' }); return null; }
-  if (!estAdmin(req)) {
+  if (!estAdminEconomat(req)) {
     const idProprietaire = await proprietaireDe(paiement);
     if (idProprietaire !== req.session.userId) { res.status(403).json({ erreur: 'Accès refusé.' }); return null; }
   }
