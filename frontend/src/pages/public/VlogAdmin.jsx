@@ -6,6 +6,7 @@ import { CATEGORIES_VLOG } from './Vlog.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
+import ModaleCompteAdmin from '../../components/ModaleCompteAdmin.jsx';
 
 const PUBLICATION_VIDE = { titre: '', contenu: '', categorie: 'actualite', photo: null };
 
@@ -28,7 +29,7 @@ export default function VlogAdmin() {
   if (chargement) return <div className="site-page"><p className="texte-gris">Chargement…</p></div>;
 
   return admin
-    ? <PanneauAdmin admin={admin} onLogout={() => setAdmin(null)} />
+    ? <PanneauAdmin admin={admin} onAdminMaj={setAdmin} onLogout={() => setAdmin(null)} />
     : <FormLogin onConnecte={setAdmin} />;
 }
 
@@ -76,13 +77,14 @@ function FormLogin({ onConnecte }) {
 }
 
 // ---------- Panneau de gestion ----------
-function PanneauAdmin({ admin, onLogout }) {
+function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
   const [publications, setPublications] = useState(null); // null = chargement
   const [form, setForm] = useState(PUBLICATION_VIDE);
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [suppression, setSuppression] = useState(null);
+  const [compteOuvert, setCompteOuvert] = useState(false);
   const [suppEnCours, setSuppEnCours] = useState(false);
   const [sujetIA, setSujetIA] = useState('');
   const [iaEnCours, setIaEnCours] = useState(false);
@@ -164,6 +166,7 @@ function PanneauAdmin({ admin, onLogout }) {
             <span className="vadm-user-nom">{admin.identifiant}</span>
             <span className="vadm-user-sous">Connecté</span>
           </div>
+          <button type="button" className="insc-btn-reinit" onClick={() => setCompteOuvert(true)}>Mon compte</button>
           <button type="button" className="vadm-deco" onClick={seDeconnecter}>Se déconnecter</button>
         </div>
       </header>
@@ -270,6 +273,12 @@ function PanneauAdmin({ admin, onLogout }) {
             </div>
           </div>
         </div>
+      )}
+
+      {compteOuvert && (
+        <ModaleCompteAdmin identifiantActuel={admin.identifiant} onSoumettre={vlogApi.modifierCompte}
+          onFermer={() => setCompteOuvert(false)}
+          onMaj={(identifiant) => { onAdminMaj({ ...admin, identifiant }); setCompteOuvert(false); }} />
       )}
     </div>
   );

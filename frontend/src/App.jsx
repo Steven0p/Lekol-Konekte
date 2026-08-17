@@ -46,7 +46,7 @@ import Ecole from './pages/direction/Ecole.jsx';
 import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
 import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
-import MonCompte from './pages/proprietaire/MonCompte.jsx';
+import MonCompte from './pages/MonCompte.jsx';
 
 export default function App() {
   return (
@@ -88,6 +88,7 @@ export default function App() {
         }
       >
         <Route path="/tableau-de-bord" element={<TableauDeBord />} />
+        <Route path="/mon-compte" element={<RoutePrivee roles={['parent', 'admin', 'direction', 'proprietaire']}><MonCompte /></RoutePrivee>} />
 
         {/* Parent — Inscriptions */}
         <Route path="/inscriptions" element={<RoutePrivee roles={['parent']}><MesInscriptions /></RoutePrivee>} />
@@ -124,7 +125,6 @@ export default function App() {
         <Route path="/proprietaire/statistiques" element={<RoutePrivee roles={['proprietaire']}><Statistiques /></RoutePrivee>} />
         <Route path="/proprietaire/sante" element={<RoutePrivee roles={['proprietaire']}><SanteServeur /></RoutePrivee>} />
         <Route path="/proprietaire/messages" element={<RoutePrivee roles={['proprietaire']}><BoiteReception /></RoutePrivee>} />
-        <Route path="/proprietaire/compte" element={<RoutePrivee roles={['proprietaire']}><MonCompte /></RoutePrivee>} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

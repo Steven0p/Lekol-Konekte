@@ -10,6 +10,7 @@ const router = Router();
 router.post('/apropos/admin/login', authLimiter, apropos.adminLogin);
 router.post('/apropos/admin/logout', apropos.adminLogout);
 router.get('/apropos/admin/me', apropos.adminMe);
+router.patch('/apropos/admin/compte', requireAproposAdmin, authLimiter, apropos.modifierCompte);
 
 // Assistant IA (rédaction) — admin À propos uniquement
 router.post('/apropos/redaction-ia', requireAproposAdmin, apropos.redactionIA);

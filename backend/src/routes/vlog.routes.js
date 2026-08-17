@@ -23,6 +23,7 @@ function televerserPhotoVlog(req, res, next) {
 router.post('/vlog/admin/login', authLimiter, vlog.adminLogin);
 router.post('/vlog/admin/logout', vlog.adminLogout);
 router.get('/vlog/admin/me', vlog.adminMe);
+router.patch('/vlog/admin/compte', requireVlogAdmin, authLimiter, vlog.modifierCompte);
 
 // Assistant IA (rédaction) — admin vlog uniquement
 router.post('/vlog/redaction-ia', requireVlogAdmin, vlog.redactionIA);

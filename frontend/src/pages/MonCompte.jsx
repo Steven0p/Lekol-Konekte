@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { permissionsApi } from '../../services/api.js';
-import { useAuth } from '../../context/AuthContext.jsx';
-import Carte from '../../components/Carte.jsx';
-import Champ from '../../components/Champ.jsx';
-import Bouton from '../../components/Bouton.jsx';
-import Alerte from '../../components/Alerte.jsx';
+import { permissionsApi } from '../services/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
+import Carte from '../components/Carte.jsx';
+import Champ from '../components/Champ.jsx';
+import Bouton from '../components/Bouton.jsx';
+import Alerte from '../components/Alerte.jsx';
 
 export default function MonCompte() {
   const { utilisateur, rafraichir } = useAuth();
@@ -51,7 +51,7 @@ export default function MonCompte() {
     <div style={{ maxWidth: 720 }}>
       <div className="page-entete">
         <h1>Mon compte</h1>
-        <p>Modifiez le courriel ou le mot de passe de votre compte propriétaire.</p>
+        <p>Modifiez le courriel ou le mot de passe de votre compte.</p>
       </div>
 
       <Carte>

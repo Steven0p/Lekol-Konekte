@@ -23,6 +23,7 @@ function televerserPhotoExamen(req, res, next) {
 router.post('/examens/admin/login', authLimiter, examens.adminLogin);
 router.post('/examens/admin/logout', examens.adminLogout);
 router.get('/examens/admin/me', examens.adminMe);
+router.patch('/examens/admin/compte', requireExamensAdmin, authLimiter, examens.modifierCompte);
 
 // Assistant IA — tuteur pour élève bloqué sur un exercice (public)
 router.post('/examens/aide-ia', iaLimiter, examens.aideIA);

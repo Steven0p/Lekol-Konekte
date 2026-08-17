@@ -5,6 +5,7 @@ import { nomComplet, experienceLibelle, AvatarProf } from './Professeurs.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
+import ModaleCompteAdmin from '../../components/ModaleCompteAdmin.jsx';
 
 // Assistant IA : rédige le parcours (biographie) à partir des infos déjà
 // saisies dans le formulaire + quelques éléments libres.
@@ -68,7 +69,7 @@ export default function ProfesseursAdmin() {
   if (chargement) return <div className="site-page"><p className="texte-gris">Chargement…</p></div>;
 
   return admin
-    ? <PanneauAdmin admin={admin} onLogout={() => setAdmin(null)} />
+    ? <PanneauAdmin admin={admin} onAdminMaj={setAdmin} onLogout={() => setAdmin(null)} />
     : <FormLogin onConnecte={setAdmin} />;
 }
 
@@ -163,7 +164,7 @@ function donneesDe(f) {
 }
 
 // ---------- Panneau de gestion ----------
-function PanneauAdmin({ admin, onLogout }) {
+function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
   const [professeurs, setProfesseurs] = useState(null); // null = chargement
   const [form, setForm] = useState(FICHE_VIDE);
   const [erreur, setErreur] = useState('');
@@ -175,6 +176,7 @@ function PanneauAdmin({ admin, onLogout }) {
   const [suppression, setSuppression] = useState(null); // prof à supprimer
   const [modalEnCours, setModalEnCours] = useState(false);
   const [erreurModal, setErreurModal] = useState('');
+  const [compteOuvert, setCompteOuvert] = useState(false);
 
   const charger = () => profsApi.liste().then((d) => setProfesseurs(d.professeurs)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
@@ -252,6 +254,7 @@ function PanneauAdmin({ admin, onLogout }) {
             <span className="vadm-user-nom">{admin.identifiant}</span>
             <span className="vadm-user-sous">Connecté</span>
           </div>
+          <button type="button" className="insc-btn-reinit" onClick={() => setCompteOuvert(true)}>Mon compte</button>
           <button type="button" className="vadm-deco" onClick={seDeconnecter}>Se déconnecter</button>
         </div>
       </header>
@@ -338,6 +341,12 @@ function PanneauAdmin({ admin, onLogout }) {
             </div>
           </div>
         </div>
+      )}
+
+      {compteOuvert && (
+        <ModaleCompteAdmin identifiantActuel={admin.identifiant} onSoumettre={profsApi.modifierCompte}
+          onFermer={() => setCompteOuvert(false)}
+          onMaj={(identifiant) => { onAdminMaj({ ...admin, identifiant }); setCompteOuvert(false); }} />
       )}
     </div>
   );

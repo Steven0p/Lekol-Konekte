@@ -29,7 +29,7 @@ export async function basculer(req, res, next) {
   }
 }
 
-// PATCH /api/proprietaire/compte (propriétaire uniquement) — changer son propre
+// PATCH /api/mon-compte (tout compte école authentifié) — changer son propre
 // courriel et/ou mot de passe. Le mot de passe actuel est toujours exigé.
 export async function modifierCompte(req, res, next) {
   try {

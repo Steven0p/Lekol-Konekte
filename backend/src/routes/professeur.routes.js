@@ -23,6 +23,7 @@ function televerserPhotoProf(req, res, next) {
 router.post('/professeurs/admin/login', authLimiter, prof.adminLogin);
 router.post('/professeurs/admin/logout', prof.adminLogout);
 router.get('/professeurs/admin/me', prof.adminMe);
+router.patch('/professeurs/admin/compte', requireProfsAdmin, authLimiter, prof.modifierCompte);
 
 // Assistant IA — rédige le parcours (biographie) d'un professeur
 router.post('/professeurs/redaction-ia', requireProfsAdmin, prof.redactionIA);

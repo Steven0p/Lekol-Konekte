@@ -47,6 +47,7 @@ const MENUS = {
       { to: '/inscriptions', libelle: 'Inscriptions', icone: 'inscriptions' },
       { to: '/notes', libelle: 'Notes & bulletins', icone: 'notes' },
       { to: '/paiements', libelle: 'Paiements', icone: 'paiements' },
+      { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
   admin: [
@@ -60,6 +61,7 @@ const MENUS = {
     ] },
     { titre: 'Administration', items: [
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
+      { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
   direction: [
@@ -70,6 +72,7 @@ const MENUS = {
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
+      { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
   proprietaire: [
@@ -78,7 +81,7 @@ const MENUS = {
       { to: '/proprietaire/statistiques', libelle: 'Statistiques & santé du site', icone: 'statistiques' },
       { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
       { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
-      { to: '/proprietaire/compte', libelle: 'Mon compte', icone: 'compte' },
+      { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
   eleve: [

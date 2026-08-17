@@ -7,6 +7,8 @@ const router = Router();
 
 router.get('/permissions', requireAuth, lister);
 router.patch('/permissions/:cle', requireRole('proprietaire'), basculer);
-router.patch('/proprietaire/compte', requireRole('proprietaire'), authLimiter, modifierCompte);
+// Changer son propre courriel/mot de passe — tout compte école authentifié
+// (parent, admin, direction, propriétaire).
+router.patch('/mon-compte', requireAuth, authLimiter, modifierCompte);
 
 export default router;

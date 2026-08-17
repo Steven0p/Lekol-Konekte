@@ -10,6 +10,7 @@ const router = Router();
 router.post('/academie/admin/login', authLimiter, academie.adminLogin);
 router.post('/academie/admin/logout', academie.adminLogout);
 router.get('/academie/admin/me', academie.adminMe);
+router.patch('/academie/admin/compte', requireAcademieAdmin, authLimiter, academie.modifierCompte);
 
 // Assistant IA (rédaction) — admin Académie uniquement
 router.post('/academie/redaction-ia', requireAcademieAdmin, academie.redactionIA);
