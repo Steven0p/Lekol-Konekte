@@ -29,7 +29,7 @@ export default function EconomatAdmin() {
   if (chargement) return <div className="site-page"><p className="texte-gris">Chargement…</p></div>;
 
   return admin
-    ? <PanneauEconomat admin={admin} onLogout={() => setAdmin(null)} />
+    ? <PanneauEconomat admin={admin} onAdminMaj={setAdmin} onLogout={() => setAdmin(null)} />
     : <FormLogin onConnecte={setAdmin} />;
 }
 
@@ -77,8 +77,9 @@ function FormLogin({ onConnecte }) {
 }
 
 // ---------- Panneau Économat (3 onglets) ----------
-function PanneauEconomat({ admin, onLogout }) {
+function PanneauEconomat({ admin, onAdminMaj, onLogout }) {
   const [onglet, setOnglet] = useState('paiements');
+  const [compteOuvert, setCompteOuvert] = useState(false);
 
   // Déconnexion automatique dès qu'on quitte la page d'administration.
   useEffect(() => {
@@ -110,6 +111,7 @@ function PanneauEconomat({ admin, onLogout }) {
             <span className="vadm-user-nom">{admin.email}</span>
             <span className="vadm-user-sous">Connecté</span>
           </div>
+          <button type="button" className="insc-btn-reinit" onClick={() => setCompteOuvert(true)}>Mon compte</button>
           <button type="button" className="vadm-deco" onClick={seDeconnecter}>Se déconnecter</button>
         </div>
       </header>
@@ -129,6 +131,87 @@ function PanneauEconomat({ admin, onLogout }) {
       {onglet === 'acquittements' && <AcquittementsTab />}
 
       <footer className="vadm-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
+
+      {compteOuvert && (
+        <ModaleCompte admin={admin} onFermer={() => setCompteOuvert(false)}
+          onMaj={(a) => { onAdminMaj(a); setCompteOuvert(false); }} />
+      )}
+    </div>
+  );
+}
+
+// ---------- Modale : changer courriel / mot de passe ----------
+function ModaleCompte({ admin, onFermer, onMaj }) {
+  const [motDePasseActuel, setMotDePasseActuel] = useState('');
+  const [nouveauEmail, setNouveauEmail] = useState(admin.email);
+  const [nouveauMotDePasse, setNouveauMotDePasse] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [erreur, setErreur] = useState('');
+  const [enCours, setEnCours] = useState(false);
+
+  const soumettre = async (e) => {
+    e.preventDefault();
+    setErreur('');
+
+    const emailChange = nouveauEmail.trim().toLowerCase() !== admin.email;
+    if (!emailChange && !nouveauMotDePasse) {
+      setErreur("Modifiez le courriel et/ou le mot de passe avant d'enregistrer.");
+      return;
+    }
+    if (nouveauMotDePasse && nouveauMotDePasse !== confirmation) {
+      setErreur('La confirmation ne correspond pas au nouveau mot de passe.');
+      return;
+    }
+
+    setEnCours(true);
+    try {
+      await economatApi.modifierCompte({
+        motDePasseActuel,
+        nouveauEmail: emailChange ? nouveauEmail.trim().toLowerCase() : undefined,
+        nouveauMotDePasse: nouveauMotDePasse || undefined,
+      });
+      onMaj({ ...admin, email: emailChange ? nouveauEmail.trim().toLowerCase() : admin.email });
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+
+  return (
+    <div className="prof-modal-fond" onClick={() => !enCours && onFermer()}>
+      <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="prof-modal-fermer" onClick={onFermer} aria-label="Fermer">×</button>
+        <h2 style={{ marginBottom: '1rem' }}>Mon compte</h2>
+        <form onSubmit={soumettre}>
+          {erreur && <Alerte type="erreur">{erreur}</Alerte>}
+          <div className="vadm-champ">
+            <label>Courriel</label>
+            <input type="email" value={nouveauEmail} onChange={(e) => setNouveauEmail(e.target.value)} required />
+          </div>
+          <div className="vadm-champ">
+            <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+            <input type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)}
+              autoComplete="new-password" placeholder="min. 8 caractères" />
+          </div>
+          {nouveauMotDePasse && (
+            <div className="vadm-champ">
+              <label>Confirmer le nouveau mot de passe</label>
+              <input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)}
+                autoComplete="new-password" required />
+            </div>
+          )}
+          <div className="vadm-champ">
+            <label>Mot de passe actuel (obligatoire pour confirmer)</label>
+            <input type="password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
+              autoComplete="current-password" required />
+          </div>
+          <div className="badges-actions" style={{ justifyContent: 'flex-end', marginTop: '.5rem' }}>
+            <button type="button" className="insc-btn-reinit" onClick={onFermer} disabled={enCours}>Annuler</button>
+            <button type="submit" className="mat-modifier" disabled={enCours}>{enCours ? 'Enregistrement…' : 'Enregistrer'}</button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

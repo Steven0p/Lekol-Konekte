@@ -164,6 +164,7 @@ export const economatApi = {
   adminMe: () => request('/economat/admin/me'),
   adminLogin: (body) => request('/economat/admin/login', { method: 'POST', body: json(body) }),
   adminLogout: () => request('/economat/admin/logout', { method: 'POST' }),
+  modifierCompte: (body) => request('/economat/admin/compte', { method: 'PATCH', body: json(body) }),
   niveaux: () => request('/economat/niveaux'),
 };
 

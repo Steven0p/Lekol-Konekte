@@ -38,6 +38,7 @@ function televerserLogoFichier(req, res, next) {
 router.post('/economat/admin/login', authLimiter, economatAuth.adminLogin);
 router.post('/economat/admin/logout', economatAuth.adminLogout);
 router.get('/economat/admin/me', economatAuth.adminMe);
+router.patch('/economat/admin/compte', requireEconomatAdmin, authLimiter, economatAuth.modifierCompte);
 router.get('/economat/niveaux', requireEconomatAdmin, tarif.niveaux);
 
 // Tarifs & coordonnées
