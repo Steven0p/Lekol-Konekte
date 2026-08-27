@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { vlogApi, urlPhotoVlog } from '../../services/api.js';
 import { dateFr } from '../../utils/libelles.js';
 import Icone from '../../components/Icone.jsx';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 export const CATEGORIES_VLOG = {
   actualite: 'Actualité',
@@ -46,6 +47,8 @@ const RESEAUX = [
 ];
 
 export default function Vlog() {
+  useTitrePage('Vlog', 'Actualités, annonces et vie scolaire de Lekòl Konekte.');
+
   const [publications, setPublications] = useState([]);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(true);

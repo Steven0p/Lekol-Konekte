@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { aproposApi } from '../../services/api.js';
 import Icone from '../../components/Icone.jsx';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 export default function APropos() {
+  useTitrePage('À propos', "Découvrez la mission, l'histoire et les valeurs de l'école Lekòl Konekte.");
+
   const [sections, setSections] = useState(null); // null = chargement
   const [erreur, setErreur] = useState('');
 

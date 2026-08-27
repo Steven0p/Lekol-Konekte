@@ -25,6 +25,9 @@ import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
+import { PAGES_SEO } from './config/seoPages.js';
+import { lister as listerVlog } from './models/vlog.model.js';
+import fs from 'fs';
 
 dotenv.config();
 
@@ -144,14 +147,43 @@ app.get('/api/prive/ping', requireAuth, (req, res) =>
 // une seule origine → les cookies de session fonctionnent sans réglage cross-site.
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const distDir = path.resolve(__dirname, '../../frontend/dist');
+const indexPath = path.join(distDir, 'index.html');
+const indexTemplate = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, 'utf-8') : null;
 
 app.use(express.static(distDir));
 
 // Toute route non-API renvoie index.html (routage côté client React Router).
-app.get(/^\/(?!api\/).*/, (req, res, next) => {
-  res.sendFile(path.join(distDir, 'index.html'), (err) => {
-    if (err) next();
-  });
+// Pour les pages publiques connues (voir seoPages.js), on injecte un
+// <title>/<meta> propre à la page dans le HTML brut — indispensable pour les
+// aperçus WhatsApp/Facebook, qui n'exécutent pas le JavaScript React.
+app.get(/^\/(?!api\/).*/, async (req, res, next) => {
+  const meta = PAGES_SEO[req.path];
+  if (!meta || !indexTemplate) {
+    return res.sendFile(indexPath, (err) => { if (err) next(); });
+  }
+
+  try {
+    let html = indexTemplate
+      .replace(/<title>[^<]*<\/title>/, `<title>${meta.titre}</title>`)
+      .replace(/<meta name="description" content="[^"]*" \/>/, `<meta name="description" content="${meta.description}" />`)
+      .replace(/<meta property="og:title" content="[^"]*" \/>/, `<meta property="og:title" content="${meta.titre}" />`)
+      .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${meta.description}" />`)
+      .replace(/<meta property="og:url" content="[^"]*" \/>/, `<meta property="og:url" content="https://lekolkonekte.online${req.path}" />`);
+
+    // Image de partage : la dernière publication du vlog qui en a une.
+    if (req.path === '/vlog') {
+      const publications = await listerVlog();
+      const avecPhoto = publications.find((p) => p.photo_url);
+      if (avecPhoto) {
+        html = html.replace('</head>', `    <meta property="og:image" content="https://lekolkonekte.online/api/vlog/${avecPhoto.id}/photo" />\n  </head>`);
+      }
+    }
+
+    res.set('Content-Type', 'text/html');
+    return res.send(html);
+  } catch (err) {
+    next(err);
+  }
 });
 
 // Gestion des erreurs

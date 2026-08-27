@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { profsApi, urlPhotoProf } from '../../services/api.js';
 import Icone from '../../components/Icone.jsx';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 // Nom complet lisible (prénom + nom)
 export function nomComplet(p) {
@@ -33,6 +34,8 @@ export function AvatarProf({ prof, classe = '' }) {
 }
 
 export default function Professeurs() {
+  useTitrePage('Notre équipe pédagogique', 'Découvrez les professeurs et le corps enseignant de Lekòl Konekte.');
+
   const [professeurs, setProfesseurs] = useState([]);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(true);

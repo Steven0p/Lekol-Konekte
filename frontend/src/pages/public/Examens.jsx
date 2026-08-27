@@ -4,8 +4,11 @@ import { examensApi, urlPhotoExamen } from '../../services/api.js';
 import { dateFr } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Icone from '../../components/Icone.jsx';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 export default function Examens() {
+  useTitrePage('Examens passés', "Consultez les feuilles d'examens passés par niveau à Lekòl Konekte.");
+
   const [examens, setExamens] = useState(null); // null = chargement
   const [erreur, setErreur] = useState('');
   const [filtre, setFiltre] = useState('tous');

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { contactApi } from '../../services/api.js';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 // Icônes des avantages (SVG en ligne, couleur héritée via currentColor)
 const IcoInscription = () => (
@@ -42,6 +43,8 @@ const AVANTAGES = [
 ];
 
 export default function Accueil() {
+  useTitrePage('Lekòl Konekte', "Lekòl Konekte — plateforme de gestion scolaire : inscriptions en ligne, notes, bulletins et documents officiels pour les familles, élèves et l'administration.");
+
   const [form, setForm] = useState({ nom: '', email: '', message: '' });
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
   const [envoiEnCours, setEnvoiEnCours] = useState(false);

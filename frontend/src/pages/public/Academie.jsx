@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { academieApi } from '../../services/api.js';
 import Icone from '../../components/Icone.jsx';
+import useTitrePage from '../../hooks/useTitrePage.js';
 
 // Pages de l'académie par niveau. Le niveau est passé en prop depuis les routes.
 const NIVEAUX = {
@@ -21,6 +22,8 @@ const NIVEAUX = {
 
 export default function Academie({ niveau }) {
   const info = NIVEAUX[niveau] || { titre: 'Académie', intro: '' };
+  useTitrePage(info.titre, info.intro);
+
   const [sections, setSections] = useState(null); // null = chargement
   const [erreur, setErreur] = useState('');
 
