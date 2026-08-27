@@ -1,6 +1,15 @@
 // Middleware de contrôle d'accès — appliqué CÔTÉ SERVEUR (pas seulement à l'écran)
 import { estAutorise } from '../services/permissions.service.js';
 
+// Régénère l'ID de session (nouvel identifiant côté store) avant d'y écrire une
+// identité authentifiée — empêche la fixation de session (un ID de session
+// choisi/connu avant la connexion ne doit jamais devenir un ID authentifié).
+export function regenererSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((err) => (err ? reject(err) : resolve()));
+  });
+}
+
 // Exige une session valide
 export function requireAuth(req, res, next) {
   if (!req.session || !req.session.userId) {

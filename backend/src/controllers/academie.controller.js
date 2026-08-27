@@ -3,6 +3,7 @@ import bcrypt from 'bcrypt';
 import * as sectionModel from '../models/academie.model.js';
 import * as adminModel from '../models/academieAdmin.model.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { regenererSession } from '../middleware/auth.js';
 
 const NIVEAUX = ['prescolaire', 'primaire', 'secondaire'];
 const LIBELLE_NIVEAU = { prescolaire: 'Préscolaire', primaire: 'Primaire', secondaire: 'Secondaire' };
@@ -24,6 +25,7 @@ export async function adminLogin(req, res, next) {
     const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
     if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
+    await regenererSession(req);
     req.session.academieAdminId = admin.id;
     return res.json({ admin: { id: admin.id, identifiant: admin.identifiant } });
   } catch (err) {

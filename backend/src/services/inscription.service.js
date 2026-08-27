@@ -2,6 +2,7 @@
 import { trouverAvecProprietaire, mettreAJourStatut } from '../models/inscription.model.js';
 import { journaliser } from '../models/historique.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { echapperHtml } from '../utils/html.js';
 
 // Statuts que le secrétariat peut appliquer depuis ce module
 const STATUTS_ADMIN = ['accepte', 'refuse', 'complement_demande'];
@@ -52,10 +53,10 @@ export async function changerStatut({ idInscription, nouveauStatut, commentaire,
     (commentaire ? `\nMessage du secrétariat : ${commentaire}\n` : '') +
     `\nConnectez-vous à votre compte pour plus de détails.`;
   const html =
-    `<p>Bonjour ${inscription.parent_nom},</p>` +
-    `<p>Le statut du dossier d'inscription de <strong>${inscription.eleve_nom}</strong> ` +
-    `(année ${inscription.annee_scolaire}) est maintenant : <strong>${libelle}</strong>.</p>` +
-    (commentaire ? `<p>Message du secrétariat : ${commentaire}</p>` : '') +
+    `<p>Bonjour ${echapperHtml(inscription.parent_nom)},</p>` +
+    `<p>Le statut du dossier d'inscription de <strong>${echapperHtml(inscription.eleve_nom)}</strong> ` +
+    `(année ${echapperHtml(inscription.annee_scolaire)}) est maintenant : <strong>${echapperHtml(libelle)}</strong>.</p>` +
+    (commentaire ? `<p>Message du secrétariat : ${echapperHtml(commentaire)}</p>` : '') +
     `<p>Connectez-vous à votre compte pour plus de détails.</p>`;
 
   let previewUrl = null;

@@ -1,6 +1,7 @@
 // Contrôleur — authentification admin Économat (système indépendant)
 import bcrypt from 'bcrypt';
 import * as adminModel from '../models/economatAdmin.model.js';
+import { regenererSession } from '../middleware/auth.js';
 
 const COURRIEL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -22,6 +23,7 @@ export async function adminLogin(req, res, next) {
     const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
     if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
+    await regenererSession(req);
     req.session.economatAdminId = admin.id;
     return res.json({ admin: { id: admin.id, email: admin.email } });
   } catch (err) {

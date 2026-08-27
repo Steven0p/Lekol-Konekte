@@ -14,6 +14,7 @@ import {
   verifierCode,
 } from '../services/otp.service.js';
 import { courrielConfigure } from '../config/mailer.js';
+import { regenererSession } from '../middleware/auth.js';
 
 const TYPE_RESET = 'reinitialisation_mdp';
 const TYPE_2FA = 'connexion_2fa';
@@ -48,6 +49,7 @@ export async function register(req, res, next) {
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
     const utilisateur = await createParent({ nom, courriel, motDePasseHash });
 
+    await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
 
@@ -203,6 +205,7 @@ export async function login(req, res, next) {
       return res.json({ etape: '2fa_requis', courriel: utilisateur.courriel });
     }
 
+    await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
 
@@ -253,8 +256,9 @@ export async function verifierConnexion(req, res, next) {
       return res.status(401).json({ erreur: 'Compte introuvable.' });
     }
 
-    // Promotion en session complète.
-    delete req.session.pending2fa;
+    // Promotion en session complète (nouvel ID de session : la valeur en
+    // attente de 2FA ne doit jamais pouvoir devenir une session authentifiée).
+    await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
 
@@ -323,6 +327,7 @@ export async function eleveConnexion(req, res, next) {
     }
 
     // Session élève : pas de userId, on marque l'identité par eleveId + role.
+    await regenererSession(req);
     req.session.eleveId = eleve.id;
     req.session.role = 'eleve';
 

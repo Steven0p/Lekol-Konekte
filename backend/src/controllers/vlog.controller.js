@@ -5,6 +5,7 @@ import * as vlogModel from '../models/vlog.model.js';
 import * as adminModel from '../models/vlogAdmin.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { regenererSession } from '../middleware/auth.js';
 
 const CATEGORIES = ['actualite', 'photo', 'annonce'];
 const LIBELLE_CATEGORIE = { actualite: 'actualité', photo: 'photo', annonce: 'annonce' };
@@ -26,6 +27,7 @@ export async function adminLogin(req, res, next) {
     const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
     if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
+    await regenererSession(req);
     req.session.vlogAdminId = admin.id;
     return res.json({ admin: { id: admin.id, identifiant: admin.identifiant } });
   } catch (err) {

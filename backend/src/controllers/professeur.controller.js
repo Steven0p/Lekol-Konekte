@@ -6,6 +6,7 @@ import * as profModel from '../models/professeur.model.js';
 import * as adminModel from '../models/profsAdmin.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import { regenererSession } from '../middleware/auth.js';
 
 // ---------- Authentification admin enseignants ----------
 
@@ -24,6 +25,7 @@ export async function adminLogin(req, res, next) {
     const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
     if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
+    await regenererSession(req);
     req.session.profsAdminId = admin.id;
     return res.json({ admin: { id: admin.id, identifiant: admin.identifiant } });
   } catch (err) {
