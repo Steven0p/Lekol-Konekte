@@ -2,15 +2,15 @@
 import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useMarque, initialesMarque } from '../context/MarqueContext.jsx';
+import { useMarque } from '../context/MarqueContext.jsx';
 import { adminApi, urlLogoEcole } from '../services/api.js';
 
-// Logo de marque : image téléversée si présente, sinon initiales du nom de l'école.
-function LogoMarque({ aLogo, nom, version }) {
+// Logo de marque : image téléversée si présente, sinon le logo par défaut de Lekòl Konekte.
+function LogoMarque({ aLogo, version }) {
   if (aLogo) {
     return <img className="logo logo-img" src={`${urlLogoEcole()}?v=${version}`} alt="" aria-hidden="true" />;
   }
-  return <span className="logo">{initialesMarque(nom)}</span>;
+  return <img className="logo logo-img" src="/logo-icon.svg" alt="" aria-hidden="true" />;
 }
 
 // Icônes (chemins SVG 24×24, couleur héritée via currentColor)
@@ -125,14 +125,14 @@ export default function BarreNav() {
       {/* Barre supérieure (mobile uniquement) */}
       <div className="sb-mobile-bar">
         <button type="button" className="sb-burger" onClick={() => setOuvert(true)} aria-label="Ouvrir le menu">☰</button>
-        <span className="sb-marque"><LogoMarque aLogo={aLogo} nom={nomMarque} version={version} /> {nomMarque}</span>
+        <span className="sb-marque"><LogoMarque aLogo={aLogo} version={version} /> {nomMarque}</span>
       </div>
       <div className={`sb-backdrop ${ouvert ? 'visible' : ''}`} onClick={() => setOuvert(false)} />
 
       <aside className={`sidebar ${reduit ? 'reduit' : ''} ${ouvert ? 'ouvert' : ''}`}>
         <div className="sb-entete">
           <span className="sb-marque">
-            <LogoMarque aLogo={aLogo} nom={nomMarque} version={version} />
+            <LogoMarque aLogo={aLogo} version={version} />
             <span className="sb-marque-txt">{nomMarque}</span>
           </span>
           <button type="button" className="sb-reduire" onClick={() => setReduit((r) => !r)}

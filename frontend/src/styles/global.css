@@ -361,6 +361,12 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 /* Variante image du logo de marque (photo téléversée par la direction) : garde la
    taille/le rayon du carré « LK » et remplit sans déformer. */
 .logo-img { object-fit: cover; display: block; padding: 0; background: var(--blanc); }
+/* Fond blanc opaque forcé même dans les emplacements sombres (barre latérale, panneau
+   d'authentification) : leurs badges « LK » ont un fond translucide plus spécifique que
+   .logo-img, qui sinon laisserait le bleu marine de l'icône se fondre dans le fond. */
+.site-marque .logo.logo-img,
+.sb-marque .logo.logo-img,
+.auth-marque .logo.logo-img { background: var(--blanc); }
 
 .site-burger {
   display: none;

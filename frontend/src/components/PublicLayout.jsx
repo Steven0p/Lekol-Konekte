@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import { useMarque, initialesMarque } from '../context/MarqueContext.jsx';
+import { useMarque } from '../context/MarqueContext.jsx';
 import { urlLogoEcole } from '../services/api.js';
 
 // Menus déroulants
@@ -55,7 +55,7 @@ export default function PublicLayout() {
           <Link to="/" className="site-marque">
             {aLogo
               ? <img className="logo logo-img" src={`${urlLogoEcole()}?v=${version}`} alt="" aria-hidden="true" />
-              : <span className="logo">{initialesMarque(nomMarque)}</span>}
+              : <img className="logo logo-img" src="/logo-icon.svg" alt="" aria-hidden="true" />}
             <span>{nomMarque}</span>
           </Link>
 

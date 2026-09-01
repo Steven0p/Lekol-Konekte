@@ -9,7 +9,7 @@ const IcoCadenas = () => (
 export default function PanneauMarque() {
   return (
     <div className="auth-marque">
-      <div className="logo">LK</div>
+      <img className="logo logo-img" src="/logo-icon.svg" alt="" aria-hidden="true" />
       <h1>Lekòl Konekte</h1>
       <p>
         La plateforme de gestion scolaire : inscriptions en ligne, notes et bulletins,

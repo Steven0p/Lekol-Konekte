@@ -170,12 +170,13 @@ app.get(/^\/(?!api\/).*/, async (req, res, next) => {
       .replace(/<meta property="og:description" content="[^"]*" \/>/, `<meta property="og:description" content="${meta.description}" />`)
       .replace(/<meta property="og:url" content="[^"]*" \/>/, `<meta property="og:url" content="https://lekolkonekte.online${req.path}" />`);
 
-    // Image de partage : la dernière publication du vlog qui en a une.
+    // Image de partage : par défaut le logo (voir index.html), remplacé par la
+    // dernière publication du vlog qui en a une sur cette page précise.
     if (req.path === '/vlog') {
       const publications = await listerVlog();
       const avecPhoto = publications.find((p) => p.photo_url);
       if (avecPhoto) {
-        html = html.replace('</head>', `    <meta property="og:image" content="https://lekolkonekte.online/api/vlog/${avecPhoto.id}/photo" />\n  </head>`);
+        html = html.replace(/<meta property="og:image" content="[^"]*" \/>/, `<meta property="og:image" content="https://lekolkonekte.online/api/vlog/${avecPhoto.id}/photo" />`);
       }
     }
 
