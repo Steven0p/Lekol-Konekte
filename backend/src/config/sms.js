@@ -1,28 +1,20 @@
-// Configuration de l'envoi de SMS (API Vonage/Nexmo, via fetch)
+// Configuration de l'envoi de SMS (API Textbelt, via fetch)
 // Miroir de mailer.js : appel HTTPS direct plutôt qu'un SDK, échec explicite
 // si mal configuré plutôt qu'un faux succès silencieux.
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const API_URL = 'https://rest.nexmo.com/sms/json';
+const API_URL = 'https://textbelt.com/text';
 const DELAI_MS = 10_000;
 
 function cleApi() {
-  return (process.env.VONAGE_API_KEY || '').trim();
+  return (process.env.TEXTBELT_API_KEY || '').trim();
 }
 
-function secretApi() {
-  return (process.env.VONAGE_API_SECRET || '').trim();
-}
-
-function expediteur() {
-  return process.env.VONAGE_SMS_FROM || 'LekolKonekte';
-}
-
-// Indique si les identifiants sont présents.
+// Indique si la clé est présente.
 export function smsConfigure() {
-  return Boolean(cleApi() && secretApi());
+  return Boolean(cleApi());
 }
 
 // Nettoie un numéro saisi librement par un parent (espaces, tirets) et
@@ -37,22 +29,20 @@ export function normaliserNumero(brut) {
 // Vérifie qu'une clé API est présente au démarrage. Ne fait pas d'appel réseau.
 export function verifierSms() {
   if (smsConfigure()) {
-    console.log(`✔ SMS configuré — envoi via l'API Vonage (expéditeur « ${expediteur()} »).`);
+    console.log('✔ SMS configuré — envoi via l\'API Textbelt.');
     return true;
   }
-  console.warn('⚠ SMS INACTIF : VONAGE_API_KEY / VONAGE_API_SECRET manquants dans backend/.env.');
+  console.warn('⚠ SMS INACTIF : TEXTBELT_API_KEY manquant dans backend/.env.');
   return false;
 }
 
 // Envoie un SMS. Lève une erreur explicite si la clé est absente ou si
-// Vonage refuse l'envoi (numéro invalide, solde insuffisant, etc.).
+// Textbelt refuse l'envoi (numéro invalide, quota épuisé, restriction
+// régionale de la clé, etc.).
 export async function envoyerSms({ to, texte }) {
   const cle = cleApi();
-  const secret = secretApi();
-  if (!cle || !secret) {
-    throw new Error(
-      'Vonage non configuré : renseignez VONAGE_API_KEY et VONAGE_API_SECRET dans backend/.env.',
-    );
+  if (!cle) {
+    throw new Error('Textbelt non configuré : renseignez TEXTBELT_API_KEY dans backend/.env.');
   }
 
   const numero = normaliserNumero(to);
@@ -61,27 +51,20 @@ export async function envoyerSms({ to, texte }) {
   const controleur = new AbortController();
   const minuteur = setTimeout(() => controleur.abort(), DELAI_MS);
   try {
+    const params = new URLSearchParams({ phone: `+${numero}`, message: texte, key: cle });
     const reponse = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        api_key: cle,
-        api_secret: secret,
-        to: numero,
-        from: expediteur(),
-        text: texte,
-      }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params,
       signal: controleur.signal,
     });
     const corps = await reponse.json().catch(() => ({}));
-    const message = corps?.messages?.[0];
-    if (!reponse.ok || !message || message.status !== '0') {
-      const raison = message?.['error-text'] || `Vonage a répondu ${reponse.status}`;
-      throw new Error(raison);
+    if (!reponse.ok || !corps.success) {
+      throw new Error(corps.error || `Textbelt a répondu ${reponse.status}`);
     }
 
-    console.log(`✉ SMS envoyé à ${numero}`);
-    return { messageId: message['message-id'] };
+    console.log(`✉ SMS envoyé à +${numero}`);
+    return { messageId: corps.textId };
   } finally {
     clearTimeout(minuteur);
   }
