@@ -198,16 +198,19 @@ CREATE TABLE IF NOT EXISTS frais_divers (
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS paiements (
-  id           INT AUTO_INCREMENT PRIMARY KEY,
-  type_frais   ENUM('inscription','releve','duplicata') NOT NULL,
-  id_reference INT NOT NULL,
-  montant      DECIMAL(10,2) NOT NULL,
-  devise       ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',
-  preuve_url   VARCHAR(500),
-  statut       ENUM('en_attente','valide','rejete') NOT NULL DEFAULT 'en_attente',
-  cree_le      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  valide_par   INT,
-  valide_le    DATETIME,
+  id                     INT AUTO_INCREMENT PRIMARY KEY,
+  type_frais             ENUM('inscription','releve','duplicata') NOT NULL,
+  methode_paiement       ENUM('manuel','moncash') NOT NULL DEFAULT 'manuel',
+  id_reference           INT NOT NULL,
+  montant                DECIMAL(10,2) NOT NULL,
+  devise                 ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',
+  preuve_url             VARCHAR(500),
+  moncash_order_id       VARCHAR(64),
+  moncash_transaction_id VARCHAR(64),
+  statut                 ENUM('en_attente','valide','rejete') NOT NULL DEFAULT 'en_attente',
+  cree_le                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  valide_par             INT,
+  valide_le              DATETIME,
   FOREIGN KEY (valide_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 

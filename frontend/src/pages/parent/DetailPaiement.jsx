@@ -20,6 +20,8 @@ export default function DetailPaiement() {
   const [fichier, setFichier] = useState(null);
   const [envoi, setEnvoi] = useState(false);
   const [msg, setMsg] = useState('');
+  const [moncashEnCours, setMoncashEnCours] = useState(false);
+  const [verifEnCours, setVerifEnCours] = useState(false);
 
   const charger = () => {
     Promise.all([paiementsApi.detail(id), paiementsApi.coordonnees()])
@@ -56,6 +58,31 @@ export default function DetailPaiement() {
     }
   };
 
+  const payerMoncash = async () => {
+    setErreur(''); setMoncashEnCours(true);
+    try {
+      const d = await paiementsApi.demarrerMoncash(id);
+      localStorage.setItem('moncash_paiement_id', id);
+      window.location.href = d.urlRedirection;
+    } catch (err) {
+      setErreur(err.message);
+      setMoncashEnCours(false);
+    }
+  };
+
+  const verifierMoncash = async () => {
+    setErreur(''); setMsg(''); setVerifEnCours(true);
+    try {
+      await paiementsApi.confirmerMoncash(id, {});
+      setMsg('Paiement vérifié.');
+      charger();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setVerifEnCours(false);
+    }
+  };
+
   if (erreur && !paiement) return <Alerte type="erreur">{erreur}</Alerte>;
   if (!paiement) return <Chargement />;
 
@@ -70,6 +97,9 @@ export default function DetailPaiement() {
           <Badge statut={paiement.statut} />
         </div>
       </div>
+
+      <Alerte type="erreur">{erreur}</Alerte>
+      <Alerte type="info">{msg}</Alerte>
 
       <div className="pile pile-md">
         <Carte titre="Détails">
@@ -95,11 +125,36 @@ export default function DetailPaiement() {
           </Carte>
         )}
 
-        {enAttente && !paiement.preuve_url && (
+        {enAttente && paiement.devise === 'HTG' && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url && (
+          <Carte titre="Payer en ligne">
+            <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
+              Payez directement avec MonCash — le paiement est confirmé automatiquement,
+              sans preuve à téléverser.
+            </p>
+            <Bouton type="button" onClick={payerMoncash} enCours={moncashEnCours}>Payer avec MonCash</Bouton>
+          </Carte>
+        )}
+
+        {enAttente && paiement.methode_paiement === 'moncash' && (
+          <Carte titre="Paiement MonCash">
+            <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
+              Un paiement MonCash a été démarré pour cette demande. S'il n'a pas été confirmé
+              automatiquement après votre retour de MonCash, vérifiez-le manuellement ci-dessous.
+            </p>
+            <div className="rangee">
+              <Bouton type="button" variante="secondaire" onClick={verifierMoncash} enCours={verifEnCours}>
+                Vérifier le paiement
+              </Bouton>
+              <Bouton type="button" variante="fantome" onClick={payerMoncash} enCours={moncashEnCours}>
+                Réessayer avec MonCash
+              </Bouton>
+            </div>
+          </Carte>
+        )}
+
+        {enAttente && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url && (
           <Carte titre="Téléverser la preuve de paiement">
             <form onSubmit={televerser}>
-              <Alerte type="erreur">{erreur}</Alerte>
-              <Alerte type="info">{msg}</Alerte>
               <Champ label="Fichier (PDF, JPG, PNG — 5 Mo)" type="file"
                 accept="application/pdf,image/jpeg,image/png"
                 onChange={(e) => setFichier(e.target.files[0])} />

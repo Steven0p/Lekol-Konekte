@@ -32,6 +32,7 @@ import NotesBulletins from './pages/parent/NotesBulletins.jsx';
 import Paiements from './pages/parent/Paiements.jsx';
 import NouveauPaiement from './pages/parent/NouveauPaiement.jsx';
 import DetailPaiement from './pages/parent/DetailPaiement.jsx';
+import MoncashRetour from './pages/parent/MoncashRetour.jsx';
 import AdminInscriptions from './pages/admin/AdminInscriptions.jsx';
 import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
 import AdminNotes from './pages/admin/AdminNotes.jsx';
@@ -110,6 +111,7 @@ export default function App() {
         <Route path="/paiements" element={<RoutePrivee roles={['parent']}><Paiements /></RoutePrivee>} />
         <Route path="/paiements/nouveau" element={<RoutePrivee roles={['parent']}><NouveauPaiement /></RoutePrivee>} />
         <Route path="/paiements/:id" element={<RoutePrivee roles={['parent']}><DetailPaiement /></RoutePrivee>} />
+        <Route path="/paiements/moncash/retour" element={<RoutePrivee roles={['parent']}><MoncashRetour /></RoutePrivee>} />
 
         {/* Admin (secrétariat) */}
         <Route path="/admin/inscriptions" element={<RoutePrivee roles={['admin']}><AdminInscriptions /></RoutePrivee>} />

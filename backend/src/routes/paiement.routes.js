@@ -65,6 +65,8 @@ router.delete('/frais-divers/:id', requireEconomatAdmin, fraisDivers.supprimer);
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiement.creer);
 router.post('/paiements/:id/preuve', requireRole('parent'), uploadLimiter, televerserPreuveFichier, paiement.televerserPreuve);
+router.post('/paiements/:id/moncash/demarrer', requireRole('parent'), authLimiter, paiement.demarrerMoncash);
+router.post('/paiements/:id/moncash/confirmer', requireRole('parent'), paiement.confirmerMoncash);
 router.get('/paiements', requireRole('parent'), paiement.listerMiens);
 
 // Propriétaire du paiement (parent) ou admin Économat

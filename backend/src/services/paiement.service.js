@@ -12,6 +12,10 @@ import { grouperTranscript, genererReleve } from './releve.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import {
+  moncashConfigure, creerPaiementMoncash, verifierPaiementParTransactionId, verifierPaiementParOrderId,
+} from '../config/moncash.js';
+import crypto from 'crypto';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const LIBELLE_TYPE = {
@@ -165,7 +169,9 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
   if (paiement.statut !== 'en_attente') {
     return { ok: false, code: 409, erreur: 'Ce paiement a déjà été traité.' };
   }
-  if (statut === 'valide' && !paiement.preuve_url) {
+  // Un paiement MonCash n'a pas de preuve téléversée : la vérification server-à-
+  // serveur auprès de MonCash (confirmerPaiementMoncash) en tient lieu.
+  if (statut === 'valide' && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url) {
     return { ok: false, code: 400, erreur: 'Aucune preuve téléversée : validation impossible.' };
   }
 
@@ -226,4 +232,74 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
 export async function proprietaireDe(paiement) {
   const prop = await resoudreProprietaire(paiement.type_frais, paiement.id_reference);
   return prop ? prop.idUtilisateur : null;
+}
+
+// Démarre un paiement MonCash pour une demande déjà créée (manuelle par
+// défaut à la création — voir creerDemande) : crée le paiement côté MonCash et
+// enregistre l'orderId de la tentative. Ne change PAS le statut du paiement
+// (reste en_attente tant que MonCash n'a pas confirmé la transaction) —
+// voir confirmerPaiementMoncash pour la suite.
+export async function demarrerPaiementMoncash(paiement) {
+  if (!moncashConfigure()) {
+    return { ok: false, code: 503, erreur: "Le paiement MonCash n'est pas configuré." };
+  }
+  if (paiement.statut !== 'en_attente') {
+    return { ok: false, code: 409, erreur: 'Ce paiement a déjà été traité.' };
+  }
+  if (paiement.devise !== 'HTG') {
+    return { ok: false, code: 409, erreur: 'MonCash ne prend en charge que les paiements en HTG.' };
+  }
+
+  const orderId = `lk-${paiement.id}-${crypto.randomBytes(4).toString('hex')}`;
+  let creation;
+  try {
+    creation = await creerPaiementMoncash({ montant: Number(paiement.montant), orderId });
+  } catch (err) {
+    return { ok: false, code: 502, erreur: `MonCash indisponible : ${err.message}` };
+  }
+
+  await paiementModel.definirMethodeMoncash(paiement.id, orderId);
+  return { ok: true, urlRedirection: creation.urlRedirection };
+}
+
+// Confirme un paiement MonCash après le retour du parent sur le site (ou à la
+// demande, en relance manuelle) : revérifie la transaction directement auprès
+// de MonCash — jamais confiance à la seule redirection navigateur — avant de
+// créditer quoi que ce soit. Réutilise traiterValidation pour les effets de
+// bord habituels (confirmation d'inscription, génération de document,
+// notification) : idAdmin=null y trace une validation automatique.
+export async function confirmerPaiementMoncash({ paiement, transactionId, orderId }) {
+  if (paiement.methode_paiement !== 'moncash') {
+    return { ok: false, code: 409, erreur: 'Ce paiement ne passe pas par MonCash.' };
+  }
+  if (paiement.statut !== 'en_attente') {
+    // Déjà traité (double confirmation, rafraîchissement de la page…) : on
+    // renvoie l'état actuel sans relancer les effets de bord.
+    return { ok: true, statut: paiement.statut };
+  }
+
+  let detail;
+  try {
+    detail = transactionId
+      ? await verifierPaiementParTransactionId(transactionId)
+      : await verifierPaiementParOrderId(orderId || paiement.moncash_order_id);
+  } catch (err) {
+    return { ok: false, code: 502, erreur: `Vérification MonCash impossible : ${err.message}` };
+  }
+
+  if (!detail || detail.message !== 'successful') {
+    return { ok: false, code: 402, erreur: "Le paiement MonCash n'a pas abouti." };
+  }
+  if (Number(detail.cost) !== Number(paiement.montant)) {
+    return { ok: false, code: 409, erreur: 'Le montant confirmé par MonCash ne correspond pas au paiement.' };
+  }
+
+  await paiementModel.definirTransactionMoncash(paiement.id, detail.transaction_id);
+
+  return traiterValidation({
+    idPaiement: paiement.id,
+    statut: 'valide',
+    commentaire: `Payé via MonCash (transaction ${detail.transaction_id}).`,
+    idAdmin: null,
+  });
 }

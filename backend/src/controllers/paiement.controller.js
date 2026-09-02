@@ -2,7 +2,9 @@
 import path from 'path';
 import * as paiementModel from '../models/paiement.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
-import { creerDemande, traiterValidation, proprietaireDe } from '../services/paiement.service.js';
+import {
+  creerDemande, traiterValidation, proprietaireDe, demarrerPaiementMoncash, confirmerPaiementMoncash,
+} from '../services/paiement.service.js';
 import { tarifCourant } from '../models/tarif.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 
@@ -45,6 +47,43 @@ export async function televerserPreuve(req, res, next) {
 
     await paiementModel.definirPreuve(paiement.id, `preuves/${req.file.filename}`);
     return res.status(201).json({ message: 'Preuve téléversée.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/paiements/:id/moncash/demarrer (parent propriétaire)
+export async function demarrerMoncash(req, res, next) {
+  try {
+    const paiement = await paiementModel.trouverParId(Number(req.params.id));
+    if (!paiement) return res.status(404).json({ erreur: 'Paiement introuvable.' });
+
+    const idProprietaire = await proprietaireDe(paiement);
+    if (idProprietaire !== req.session.userId) return res.status(403).json({ erreur: 'Accès refusé.' });
+
+    const r = await demarrerPaiementMoncash(paiement);
+    if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
+    return res.json({ urlRedirection: r.urlRedirection });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// POST /api/paiements/:id/moncash/confirmer (parent propriétaire — appelé au
+// retour depuis MonCash, ou manuellement si le retour automatique échoue)
+export async function confirmerMoncash(req, res, next) {
+  try {
+    const paiement = await paiementModel.trouverParId(Number(req.params.id));
+    if (!paiement) return res.status(404).json({ erreur: 'Paiement introuvable.' });
+
+    const idProprietaire = await proprietaireDe(paiement);
+    if (idProprietaire !== req.session.userId) return res.status(403).json({ erreur: 'Accès refusé.' });
+
+    const transactionId = req.body.transactionId ? String(req.body.transactionId) : null;
+    const orderId = req.body.orderId ? String(req.body.orderId) : null;
+    const r = await confirmerPaiementMoncash({ paiement, transactionId, orderId });
+    if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
+    return res.json({ message: 'Paiement confirmé.', statut: r.statut });
   } catch (err) {
     next(err);
   }
