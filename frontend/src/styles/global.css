@@ -328,9 +328,16 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
   .contenu { padding: 0; max-width: none; }
   .badge-face { box-shadow: none !important; }
 
-  /* Recto/verso restent côte à côte sur une seule page, jamais empilés. */
+  /* Recto/verso restent côte à côte sur une seule page, jamais empilés.
+     Réduit à l'échelle pour tenir même en format portrait (plus étroit) —
+     iOS/Safari ignore souvent la marge @page ci-dessous, donc on ne compte
+     pas sur la largeur de page réellement disponible. */
   @page { margin: 8mm; }
-  .badge-cartes { flex-wrap: nowrap !important; page-break-inside: avoid; break-inside: avoid; }
+  .badge-cartes {
+    flex-wrap: nowrap !important;
+    page-break-inside: avoid; break-inside: avoid;
+    transform: scale(.72); transform-origin: top center;
+  }
   .badge-face { page-break-inside: avoid; break-inside: avoid; }
 }
 
