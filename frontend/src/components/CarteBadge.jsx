@@ -173,7 +173,7 @@ function Verso({ badge, logoSrc }) {
 
 export default function CarteBadge({ badge, photoSrc, logoSrc }) {
   return (
-    <div className="badge-cartes" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'nowrap', justifyContent: 'center' }}>
+    <div className="badge-cartes" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
       <Recto badge={badge} photoSrc={photoSrc} logoSrc={logoSrc} />
       <Verso badge={badge} logoSrc={logoSrc} />
     </div>
