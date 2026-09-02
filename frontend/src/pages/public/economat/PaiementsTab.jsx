@@ -137,7 +137,15 @@ export default function PaiementsTab() {
                 {visibles.map((p) => (
                   <tr key={p.id}>
                     <td>{libelleTypeFrais(p.type_frais)}</td>
-                    <td className="paie-montant">{montantFr(p.montant, p.devise)}</td>
+                    <td className="paie-montant">
+                      {montantFr(p.montant, p.devise)}
+                      {p.montant_suspect && (
+                        <span className="insc-badge insc-badge-rouge" style={{ marginLeft: '.4rem' }}
+                          title={`Tarif actuel : ${montantFr(p.tarif_actuel, p.devise)} — ce montant ne correspond pas au tarif en vigueur.`}>
+                          <Icone nom="warning" size={12} /> Écart
+                        </span>
+                      )}
+                    </td>
                     <td><BadgeStatut statut={p.statut} /></td>
                     <td>
                       {p.preuve_url
@@ -189,6 +197,11 @@ export default function PaiementsTab() {
               <div><dt>Statut</dt><dd><BadgeStatut statut={details.statut} /></dd></div>
               <div><dt>Date</dt><dd>{dateFr(details.cree_le)}</dd></div>
             </dl>
+            {details.montant_suspect && (
+              <Alerte type="erreur">
+                Ce montant ne correspond pas au tarif actuel ({montantFr(details.tarif_actuel, details.devise)}).
+              </Alerte>
+            )}
             {details.preuve_url ? (
               <>
                 <iframe className="paie-preuve-cadre" src={urlPreuvePaiement(details.id)} title="Preuve de paiement" />
@@ -214,6 +227,14 @@ export default function PaiementsTab() {
             </p>
 
             {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+
+            {confirmation.decision === 'valide' && confirmation.paiement.montant_suspect && (
+              <Alerte type="erreur">
+                Attention : ce montant ne correspond pas au tarif actuel
+                ({montantFr(confirmation.paiement.tarif_actuel, confirmation.paiement.devise)}).
+                Vérifiez la preuve avant de valider.
+              </Alerte>
+            )}
 
             {confirmation.decision === 'valide' && !confirmation.paiement.preuve_url && (
               <Alerte type="info">Aucune preuve téléversée : la validation est impossible.</Alerte>

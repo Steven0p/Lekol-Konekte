@@ -3,7 +3,14 @@ import path from 'path';
 import * as paiementModel from '../models/paiement.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
 import { creerDemande, traiterValidation, proprietaireDe } from '../services/paiement.service.js';
+import { tarifCourant } from '../models/tarif.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+
+// Types de frais à tarif fixe (voir services/paiement.service.js) — le montant
+// saisi par le parent est le montant réellement déposé (peut différer du tarif
+// en cas de paiement partiel), mais l'admin doit voir l'écart pour le repérer
+// facilement pendant la validation.
+const TYPES_TARIF_FIXE = ['inscription', 'releve', 'duplicata'];
 
 // Accès complet (tout paiement, pas seulement le sien) réservé à l'admin
 // Économat — module détaché des rôles admin/direction.
@@ -93,7 +100,24 @@ export async function servirPreuve(req, res, next) {
 // GET /api/admin/paiements?statut= (admin/direction)
 export async function listerAdmin(req, res, next) {
   try {
-    return res.json({ paiements: await paiementModel.listerAdmin(req.query.statut) });
+    const paiements = await paiementModel.listerAdmin(req.query.statut);
+
+    const tarifsParType = {};
+    for (const type of TYPES_TARIF_FIXE) {
+      const t = await tarifCourant(type);
+      if (t) tarifsParType[type] = Number(t.montant);
+    }
+
+    const enrichis = paiements.map((p) => {
+      const tarifActuel = tarifsParType[p.type_frais];
+      return {
+        ...p,
+        tarif_actuel: tarifActuel ?? null,
+        montant_suspect: tarifActuel != null && Number(p.montant) !== tarifActuel,
+      };
+    });
+
+    return res.json({ paiements: enrichis });
   } catch (err) {
     next(err);
   }
