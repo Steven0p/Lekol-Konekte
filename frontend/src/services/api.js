@@ -275,6 +275,10 @@ export const messagesApi = {
   repondre: (id, reponse) => request(`/proprietaire/messages/${id}/repondre`, { method: 'POST', body: json({ reponse }) }),
 };
 
+export const annonceApi = {
+  envoyerSms: (message) => request('/annonces/sms', { method: 'POST', body: json({ message }) }),
+};
+
 // Demande publique d'accès aux résultats (ancien élève, sans compte)
 export const demandeAncienApi = {
   envoyer: (payload) => request('/anciens-eleves/demandes', { method: 'POST', body: json(payload) }),

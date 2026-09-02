@@ -9,6 +9,7 @@ import { creer as creerDocumentOfficiel, bulletinExiste,
 import { calculerMoyenne } from './moyenne.service.js';
 import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { envoyerSms } from '../config/sms.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 import { echapperHtml } from '../utils/html.js';
@@ -195,15 +196,17 @@ export async function publier({
       ? [{ filename: `bulletin-${libelle.replace(/\s+/g, '-')}-${anneeScolaire}.pdf`, content: pdfBuffer.toString('base64') }]
       : undefined;
 
+    const texteNotif = `Bonjour ${eleve.parent_nom},\n\nLe bulletin du ${libelle} (année ${anneeScolaire}) ` +
+          `de ${eleve.nom} est disponible en pièce jointe et dans votre compte.\n` +
+          `Moyenne du trimestre : ${moyenneCourante.toFixed(2)}/100.` + bilanTexte +
+          `\n\n${appreciation}` +
+          `\n\nConsultez tous les résultats et bulletins sur ${SITE_URL}`;
+
     try {
       await envoyerCourriel({
         to: eleve.parent_courriel,
         subject: `Lekòl Konekte — bulletin ${libelle} disponible`,
-        text: `Bonjour ${eleve.parent_nom},\n\nLe bulletin du ${libelle} (année ${anneeScolaire}) ` +
-              `de ${eleve.nom} est disponible en pièce jointe et dans votre compte.\n` +
-              `Moyenne du trimestre : ${moyenneCourante.toFixed(2)}/100.` + bilanTexte +
-              `\n\n${appreciation}` +
-              `\n\nConsultez tous les résultats et bulletins sur ${SITE_URL}`,
+        text: texteNotif,
         html: `<p>Bonjour ${echapperHtml(eleve.parent_nom)},</p>` +
               `<p>Le bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) de ` +
               `<strong>${echapperHtml(eleve.nom)}</strong> est disponible en pièce jointe et dans votre compte.</p>` +
@@ -215,6 +218,14 @@ export async function publier({
       });
     } catch (err) {
       console.error('Notification bulletin échouée :', err.message);
+    }
+
+    if (eleve.parent_telephone) {
+      try {
+        await envoyerSms({ to: eleve.parent_telephone, texte: texteNotif });
+      } catch (err) {
+        console.error('Notification SMS bulletin échouée :', err.message);
+      }
     }
   }
 

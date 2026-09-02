@@ -52,6 +52,26 @@ export async function findById(id) {
   return rows[0] || null;
 }
 
+// Un numéro par parent actif (le plus récent parmi les inscriptions de ses
+// enfants), pour les annonces SMS groupées. Le téléphone n'est saisi que sur
+// le formulaire d'inscription, pas sur le compte lui-même.
+export async function listerParentsAvecTelephone() {
+  const [rows] = await pool.query(`
+    SELECT u.id, u.nom,
+           (SELECT i.telephone_parent
+              FROM inscriptions i
+              JOIN eleves e ON e.id = i.id_eleve
+             WHERE e.id_parent = p.id
+               AND i.telephone_parent IS NOT NULL AND i.telephone_parent != ''
+             ORDER BY i.id DESC LIMIT 1) AS telephone
+      FROM utilisateurs u
+      JOIN parents p ON p.id_utilisateur = u.id
+     WHERE u.role = 'parent' AND u.statut = 'actif'
+    HAVING telephone IS NOT NULL
+  `);
+  return rows;
+}
+
 // Crée un utilisateur (rôle 'parent' par défaut) + sa fiche parent, en transaction.
 // Le compte est immédiatement utilisable : il n'y a plus d'étape de vérification du
 // courriel. La colonne courriel_verifie est conservée (mise à 1) pour pouvoir

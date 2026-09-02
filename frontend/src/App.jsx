@@ -47,6 +47,7 @@ import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
 import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
 import MonCompte from './pages/MonCompte.jsx';
+import AnnonceSms from './pages/AnnonceSms.jsx';
 
 export default function App() {
   return (
@@ -89,6 +90,7 @@ export default function App() {
       >
         <Route path="/tableau-de-bord" element={<TableauDeBord />} />
         <Route path="/mon-compte" element={<RoutePrivee roles={['parent', 'admin', 'direction', 'proprietaire']}><MonCompte /></RoutePrivee>} />
+        <Route path="/annonce-sms" element={<RoutePrivee roles={['admin', 'direction', 'proprietaire']}><AnnonceSms /></RoutePrivee>} />
 
         {/* Parent — Inscriptions */}
         <Route path="/inscriptions" element={<RoutePrivee roles={['parent']}><MesInscriptions /></RoutePrivee>} />

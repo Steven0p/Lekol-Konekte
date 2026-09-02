@@ -2,6 +2,7 @@
 import { trouverAvecProprietaire, mettreAJourStatut } from '../models/inscription.model.js';
 import { journaliser } from '../models/historique.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { envoyerSms } from '../config/sms.js';
 import { echapperHtml } from '../utils/html.js';
 
 // Statuts que le secrétariat peut appliquer depuis ce module
@@ -70,6 +71,14 @@ export async function changerStatut({ idInscription, nouveauStatut, commentaire,
   } catch (err) {
     // L'envoi du courriel ne doit pas annuler le changement de statut déjà enregistré.
     console.error('Notification courriel échouée :', err.message);
+  }
+
+  if (inscription.telephone_parent) {
+    try {
+      await envoyerSms({ to: inscription.telephone_parent, texte: corps });
+    } catch (err) {
+      console.error('Notification SMS échouée :', err.message);
+    }
   }
 
   return { ok: true, ancienStatut, nouveauStatut, previewUrl };

@@ -100,10 +100,13 @@ export async function trouverParCode(code) {
 export async function trouverAvecProprietaire(idEleve) {
   const [rows] = await pool.query(
     `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau, e.id_parent,
-            u.id AS id_utilisateur, u.courriel AS parent_courriel, u.nom AS parent_nom
+            u.id AS id_utilisateur, u.courriel AS parent_courriel, u.nom AS parent_nom,
+            insc.telephone_parent
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent
        JOIN utilisateurs u ON u.id = p.id_utilisateur
+       LEFT JOIN inscriptions insc
+              ON insc.id = (SELECT id FROM inscriptions WHERE id_eleve = e.id ORDER BY id DESC LIMIT 1)
       WHERE e.id = ? LIMIT 1`,
     [idEleve]
   );
@@ -229,7 +232,8 @@ export async function listerParNiveau(niveau) {
     `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom,
             e.nom AS nom_famille, e.prenom AS prenom, e.niveau,
             COALESCE(insc.courriel_parent, u.courriel) AS parent_courriel,
-            COALESCE(insc.nom_parent, u.nom) AS parent_nom
+            COALESCE(insc.nom_parent, u.nom) AS parent_nom,
+            insc.telephone_parent AS parent_telephone
        FROM eleves e
        JOIN parents p ON p.id = e.id_parent
        JOIN utilisateurs u ON u.id = p.id_utilisateur

@@ -10,6 +10,7 @@ import { creer as creerDocumentOfficiel } from '../models/documentOfficiel.model
 import { journaliser } from '../models/historique.model.js';
 import { grouperTranscript, genererReleve } from './releve.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { envoyerSms } from '../config/sms.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
@@ -80,6 +81,7 @@ async function resoudreProprietaire(typeFrais, idReference) {
     return {
       idUtilisateur: ins.id_utilisateur, idEleve: ins.id_eleve, eleveNom: ins.eleve_nom,
       eleveNiveau: ins.niveau, parentCourriel: ins.parent_courriel, parentNom: ins.parent_nom,
+      parentTelephone: ins.telephone_parent,
       inscription: ins,
     };
   }
@@ -88,6 +90,7 @@ async function resoudreProprietaire(typeFrais, idReference) {
   return {
     idUtilisateur: eleve.id_utilisateur, idEleve: eleve.id, eleveNom: eleve.nom,
     eleveNiveau: eleve.niveau, parentCourriel: eleve.parent_courriel, parentNom: eleve.parent_nom,
+    parentTelephone: eleve.telephone_parent,
   };
 }
 
@@ -206,6 +209,14 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
     }
   } catch (err) {
     console.error('Notification paiement échouée :', err.message);
+  }
+
+  if (prop?.parentTelephone) {
+    try {
+      await envoyerSms({ to: prop.parentTelephone, texte: corps });
+    } catch (err) {
+      console.error('Notification SMS paiement échouée :', err.message);
+    }
   }
 
   return { ok: true, statut, document, previewUrl };
