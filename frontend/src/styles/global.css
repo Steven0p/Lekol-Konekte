@@ -183,6 +183,15 @@ a:hover { text-decoration: underline; }
 }
 .champ .erreur-champ { color: var(--erreur); font-size: .82rem; }
 
+.champ-mdp-conteneur { position: relative; display: flex; }
+.champ-mdp-conteneur input { padding-right: 2.6rem; }
+.champ-mdp-oeil {
+  position: absolute; top: 50%; right: .6rem; transform: translateY(-50%);
+  background: none; border: none; padding: .3rem; cursor: pointer;
+  color: var(--gris); display: flex; align-items: center;
+}
+.champ-mdp-oeil:hover { color: var(--noir); }
+
 /* ---------- Bouton ---------- */
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: .5rem;

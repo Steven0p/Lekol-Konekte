@@ -5,7 +5,7 @@ import {
   faPen, faTrashCan, faDownload, faUpload, faShareNodes, faPlus, faXmark, faCheck,
   faChartColumn, faClipboardList, faFileLines, faClockRotateLeft, faComment, faImage,
   faBullseye, faPaperclip, faLock, faInbox, faSchool, faIdCard, faTriangleExclamation,
-  faMobileScreen, faBuildingColumns, faRotate, faUsers,
+  faMobileScreen, faBuildingColumns, faRotate, faUsers, faEye, faEyeSlash,
 } from '@fortawesome/free-solid-svg-icons';
 
 const ICONES = {
@@ -34,6 +34,8 @@ const ICONES = {
   bank: faBuildingColumns,
   refresh: faRotate,
   users: faUsers,
+  eye: faEye,
+  eyeSlash: faEyeSlash,
 };
 
 export default function Icone({ nom, size, className, ...rest }) {
