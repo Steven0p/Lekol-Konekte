@@ -9,6 +9,13 @@ const MARINE = '#1A365D';
 const MARINE2 = '#2B4C7E';
 const OR = '#D69E2E';
 
+// Hauteur fixe des deux faces — le contenu ne doit jamais faire varier la
+// mise en page (sinon l'impression recto/verso ne tient plus sur une page).
+const HAUTEUR_CARTE = 500;
+// Empêche un texte trop long (nom, nom d'école) d'agrandir la carte : il est
+// coupé avec « … » plutôt que de passer à la ligne.
+const TRONQUE = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+
 // Formate 'YYYY-MM-DD' -> 'JJ-MM-AAAA'
 const dateCourte = (iso) => {
   if (!iso) return '—';
@@ -43,8 +50,8 @@ function EnteteEcole({ badge, logoSrc }) {
       <div style={{ display: 'grid', placeItems: 'center', marginBottom: '.4rem' }}>
         <Logo logoSrc={logoSrc} aLogo={badge.ecoleALogo} />
       </div>
-      <div style={{ fontWeight: 800, fontSize: '.92rem', lineHeight: 1.2 }}>{badge.ecoleNom}</div>
-      {badge.ecoleAdresse && <div style={{ fontSize: '.68rem', opacity: .85, marginTop: 2 }}>{badge.ecoleAdresse}</div>}
+      <div style={{ fontWeight: 800, fontSize: '.92rem', lineHeight: 1.2, ...TRONQUE }}>{badge.ecoleNom}</div>
+      {badge.ecoleAdresse && <div style={{ fontSize: '.68rem', opacity: .85, marginTop: 2, ...TRONQUE }}>{badge.ecoleAdresse}</div>}
     </div>
   );
 }
@@ -64,7 +71,7 @@ function Recto({ badge, photoSrc, logoSrc }) {
   const nomComplet = [badge.prenom, badge.nom].filter(Boolean).join(' ') || '—';
   return (
     <div className="badge-face" style={{
-      width: 320, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
+      width: 320, height: HAUTEUR_CARTE, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
       overflow: 'hidden', boxShadow: '0 6px 20px rgba(26,54,93,.12)',
     }}>
       <EnteteEcole badge={badge} logoSrc={logoSrc} />
@@ -87,7 +94,7 @@ function Recto({ badge, photoSrc, logoSrc }) {
         </div>
       </div>
 
-      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.02rem', color: MARINE, margin: '.1rem 0 .5rem' }}>
+      <div style={{ textAlign: 'center', fontWeight: 800, fontSize: '1.02rem', color: MARINE, margin: '.1rem 0 .5rem', padding: '0 .75rem', ...TRONQUE }}>
         {nomComplet}
       </div>
 
@@ -116,18 +123,18 @@ function Verso({ badge, logoSrc }) {
     : origine || 'Lekòl Konekte';
   return (
     <div className="badge-face" style={{
-      width: 320, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
+      width: 320, height: HAUTEUR_CARTE, background: '#fff', border: '1px solid #E2E8F0', borderRadius: 14,
       overflow: 'hidden', boxShadow: '0 6px 20px rgba(26,54,93,.12)',
     }}>
       <div style={{ background: `linear-gradient(160deg, ${MARINE} 0%, ${MARINE2} 100%)`, color: '#fff', padding: '.7rem 1rem .2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '.72rem', opacity: .9 }}>En cas de perte, veuillez retourner cette carte à :</div>
+        <div style={{ fontSize: '.72rem', opacity: .9, ...TRONQUE }}>En cas de perte, veuillez retourner cette carte à :</div>
         <div style={{ display: 'grid', placeItems: 'center', margin: '.45rem 0 .3rem' }}>
           <Logo logoSrc={logoSrc} aLogo={badge.ecoleALogo} taille={38} />
         </div>
-        <div style={{ fontWeight: 800, fontSize: '.85rem' }}>{badge.ecoleNom}</div>
-        {badge.ecoleAdresse && <div style={{ fontSize: '.66rem', opacity: .85 }}>{badge.ecoleAdresse}</div>}
-        {badge.ecoleTelephone && <div style={{ fontSize: '.66rem', opacity: .85 }}>Tél : {badge.ecoleTelephone}</div>}
-        {badge.ecoleCourriel && <div style={{ fontSize: '.66rem', opacity: .85 }}>{badge.ecoleCourriel}</div>}
+        <div style={{ fontWeight: 800, fontSize: '.85rem', ...TRONQUE }}>{badge.ecoleNom}</div>
+        {badge.ecoleAdresse && <div style={{ fontSize: '.66rem', opacity: .85, ...TRONQUE }}>{badge.ecoleAdresse}</div>}
+        {badge.ecoleTelephone && <div style={{ fontSize: '.66rem', opacity: .85, ...TRONQUE }}>Tél : {badge.ecoleTelephone}</div>}
+        {badge.ecoleCourriel && <div style={{ fontSize: '.66rem', opacity: .85, ...TRONQUE }}>{badge.ecoleCourriel}</div>}
       </div>
       <Vague />
 
@@ -157,7 +164,7 @@ function Verso({ badge, logoSrc }) {
       </div>
 
       <Vague retourne />
-      <div style={{ background: MARINE, color: '#fff', textAlign: 'center', padding: '.35rem', fontSize: '.66rem', marginTop: -1 }}>
+      <div style={{ background: MARINE, color: '#fff', textAlign: 'center', padding: '.35rem .75rem', fontSize: '.66rem', marginTop: -1, ...TRONQUE }}>
         {badge.ecoleNom}
       </div>
     </div>
@@ -166,7 +173,7 @@ function Verso({ badge, logoSrc }) {
 
 export default function CarteBadge({ badge, photoSrc, logoSrc }) {
   return (
-    <div className="badge-cartes" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+    <div className="badge-cartes" style={{ display: 'flex', gap: '1.25rem', flexWrap: 'nowrap', justifyContent: 'center' }}>
       <Recto badge={badge} photoSrc={photoSrc} logoSrc={logoSrc} />
       <Verso badge={badge} logoSrc={logoSrc} />
     </div>

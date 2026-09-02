@@ -326,7 +326,12 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
   .navbar, .sidebar, .sb-mobile-bar, .sb-backdrop, .no-print { display: none !important; }
   body { background: #fff; }
   .contenu { padding: 0; max-width: none; }
-  .badge-carte { box-shadow: none !important; }
+  .badge-face { box-shadow: none !important; }
+
+  /* Recto/verso restent côte à côte sur une seule page, jamais empilés. */
+  @page { margin: 8mm; }
+  .badge-cartes { flex-wrap: nowrap !important; page-break-inside: avoid; break-inside: avoid; }
+  .badge-face { page-break-inside: avoid; break-inside: avoid; }
 }
 
 /* Petit téléphone */
