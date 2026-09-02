@@ -1,0 +1,9 @@
+{
+  "appId": "online.lekolkonekte.app",
+  "appName": "Lekòl Konekte",
+  "webDir": "dist",
+  "server": {
+    "url": "https://lekolkonekte.online",
+    "androidScheme": "https"
+  }
+}
