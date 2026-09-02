@@ -35,6 +35,7 @@ const ICONES = {
   scan: 'M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm16 0h2v6h-6v-2h4v-4zM6 9h2v6H6V9zm10 0h2v6h-2V9zm-5 0h2v6h-2V9z',
   archive: 'M20.54 5.23 19.15 3.55A1.99 1.99 0 0 0 17.63 3H6.37c-.61 0-1.19.26-1.52.68L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm3-9h8v2H8v-2z',
   sms: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
+  mail: 'M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -85,6 +86,7 @@ const MENUS = {
       { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
       { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },
+      { to: '/proprietaire/annonce-courriel', libelle: 'Annonce courriel', icone: 'mail' },
       { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],

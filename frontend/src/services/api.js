@@ -277,6 +277,8 @@ export const messagesApi = {
 
 export const annonceApi = {
   envoyerSms: (message) => request('/annonces/sms', { method: 'POST', body: json({ message }) }),
+  envoyerCourriel: (objet, message) => request('/annonces/courriel', { method: 'POST', body: json({ objet, message }) }),
+  redactionIa: (sujet) => request('/annonces/redaction-ia', { method: 'POST', body: json({ sujet }) }),
 };
 
 // Demande publique d'accès aux résultats (ancien élève, sans compte)

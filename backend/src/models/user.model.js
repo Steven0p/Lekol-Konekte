@@ -72,6 +72,19 @@ export async function listerParentsAvecTelephone() {
   return rows;
 }
 
+// Retourne tous les parents actifs ayant un courriel, pour les annonces
+// groupées par courriel. Contrairement au téléphone, le courriel est déjà
+// sur le compte lui-même : pas besoin de passer par les inscriptions.
+export async function listerParentsAvecCourriel() {
+  const [rows] = await pool.query(`
+    SELECT id, nom, courriel
+      FROM utilisateurs
+     WHERE role = 'parent' AND statut = 'actif'
+       AND courriel IS NOT NULL AND courriel != ''
+  `);
+  return rows;
+}
+
 // Crée un utilisateur (rôle 'parent' par défaut) + sa fiche parent, en transaction.
 // Le compte est immédiatement utilisable : il n'y a plus d'étape de vérification du
 // courriel. La colonne courriel_verifie est conservée (mise à 1) pour pouvoir
