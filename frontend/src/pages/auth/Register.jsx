@@ -12,12 +12,17 @@ export default function Register() {
   const [nom, setNom] = useState('');
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
+  const [confirmation, setConfirmation] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
 
   const soumettre = async (e) => {
     e.preventDefault();
     setErreur('');
+    if (motDePasse !== confirmation) {
+      setErreur('La confirmation ne correspond pas au mot de passe.');
+      return;
+    }
     setEnCours(true);
     try {
       await register({ nom, courriel, motDePasse });
@@ -46,6 +51,8 @@ export default function Register() {
             onChange={(e) => setCourriel(e.target.value)} required autoComplete="email" />
           <Champ label="Mot de passe (8 caractères min.)" type="password" value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)} minLength={8} required autoComplete="new-password" />
+          <Champ label="Confirmer le mot de passe" type="password" value={confirmation}
+            onChange={(e) => setConfirmation(e.target.value)} minLength={8} required autoComplete="new-password" />
 
           <Bouton type="submit" bloc enCours={enCours}>Créer mon compte</Bouton>
 
