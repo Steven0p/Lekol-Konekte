@@ -5,9 +5,10 @@ import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
+import BoutonGoogle from '../../components/BoutonGoogle.jsx';
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [nom, setNom] = useState('');
   const [courriel, setCourriel] = useState('');
@@ -27,6 +28,19 @@ export default function Register() {
     try {
       await register({ nom, courriel, motDePasse });
       // La session est ouverte par register : on entre directement dans l'espace parent.
+      navigate('/tableau-de-bord');
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+
+  const inscrireAvecGoogle = async (credential) => {
+    setErreur('');
+    setEnCours(true);
+    try {
+      await googleLogin(credential);
       navigate('/tableau-de-bord');
     } catch (err) {
       setErreur(err.message);
@@ -55,6 +69,9 @@ export default function Register() {
             onChange={(e) => setConfirmation(e.target.value)} minLength={8} required autoComplete="new-password" />
 
           <Bouton type="submit" bloc enCours={enCours}>Créer mon compte</Bouton>
+
+          <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
+          <BoutonGoogle onCredential={inscrireAvecGoogle} texte="signup_with" />
 
           <p className="auth-lien">
             Déjà un compte ? <Link to="/login">Se connecter</Link>

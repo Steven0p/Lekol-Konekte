@@ -10,6 +10,8 @@ import {
   reinitialiserMotDePasse,
   verifierConnexion,
   renvoyerCodeConnexion,
+  googleAuth,
+  googleClientId,
 } from '../controllers/auth.controller.js';
 import { authLimiter, otpLimiter } from '../middleware/rateLimit.js';
 
@@ -17,6 +19,8 @@ const router = Router();
 
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
+router.get('/google/client-id', googleClientId);
+router.post('/google', authLimiter, googleAuth);
 // 2FA parent : 2ᵉ étape (vérification du code) et renvoi de code.
 router.post('/verifier-connexion', otpLimiter, verifierConnexion);
 router.post('/renvoyer-code-connexion', otpLimiter, renvoyerCodeConnexion);

@@ -5,9 +5,10 @@ import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
+import BoutonGoogle from '../../components/BoutonGoogle.jsx';
 
 export default function Login() {
-  const { login, verifierConnexion, renvoyerCodeConnexion } = useAuth();
+  const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [courriel, setCourriel] = useState('');
@@ -66,6 +67,19 @@ export default function Login() {
     }
   };
 
+  const connecterAvecGoogle = async (credential) => {
+    setErreur('');
+    setEnCours(true);
+    try {
+      await googleLogin(credential);
+      navigate('/tableau-de-bord');
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setEnCours(false);
+    }
+  };
+
   const retourIdentifiants = () => {
     setEtape('identifiants');
     setCode('');
@@ -97,6 +111,9 @@ export default function Login() {
             </p>
 
             <Bouton type="submit" bloc enCours={enCours}>Se connecter</Bouton>
+
+            <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
+            <BoutonGoogle onCredential={connecterAvecGoogle} texte="signin_with" />
 
             <p className="auth-lien">
               Pas encore de compte ? <Link to="/register">Créer un compte</Link>

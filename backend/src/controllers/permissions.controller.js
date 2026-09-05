@@ -30,14 +30,15 @@ export async function basculer(req, res, next) {
 }
 
 // PATCH /api/mon-compte (tout compte école authentifié) — changer son propre
-// courriel et/ou mot de passe. Le mot de passe actuel est toujours exigé.
+// courriel et/ou mot de passe. Le mot de passe actuel est exigé — sauf pour un
+// compte créé uniquement via Google, qui n'en a pas encore : sa session
+// authentifiée (déjà prouvée par Google) suffit pour lui en définir un premier.
 export async function modifierCompte(req, res, next) {
   try {
     const motDePasseActuel = req.body.motDePasseActuel || '';
     const nouveauCourriel = req.body.nouveauCourriel ? String(req.body.nouveauCourriel).trim().toLowerCase() : null;
     const nouveauMotDePasse = req.body.nouveauMotDePasse || '';
 
-    if (!motDePasseActuel) return res.status(400).json({ erreur: 'Mot de passe actuel requis.' });
     if (!nouveauCourriel && !nouveauMotDePasse) return res.status(400).json({ erreur: 'Rien à modifier.' });
     if (nouveauCourriel && !COURRIEL_REGEX.test(nouveauCourriel)) return res.status(400).json({ erreur: 'Courriel invalide.' });
     if (nouveauMotDePasse && nouveauMotDePasse.length < 8) {
@@ -47,8 +48,11 @@ export async function modifierCompte(req, res, next) {
     const utilisateur = await findByIdAvecHash(req.session.userId);
     if (!utilisateur) return res.status(404).json({ erreur: 'Compte introuvable.' });
 
-    const motDePasseValide = await bcrypt.compare(motDePasseActuel, utilisateur.mot_de_passe_hash);
-    if (!motDePasseValide) return res.status(401).json({ erreur: 'Mot de passe actuel incorrect.' });
+    if (utilisateur.mot_de_passe_hash) {
+      if (!motDePasseActuel) return res.status(400).json({ erreur: 'Mot de passe actuel requis.' });
+      const motDePasseValide = await bcrypt.compare(motDePasseActuel, utilisateur.mot_de_passe_hash);
+      if (!motDePasseValide) return res.status(401).json({ erreur: 'Mot de passe actuel incorrect.' });
+    }
 
     if (nouveauCourriel && nouveauCourriel !== utilisateur.courriel) {
       const existant = await findByCourriel(nouveauCourriel);

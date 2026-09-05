@@ -16,6 +16,8 @@ export default function MonCompte() {
   const [msg, setMsg] = useState('');
   const [enCours, setEnCours] = useState(false);
 
+  const aMotDePasse = !!utilisateur?.aMotDePasse;
+
   const soumettre = async (e) => {
     e.preventDefault();
     setErreur(''); setMsg('');
@@ -68,9 +70,15 @@ export default function MonCompte() {
             <Champ label="Confirmer le nouveau mot de passe" type="password" value={confirmation}
               onChange={(e) => setConfirmation(e.target.value)} autoComplete="new-password" required />
           )}
-          <Champ label="Mot de passe actuel (obligatoire pour confirmer)" type="password"
-            value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
-            autoComplete="current-password" required />
+          {aMotDePasse ? (
+            <Champ label="Mot de passe actuel (obligatoire pour confirmer)" type="password"
+              value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
+              autoComplete="current-password" required />
+          ) : (
+            <Alerte type="info">
+              Votre compte utilise la connexion Google — aucun mot de passe actuel n'est requis pour en définir un.
+            </Alerte>
+          )}
 
           <div>
             <Bouton type="submit" enCours={enCours}>Enregistrer</Bouton>

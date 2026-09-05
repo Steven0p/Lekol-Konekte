@@ -5,7 +5,11 @@ import {
   findById,
   createParent,
   mettreAJourMotDePasse,
+  findByGoogleId,
+  lierGoogleId,
+  createParentGoogle,
 } from '../models/user.model.js';
+import { verifierIdTokenGoogle, clientIdPublic } from '../config/googleAuth.js';
 import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
   from '../models/eleve.model.js';
 import {
@@ -60,6 +64,64 @@ export async function register(req, res, next) {
         nom: utilisateur.nom,
         courriel: utilisateur.courriel,
         role: utilisateur.role,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/auth/google/client-id — configuration publique du bouton Google
+// (le client_id n'est pas un secret ; le bouton ne s'affiche pas si absent).
+export function googleClientId(req, res) {
+  return res.json({ clientId: clientIdPublic() });
+}
+
+// POST /api/auth/google — connexion ou inscription via Google (ID token émis
+// par Google Identity Services côté client). L'adresse Google étant déjà
+// vérifiée par Google, la 2FA par courriel (voir login ci-dessous) est
+// inutile ici. Toute création de compte se fait avec le rôle 'parent',
+// comme l'inscription manuelle ; un compte existant (autre rôle inclus) est
+// simplement lié par courriel s'il n'était pas déjà relié à Google.
+export async function googleAuth(req, res, next) {
+  try {
+    const credential = req.body.credential || '';
+    if (!credential) return res.status(400).json({ erreur: 'Jeton Google requis.' });
+
+    let infosGoogle;
+    try {
+      infosGoogle = await verifierIdTokenGoogle(credential);
+    } catch (err) {
+      return res.status(401).json({ erreur: 'Connexion Google invalide ou expirée.' });
+    }
+    if (!infosGoogle.courrielVerifie) {
+      return res.status(403).json({ erreur: 'Adresse Google non vérifiée.' });
+    }
+
+    let utilisateur = await findByGoogleId(infosGoogle.googleId);
+    if (!utilisateur) {
+      const existant = await findByCourriel(infosGoogle.courriel);
+      if (existant) {
+        await lierGoogleId(existant.id, infosGoogle.googleId);
+        utilisateur = existant;
+      } else {
+        utilisateur = await createParentGoogle({
+          nom: infosGoogle.nom, courriel: infosGoogle.courriel, googleId: infosGoogle.googleId,
+        });
+      }
+    }
+
+    if (utilisateur.statut !== 'actif') {
+      return res.status(403).json({ erreur: 'Compte inactif.' });
+    }
+
+    await regenererSession(req);
+    req.session.userId = utilisateur.id;
+    req.session.role = utilisateur.role;
+
+    return res.json({
+      utilisateur: {
+        id: utilisateur.id, nom: utilisateur.nom, courriel: utilisateur.courriel, role: utilisateur.role,
       },
     });
   } catch (err) {

@@ -46,6 +46,14 @@ export function AuthProvider({ children }) {
     return data.utilisateur;
   };
 
+  // Connexion/inscription Google : ouvre directement la session (l'adresse est
+  // déjà vérifiée par Google, pas de 2FA supplémentaire).
+  const googleLogin = async (credential) => {
+    const data = await authApi.google(credential);
+    setUtilisateur(data.utilisateur);
+    return data.utilisateur;
+  };
+
   const logout = async () => {
     await authApi.logout();
     setUtilisateur(null);
@@ -59,7 +67,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, logout, rafraichir }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, googleLogin, logout, rafraichir }}>
       {children}
     </AuthContext.Provider>
   );

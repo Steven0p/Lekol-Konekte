@@ -4,6 +4,7 @@ import { testConnection } from './config/db.js';
 import { verifierMailer } from './config/mailer.js';
 import { verifierSms } from './config/sms.js';
 import { verifierMoncash } from './config/moncash.js';
+import { verifierGoogleConfigure } from './config/googleAuth.js';
 import { purgerAnciennesPresences } from './services/presence.service.js';
 import dotenv from 'dotenv';
 
@@ -19,6 +20,7 @@ async function demarrer() {
     await verifierMailer();
     verifierSms();
     verifierMoncash();
+    verifierGoogleConfigure();
     app.listen(PORT, () => {
       console.log(`✔ Serveur Lekol Konekte démarré sur http://localhost:${PORT}`);
     });

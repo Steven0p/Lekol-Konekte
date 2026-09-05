@@ -10,6 +10,21 @@ export async function findByCourriel(courriel) {
   return rows[0] || null;
 }
 
+// Retourne l'utilisateur (avec le hash, éventuellement null) par google_id
+export async function findByGoogleId(googleId) {
+  const [rows] = await pool.query(
+    'SELECT id, nom, courriel, mot_de_passe_hash, role, statut, courriel_verifie FROM utilisateurs WHERE google_id = ? LIMIT 1',
+    [googleId]
+  );
+  return rows[0] || null;
+}
+
+// Lie un compte existant (créé manuellement) à un identifiant Google — permet
+// de se connecter avec Google ensuite, sans toucher au mot de passe existant.
+export async function lierGoogleId(id, googleId) {
+  await pool.query('UPDATE utilisateurs SET google_id = ? WHERE id = ?', [googleId, id]);
+}
+
 // Marque le courriel d'un utilisateur comme vérifié
 export async function marquerCourrielVerifie(id) {
   await pool.query('UPDATE utilisateurs SET courriel_verifie = 1 WHERE id = ?', [id]);
@@ -46,7 +61,9 @@ export async function findParentIdByUserId(idUtilisateur) {
 // Retourne l'utilisateur (sans le hash) par id, ou null
 export async function findById(id) {
   const [rows] = await pool.query(
-    'SELECT id, nom, courriel, role, statut, cree_le FROM utilisateurs WHERE id = ? LIMIT 1',
+    `SELECT id, nom, courriel, role, statut, cree_le,
+            (mot_de_passe_hash IS NOT NULL) AS aMotDePasse
+       FROM utilisateurs WHERE id = ? LIMIT 1`,
     [id]
   );
   return rows[0] || null;
@@ -105,6 +122,31 @@ export async function createParent({ nom, courriel, motDePasseHash }) {
       'INSERT INTO parents (id_utilisateur) VALUES (?)',
       [idUtilisateur]
     );
+
+    await conn.commit();
+    return { id: idUtilisateur, nom, courriel, role: 'parent', statut: 'actif' };
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
+}
+
+// Crée un compte 'parent' via Google (pas de mot de passe : mot_de_passe_hash
+// reste NULL tant que le compte n'en définit pas un — voir mon-compte).
+export async function createParentGoogle({ nom, courriel, googleId }) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [res] = await conn.query(
+      'INSERT INTO utilisateurs (nom, courriel, google_id, role, courriel_verifie) VALUES (?, ?, ?, ?, 1)',
+      [nom, courriel, googleId, 'parent']
+    );
+    const idUtilisateur = res.insertId;
+
+    await conn.query('INSERT INTO parents (id_utilisateur) VALUES (?)', [idUtilisateur]);
 
     await conn.commit();
     return { id: idUtilisateur, nom, courriel, role: 'parent', statut: 'actif' };

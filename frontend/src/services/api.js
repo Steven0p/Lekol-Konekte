@@ -39,6 +39,8 @@ export const authApi = {
   reinitialiserMotDePasse: (payload) => request('/auth/reinitialiser-mot-de-passe', { method: 'POST', body: json(payload) }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
+  googleClientId: () => request('/auth/google/client-id'),
+  google: (credential) => request('/auth/google', { method: 'POST', body: json({ credential }) }),
 };
 
 export const inscriptionsApi = {
