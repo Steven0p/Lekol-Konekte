@@ -50,7 +50,15 @@ if (isProd) app.set('trust proxy', 1);
 // pas encore été audité module par module pour du contenu inline (scripts,
 // styles) qui casserait sous une politique stricte — à activer séparément
 // une fois ce travail fait.
-app.use(helmet({ contentSecurityPolicy: false }));
+// crossOriginOpenerPolicy : le défaut d'helmet ('same-origin') coupe la
+// référence window.opener sur toute fenêtre pop-up cross-origin — ce qui casse
+// précisément la communication postMessage utilisée par Google Identity
+// Services (bouton « Se connecter avec Google »). 'same-origin-allow-popups'
+// garde l'isolation pour le reste, sans casser ce flux.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+}));
 
 app.use(express.json());
 app.use(cookieParser());
