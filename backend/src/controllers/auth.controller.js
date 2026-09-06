@@ -18,6 +18,19 @@ import {
   verifierCode,
 } from '../services/otp.service.js';
 import { courrielConfigure } from '../config/mailer.js';
+import { creerProtection } from '../middleware/protectionBruteForce.js';
+
+// Verrouille un préfixe de code d'accès élève après trop d'échecs, quelle que
+// soit l'IP d'origine — le code (3 lettres + 5 chiffres) ne change jamais
+// (voir eleve.model.js:genererCodeAcces), donc un rate-limit par IP seul ne
+// suffit pas à empêcher une recherche exhaustive distribuée sur les 100 000
+// combinaisons possibles.
+const protectionCodeEleve = creerProtection({ seuil: 20 });
+
+// Verrouille une adresse courriel après trop d'échecs de mot de passe, quelle
+// que soit l'IP d'origine — complète authLimiter (par IP), qui seul ne coûte
+// rien à contourner par rotation de proxy.
+const protectionLogin = creerProtection({ seuil: 10 });
 import { regenererSession } from '../middleware/auth.js';
 
 const TYPE_RESET = 'reinitialisation_mdp';
@@ -221,19 +234,32 @@ export async function login(req, res, next) {
       return res.status(400).json({ erreur: 'Courriel et mot de passe requis.' });
     }
 
+    if (protectionLogin.bloque(courriel)) {
+      return res.status(429).json({ erreur: 'Trop de tentatives pour ce compte. Réessayez plus tard.' });
+    }
+
     const utilisateur = await findByCourriel(courriel);
     // Message générique pour ne pas révéler si le courriel existe
     if (!utilisateur) {
+      protectionLogin.enregistrerEchec(courriel);
       return res.status(401).json({ erreur: 'Identifiants invalides.' });
     }
     if (utilisateur.statut !== 'actif') {
       return res.status(403).json({ erreur: 'Compte inactif.' });
     }
+    // Compte créé uniquement via Google : pas de mot de passe à comparer.
+    if (!utilisateur.mot_de_passe_hash) {
+      return res.status(400).json({
+        erreur: 'Ce compte utilise la connexion Google. Utilisez le bouton « Se connecter avec Google ».',
+      });
+    }
 
     const ok = await bcrypt.compare(motDePasse, utilisateur.mot_de_passe_hash);
     if (!ok) {
+      protectionLogin.enregistrerEchec(courriel);
       return res.status(401).json({ erreur: 'Identifiants invalides.' });
     }
+    protectionLogin.reinitialiser(courriel);
 
     // Double authentification (2FA) : les comptes 'parent' reçoivent un code par
     // courriel avant l'ouverture de la session. Les rôles admin/direction gardent
@@ -383,10 +409,17 @@ export async function eleveConnexion(req, res, next) {
       return res.status(400).json({ erreur: 'Code d\'accès requis.' });
     }
 
+    const prefixe = code.slice(0, 3);
+    if (protectionCodeEleve.bloque(prefixe)) {
+      return res.status(429).json({ erreur: 'Trop de tentatives pour ce code. Réessayez plus tard.' });
+    }
+
     const eleve = await trouverEleveParCode(code);
     if (!eleve) {
+      protectionCodeEleve.enregistrerEchec(prefixe);
       return res.status(401).json({ erreur: 'Code d\'accès invalide.' });
     }
+    protectionCodeEleve.reinitialiser(prefixe);
 
     // Session élève : pas de userId, on marque l'identité par eleveId + role.
     await regenererSession(req);

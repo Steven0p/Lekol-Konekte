@@ -13,7 +13,7 @@ import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 import {
-  moncashConfigure, creerPaiementMoncash, verifierPaiementParTransactionId, verifierPaiementParOrderId,
+  moncashConfigure, creerPaiementMoncash, verifierPaiementParOrderId,
 } from '../config/moncash.js';
 import crypto from 'crypto';
 
@@ -264,11 +264,24 @@ export async function demarrerPaiementMoncash(paiement) {
 
 // Confirme un paiement MonCash après le retour du parent sur le site (ou à la
 // demande, en relance manuelle) : revérifie la transaction directement auprès
-// de MonCash — jamais confiance à la seule redirection navigateur — avant de
-// créditer quoi que ce soit. Réutilise traiterValidation pour les effets de
-// bord habituels (confirmation d'inscription, génération de document,
-// notification) : idAdmin=null y trace une validation automatique.
-export async function confirmerPaiementMoncash({ paiement, transactionId, orderId }) {
+// de MonCash — jamais confiance à la seule redirection navigateur.
+//
+// SÉCURITÉ : on interroge TOUJOURS MonCash via paiement.moncash_order_id,
+// l'identifiant généré côté serveur pour CETTE demande précise — jamais via un
+// transactionId/orderId fourni par le client. Un identifiant de transaction
+// arbitraire (même issu d'un vrai paiement, même minime) ne doit jamais
+// pouvoir être « rejoué » pour valider un paiement différent de celui pour
+// lequel il a été émis : sans ce verrou, un paiement réel de faible montant
+// suffirait à confirmer frauduleusement n'importe quelle autre demande en
+// attente de même montant.
+//
+// Si le montant confirmé est inférieur au tarif en vigueur, le paiement N'EST
+// PAS auto-validé : un paiement partiel reste possible (décision produit
+// assumée pour le dépôt manuel), mais seule une validation manuelle par
+// l'économat peut alors débloquer la confirmation d'inscription ou la
+// génération de document — jamais l'automatisation MonCash, qui ne doit
+// jamais délivrer le bénéfice complet contre un paiement incomplet.
+export async function confirmerPaiementMoncash({ paiement }) {
   if (paiement.methode_paiement !== 'moncash') {
     return { ok: false, code: 409, erreur: 'Ce paiement ne passe pas par MonCash.' };
   }
@@ -277,12 +290,13 @@ export async function confirmerPaiementMoncash({ paiement, transactionId, orderI
     // renvoie l'état actuel sans relancer les effets de bord.
     return { ok: true, statut: paiement.statut };
   }
+  if (!paiement.moncash_order_id) {
+    return { ok: false, code: 409, erreur: 'Aucun paiement MonCash démarré pour cette demande.' };
+  }
 
   let detail;
   try {
-    detail = transactionId
-      ? await verifierPaiementParTransactionId(transactionId)
-      : await verifierPaiementParOrderId(orderId || paiement.moncash_order_id);
+    detail = await verifierPaiementParOrderId(paiement.moncash_order_id);
   } catch (err) {
     return { ok: false, code: 502, erreur: `Vérification MonCash impossible : ${err.message}` };
   }
@@ -290,11 +304,30 @@ export async function confirmerPaiementMoncash({ paiement, transactionId, orderI
   if (!detail || detail.message !== 'successful') {
     return { ok: false, code: 402, erreur: "Le paiement MonCash n'a pas abouti." };
   }
-  if (Number(detail.cost) !== Number(paiement.montant)) {
+
+  const montantConfirme = Number(detail.cost);
+  const montantDu = Number(paiement.montant);
+  if (montantConfirme !== montantDu) {
     return { ok: false, code: 409, erreur: 'Le montant confirmé par MonCash ne correspond pas au paiement.' };
   }
 
+  // Transaction déjà utilisée pour créditer un autre paiement ? (garde-fou
+  // supplémentaire : la contrainte UNIQUE en base rejette de toute façon
+  // l'écriture ci-dessous si c'est le cas — voir migration 029.)
+  const dejaUtilise = await paiementModel.trouverParTransactionMoncash(detail.transaction_id);
+  if (dejaUtilise && dejaUtilise.id !== paiement.id) {
+    return { ok: false, code: 409, erreur: 'Cette transaction MonCash a déjà été utilisée pour un autre paiement.' };
+  }
+
   await paiementModel.definirTransactionMoncash(paiement.id, detail.transaction_id);
+
+  const tarif = await tarifCourant(paiement.type_frais);
+  if (tarif && montantDu < Number(tarif.montant)) {
+    return {
+      ok: true, statut: 'en_attente', partiel: true,
+      message: "Paiement MonCash reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
+    };
+  }
 
   return traiterValidation({
     idPaiement: paiement.id,

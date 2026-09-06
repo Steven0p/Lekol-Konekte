@@ -6,7 +6,7 @@ import * as publication from '../controllers/publication.controller.js';
 import * as acquittement from '../controllers/acquittement.controller.js';
 import { requireAuth, requireRole, requireEleve, requirePermission, requireEconomatAdmin } from '../middleware/auth.js';
 import { CLES } from '../services/permissions.service.js';
-import { uploadPhoto } from '../config/upload.js';
+import { uploadPhoto, verifierContenuImage } from '../config/upload.js';
 
 const router = Router();
 
@@ -33,7 +33,7 @@ router.post('/admin/eleves/:id/code-acces', requireRole('admin', 'direction'), n
 router.get('/admin/eleves/:id/badge', requireRole('admin', 'direction'), note.badgeEleveAdmin);
 router.patch('/admin/eleves/:id/badge-infos', requireRole('admin', 'direction'), note.majInfosBadgeEleve);
 router.get('/admin/eleves/:id/photo', requireRole('admin', 'direction'), note.servirPhotoEleveAdmin);
-router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), note.televerserPhotoEleveAdmin);
+router.post('/admin/eleves/:id/photo', requireRole('admin', 'direction'), uploadPhoto.single('photo'), verifierContenuImage, note.televerserPhotoEleveAdmin);
 
 // Économat : acquittement de scolarité par trimestre (système indépendant)
 router.get('/admin/acquittements', requireEconomatAdmin, acquittement.lister);
@@ -54,7 +54,7 @@ router.post('/eleve/appreciation-ia', requireEleve, note.appreciationIaEleve);
 
 // Espace élève — badge & photo
 router.get('/eleve/badge', requireEleve, note.badgeEleve);
-router.post('/eleve/photo', requireEleve, uploadPhoto.single('photo'), note.televerserPhotoEleve);
+router.post('/eleve/photo', requireEleve, uploadPhoto.single('photo'), verifierContenuImage, note.televerserPhotoEleve);
 router.get('/eleve/photo', requireEleve, note.servirPhotoEleve);
 
 // Consultation des notes d'un élève (propriétaire ou admin/direction)

@@ -32,6 +32,15 @@ export async function definirTransactionMoncash(id, transactionId) {
   await pool.query('UPDATE paiements SET moncash_transaction_id = ? WHERE id = ?', [transactionId, id]);
 }
 
+// Retrouve le paiement (s'il existe) déjà crédité pour une transaction MonCash
+// donnée — garde-fou anti-rejeu en complément de la contrainte UNIQUE en base.
+export async function trouverParTransactionMoncash(transactionId) {
+  const [rows] = await pool.query(
+    'SELECT id FROM paiements WHERE moncash_transaction_id = ? LIMIT 1', [transactionId]
+  );
+  return rows[0] || null;
+}
+
 export async function mettreAJourValidation(id, { statut, validePar }) {
   await pool.query(
     'UPDATE paiements SET statut = ?, valide_par = ?, valide_le = NOW() WHERE id = ?',

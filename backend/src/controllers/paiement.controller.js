@@ -70,7 +70,13 @@ export async function demarrerMoncash(req, res, next) {
 }
 
 // POST /api/paiements/:id/moncash/confirmer (parent propriétaire — appelé au
-// retour depuis MonCash, ou manuellement si le retour automatique échoue)
+// retour depuis MonCash, ou manuellement si le retour automatique échoue).
+// Le corps de la requête n'est jamais utilisé pour la vérification : voir
+// confirmerPaiementMoncash — seul paiement.moncash_order_id (généré côté
+// serveur) sert à interroger MonCash, jamais un identifiant fourni par le
+// client (un identifiant de transaction arbitraire ne doit jamais pouvoir
+// être rejoué pour créditer un paiement différent de celui pour lequel il a
+// été émis).
 export async function confirmerMoncash(req, res, next) {
   try {
     const paiement = await paiementModel.trouverParId(Number(req.params.id));
@@ -79,11 +85,9 @@ export async function confirmerMoncash(req, res, next) {
     const idProprietaire = await proprietaireDe(paiement);
     if (idProprietaire !== req.session.userId) return res.status(403).json({ erreur: 'Accès refusé.' });
 
-    const transactionId = req.body.transactionId ? String(req.body.transactionId) : null;
-    const orderId = req.body.orderId ? String(req.body.orderId) : null;
-    const r = await confirmerPaiementMoncash({ paiement, transactionId, orderId });
+    const r = await confirmerPaiementMoncash({ paiement });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
-    return res.json({ message: 'Paiement confirmé.', statut: r.statut });
+    return res.json({ message: r.message || 'Paiement confirmé.', statut: r.statut, partiel: !!r.partiel });
   } catch (err) {
     next(err);
   }

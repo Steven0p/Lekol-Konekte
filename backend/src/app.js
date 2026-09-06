@@ -46,17 +46,32 @@ if (isProd && !process.env.SESSION_SECRET) {
 if (isProd) app.set('trust proxy', 1);
 
 // En-têtes de sécurité (HSTS, X-Content-Type-Options, X-Frame-Options, retrait
-// de X-Powered-By, etc.). CSP désactivée pour l'instant : le build React n'a
-// pas encore été audité module par module pour du contenu inline (scripts,
-// styles) qui casserait sous une politique stricte — à activer séparément
-// une fois ce travail fait.
+// de X-Powered-By, etc.), avec CSP active. Surface externe du frontend
+// auditée : aucun CDN/police externe, un seul script tiers (Google Identity
+// Services). Le frontend utilise des styles inline React (style={{...}}) sur
+// de nombreux composants — d'où 'unsafe-inline' sur styleSrc, seule
+// concession nécessaire (aucun script inline dans le build, scriptSrc reste
+// strict).
 // crossOriginOpenerPolicy : le défaut d'helmet ('same-origin') coupe la
 // référence window.opener sur toute fenêtre pop-up cross-origin — ce qui casse
 // précisément la communication postMessage utilisée par Google Identity
 // Services (bouton « Se connecter avec Google »). 'same-origin-allow-popups'
 // garde l'isolation pour le reste, sans casser ce flux.
 app.use(helmet({
-  contentSecurityPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", 'https://accounts.google.com'],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://accounts.google.com'],
+      imgSrc: ["'self'", 'data:'],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'", 'https://accounts.google.com'],
+      frameSrc: ['https://accounts.google.com'],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
+  },
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 

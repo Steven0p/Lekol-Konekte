@@ -5,8 +5,8 @@ import * as fraisDivers from '../controllers/fraisDivers.controller.js';
 import * as paiement from '../controllers/paiement.controller.js';
 import * as economatAuth from '../controllers/economatAuth.controller.js';
 import { requireAuth, requireRole, requireEconomatAdmin, requireAuthOuEconomatAdmin } from '../middleware/auth.js';
-import { uploadPreuve, uploadLogo } from '../config/upload.js';
-import { uploadLimiter, authLimiter } from '../middleware/rateLimit.js';
+import { uploadPreuve, uploadLogo, verifierContenuDocument, verifierContenuImage } from '../config/upload.js';
+import { uploadLimiter, authLimiter, paiementLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -18,7 +18,7 @@ function televerserPreuveFichier(req, res, next) {
       if (err.message === 'TYPE_NON_AUTORISE') return res.status(400).json({ erreur: 'Type de fichier non autorisé (PDF, JPG, PNG).' });
       return res.status(400).json({ erreur: 'Échec du téléversement.' });
     }
-    next();
+    verifierContenuDocument(req, res, next);
   });
 }
 
@@ -30,7 +30,7 @@ function televerserLogoFichier(req, res, next) {
       if (err.message === 'TYPE_NON_AUTORISE') return res.status(400).json({ erreur: 'Type de fichier non autorisé (JPG, PNG).' });
       return res.status(400).json({ erreur: 'Échec du téléversement.' });
     }
-    next();
+    verifierContenuImage(req, res, next);
   });
 }
 
@@ -63,10 +63,10 @@ router.put('/frais-divers/:id', requireEconomatAdmin, fraisDivers.mettreAJour);
 router.delete('/frais-divers/:id', requireEconomatAdmin, fraisDivers.supprimer);
 
 // Paiements — parent
-router.post('/paiements', requireRole('parent'), paiement.creer);
+router.post('/paiements', requireRole('parent'), paiementLimiter, paiement.creer);
 router.post('/paiements/:id/preuve', requireRole('parent'), uploadLimiter, televerserPreuveFichier, paiement.televerserPreuve);
-router.post('/paiements/:id/moncash/demarrer', requireRole('parent'), authLimiter, paiement.demarrerMoncash);
-router.post('/paiements/:id/moncash/confirmer', requireRole('parent'), paiement.confirmerMoncash);
+router.post('/paiements/:id/moncash/demarrer', requireRole('parent'), paiementLimiter, paiement.demarrerMoncash);
+router.post('/paiements/:id/moncash/confirmer', requireRole('parent'), paiementLimiter, paiement.confirmerMoncash);
 router.get('/paiements', requireRole('parent'), paiement.listerMiens);
 
 // Propriétaire du paiement (parent) ou admin Économat

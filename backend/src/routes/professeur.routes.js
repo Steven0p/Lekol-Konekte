@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as prof from '../controllers/professeur.controller.js';
 import { requireProfsAdmin } from '../middleware/auth.js';
-import { uploadProf } from '../config/upload.js';
+import { uploadProf, verifierContenuImage } from '../config/upload.js';
 import { authLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -15,7 +15,7 @@ function televerserPhotoProf(req, res, next) {
       if (err.message === 'TYPE_NON_AUTORISE') return res.status(400).json({ erreur: 'Type de fichier non autorisé (JPG, PNG).' });
       return res.status(400).json({ erreur: 'Échec du téléversement.' });
     }
-    next();
+    verifierContenuImage(req, res, next);
   });
 }
 

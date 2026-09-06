@@ -73,7 +73,7 @@ export default function DetailPaiement() {
   const verifierMoncash = async () => {
     setErreur(''); setMsg(''); setVerifEnCours(true);
     try {
-      await paiementsApi.confirmerMoncash(id, {});
+      await paiementsApi.confirmerMoncash(id);
       setMsg('Paiement vérifié.');
       charger();
     } catch (err) {

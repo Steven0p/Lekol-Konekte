@@ -89,7 +89,7 @@ export const paiementsApi = {
     return request(`/paiements/${id}/preuve`, { method: 'POST', body: fd });
   },
   demarrerMoncash: (id) => request(`/paiements/${id}/moncash/demarrer`, { method: 'POST' }),
-  confirmerMoncash: (id, payload) => request(`/paiements/${id}/moncash/confirmer`, { method: 'POST', body: json(payload) }),
+  confirmerMoncash: (id) => request(`/paiements/${id}/moncash/confirmer`, { method: 'POST' }),
 };
 
 const qs = (params = {}) => {

@@ -13,7 +13,7 @@ import {
   messageParentIA,
 } from '../controllers/inscription.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
-import { uploadDocument } from '../config/upload.js';
+import { uploadDocument, verifierContenuDocument } from '../config/upload.js';
 import { uploadLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -30,7 +30,7 @@ function televerserFichier(req, res, next) {
       }
       return res.status(400).json({ erreur: 'Échec du téléversement.' });
     }
-    next();
+    verifierContenuDocument(req, res, next);
   });
 }
 

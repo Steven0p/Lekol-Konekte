@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as examens from '../controllers/examens.controller.js';
 import { requireExamensAdmin } from '../middleware/auth.js';
-import { uploadExamen } from '../config/upload.js';
+import { uploadExamen, verifierContenuImage } from '../config/upload.js';
 import { authLimiter, iaLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
@@ -15,7 +15,7 @@ function televerserPhotoExamen(req, res, next) {
       if (err.message === 'TYPE_NON_AUTORISE') return res.status(400).json({ erreur: 'Type de fichier non autorisé (JPG, PNG).' });
       return res.status(400).json({ erreur: 'Échec du téléversement.' });
     }
-    next();
+    verifierContenuImage(req, res, next);
   });
 }
 

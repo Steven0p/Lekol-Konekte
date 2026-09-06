@@ -2,8 +2,10 @@
 import multer from 'multer';
 import crypto from 'crypto';
 import fs from 'fs';
+import fsPromises from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { fileTypeFromFile } from 'file-type';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // backend/uploads/inscriptions
@@ -60,3 +62,27 @@ export const uploadLogo = creerUpload(DEST_LOGOS, imageFilter, TYPES_IMAGE);    
 export const uploadVlog = creerUpload(DEST_VLOG, imageFilter, TYPES_IMAGE);     // photo publication vlog
 export const uploadProf = creerUpload(DEST_PROFS, imageFilter, TYPES_IMAGE);    // photo fiche professeur
 export const uploadExamen = creerUpload(DEST_EXAMENS, imageFilter, TYPES_IMAGE); // photo feuille d'examen
+
+// Vérifie le CONTENU réel d'un fichier déjà téléversé (signature/magic bytes),
+// indépendamment du Content-Type déclaré par le client — un champ multipart
+// falsifié (ex. un exécutable renommé en .jpg) passerait sinon le fileFilter
+// ci-dessus sans problème, puisque celui-ci ne fait confiance qu'à l'en-tête
+// annoncé. Middleware à greffer APRÈS le middleware multer (req.file rempli).
+function verifierContenu(typesAutorises) {
+  return async (req, res, next) => {
+    if (!req.file) return next(); // champ facultatif absent : rien à vérifier
+    try {
+      const detecte = await fileTypeFromFile(req.file.path);
+      if (!detecte || !typesAutorises[detecte.mime]) {
+        await fsPromises.unlink(req.file.path).catch(() => {});
+        return res.status(400).json({ erreur: 'Le contenu du fichier ne correspond à aucun type autorisé.' });
+      }
+      next();
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
+export const verifierContenuDocument = verifierContenu(TYPES_AUTORISES); // PDF/JPG/PNG
+export const verifierContenuImage = verifierContenu(TYPES_IMAGE);        // JPG/PNG
