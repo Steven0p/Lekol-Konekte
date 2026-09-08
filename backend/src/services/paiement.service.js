@@ -13,8 +13,8 @@ import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 import {
-  moncashConfigure, creerPaiementMoncash, verifierPaiementParOrderId,
-} from '../config/moncash.js';
+  plopplopConfigure, creerPaiementPlopplop, verifierPaiementPlopplop, METHODES_VALIDES,
+} from '../config/plopplop.js';
 import crypto from 'crypto';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
@@ -169,9 +169,10 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
   if (paiement.statut !== 'en_attente') {
     return { ok: false, code: 409, erreur: 'Ce paiement a déjà été traité.' };
   }
-  // Un paiement MonCash n'a pas de preuve téléversée : la vérification server-à-
-  // serveur auprès de MonCash (confirmerPaiementMoncash) en tient lieu.
-  if (statut === 'valide' && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url) {
+  // Un paiement mobile (moncash/natcash/kashpaw) n'a pas de preuve téléversée :
+  // la vérification server-à-serveur auprès de plopplop (confirmerPaiementMobile)
+  // en tient lieu. Un paiement manuel (ou sans méthode reconnue) exige une preuve.
+  if (statut === 'valide' && !METHODES_VALIDES.includes(paiement.methode_paiement) && !paiement.preuve_url) {
     return { ok: false, code: 400, erreur: 'Aucune preuve téléversée : validation impossible.' };
   }
 
@@ -234,41 +235,45 @@ export async function proprietaireDe(paiement) {
   return prop ? prop.idUtilisateur : null;
 }
 
-// Démarre un paiement MonCash pour une demande déjà créée (manuelle par
-// défaut à la création — voir creerDemande) : crée le paiement côté MonCash et
-// enregistre l'orderId de la tentative. Ne change PAS le statut du paiement
-// (reste en_attente tant que MonCash n'a pas confirmé la transaction) —
-// voir confirmerPaiementMoncash pour la suite.
-export async function demarrerPaiementMoncash(paiement) {
-  if (!moncashConfigure()) {
-    return { ok: false, code: 503, erreur: "Le paiement MonCash n'est pas configuré." };
+// Démarre un paiement mobile (MonCash, NatCash ou KashPay, via l'agrégateur
+// plopplop) pour une demande déjà créée (manuelle par défaut à la création —
+// voir creerDemande) : crée la transaction côté plopplop et enregistre la
+// référence de la tentative. Ne change PAS le statut du paiement (reste
+// en_attente tant que plopplop n'a pas confirmé la transaction) — voir
+// confirmerPaiementMobile pour la suite.
+export async function demarrerPaiementMobile(paiement, methode) {
+  if (!plopplopConfigure()) {
+    return { ok: false, code: 503, erreur: "Le paiement mobile n'est pas configuré." };
+  }
+  if (!METHODES_VALIDES.includes(methode)) {
+    return { ok: false, code: 400, erreur: 'Méthode de paiement invalide.' };
   }
   if (paiement.statut !== 'en_attente') {
     return { ok: false, code: 409, erreur: 'Ce paiement a déjà été traité.' };
   }
   if (paiement.devise !== 'HTG') {
-    return { ok: false, code: 409, erreur: 'MonCash ne prend en charge que les paiements en HTG.' };
+    return { ok: false, code: 409, erreur: 'Le paiement mobile ne prend en charge que les paiements en HTG.' };
   }
 
-  const orderId = `lk-${paiement.id}-${crypto.randomBytes(4).toString('hex')}`;
+  const referenceId = `lk-${paiement.id}-${crypto.randomBytes(4).toString('hex')}`;
   let creation;
   try {
-    creation = await creerPaiementMoncash({ montant: Number(paiement.montant), orderId });
+    creation = await creerPaiementPlopplop({ referenceId, montant: Number(paiement.montant), methode });
   } catch (err) {
-    return { ok: false, code: 502, erreur: `MonCash indisponible : ${err.message}` };
+    return { ok: false, code: 502, erreur: `Paiement mobile indisponible : ${err.message}` };
   }
 
-  await paiementModel.definirMethodeMoncash(paiement.id, orderId);
-  return { ok: true, urlRedirection: creation.urlRedirection };
+  await paiementModel.definirMethodeMobile(paiement.id, methode, referenceId);
+  return { ok: true, urlRedirection: creation.url };
 }
 
-// Confirme un paiement MonCash après le retour du parent sur le site (ou à la
+// Confirme un paiement mobile après le retour du parent sur le site (ou à la
 // demande, en relance manuelle) : revérifie la transaction directement auprès
-// de MonCash — jamais confiance à la seule redirection navigateur.
+// de plopplop — jamais confiance à la seule redirection navigateur.
 //
-// SÉCURITÉ : on interroge TOUJOURS MonCash via paiement.moncash_order_id,
-// l'identifiant généré côté serveur pour CETTE demande précise — jamais via un
-// transactionId/orderId fourni par le client. Un identifiant de transaction
+// SÉCURITÉ : on interroge TOUJOURS plopplop via paiement.reference_externe,
+// la référence générée côté serveur pour CETTE demande précise — jamais via
+// un identifiant fourni par le client. Un identifiant de transaction
 // arbitraire (même issu d'un vrai paiement, même minime) ne doit jamais
 // pouvoir être « rejoué » pour valider un paiement différent de celui pour
 // lequel il a été émis : sans ce verrou, un paiement réel de faible montant
@@ -279,60 +284,60 @@ export async function demarrerPaiementMoncash(paiement) {
 // PAS auto-validé : un paiement partiel reste possible (décision produit
 // assumée pour le dépôt manuel), mais seule une validation manuelle par
 // l'économat peut alors débloquer la confirmation d'inscription ou la
-// génération de document — jamais l'automatisation MonCash, qui ne doit
-// jamais délivrer le bénéfice complet contre un paiement incomplet.
-export async function confirmerPaiementMoncash({ paiement }) {
-  if (paiement.methode_paiement !== 'moncash') {
-    return { ok: false, code: 409, erreur: 'Ce paiement ne passe pas par MonCash.' };
+// génération de document — jamais l'automatisation, qui ne doit jamais
+// délivrer le bénéfice complet contre un paiement incomplet.
+export async function confirmerPaiementMobile({ paiement }) {
+  if (!METHODES_VALIDES.includes(paiement.methode_paiement)) {
+    return { ok: false, code: 409, erreur: 'Ce paiement ne passe pas par un moyen mobile.' };
   }
   if (paiement.statut !== 'en_attente') {
     // Déjà traité (double confirmation, rafraîchissement de la page…) : on
     // renvoie l'état actuel sans relancer les effets de bord.
     return { ok: true, statut: paiement.statut };
   }
-  if (!paiement.moncash_order_id) {
-    return { ok: false, code: 409, erreur: 'Aucun paiement MonCash démarré pour cette demande.' };
+  if (!paiement.reference_externe) {
+    return { ok: false, code: 409, erreur: 'Aucun paiement mobile démarré pour cette demande.' };
   }
 
   let detail;
   try {
-    detail = await verifierPaiementParOrderId(paiement.moncash_order_id);
+    detail = await verifierPaiementPlopplop(paiement.reference_externe);
   } catch (err) {
-    return { ok: false, code: 502, erreur: `Vérification MonCash impossible : ${err.message}` };
+    return { ok: false, code: 502, erreur: `Vérification impossible : ${err.message}` };
   }
 
-  if (!detail || detail.message !== 'successful') {
-    return { ok: false, code: 402, erreur: "Le paiement MonCash n'a pas abouti." };
+  if (!detail || detail.statut !== 'ok') {
+    return { ok: false, code: 402, erreur: "Le paiement n'a pas abouti." };
   }
 
-  const montantConfirme = Number(detail.cost);
+  const montantConfirme = Number(detail.montant);
   const montantDu = Number(paiement.montant);
   if (montantConfirme !== montantDu) {
-    return { ok: false, code: 409, erreur: 'Le montant confirmé par MonCash ne correspond pas au paiement.' };
+    return { ok: false, code: 409, erreur: 'Le montant confirmé ne correspond pas au paiement.' };
   }
 
   // Transaction déjà utilisée pour créditer un autre paiement ? (garde-fou
   // supplémentaire : la contrainte UNIQUE en base rejette de toute façon
-  // l'écriture ci-dessous si c'est le cas — voir migration 029.)
-  const dejaUtilise = await paiementModel.trouverParTransactionMoncash(detail.transaction_id);
+  // l'écriture ci-dessous si c'est le cas — voir migration 030.)
+  const dejaUtilise = await paiementModel.trouverParTransactionExterne(detail.transactionId);
   if (dejaUtilise && dejaUtilise.id !== paiement.id) {
-    return { ok: false, code: 409, erreur: 'Cette transaction MonCash a déjà été utilisée pour un autre paiement.' };
+    return { ok: false, code: 409, erreur: 'Cette transaction a déjà été utilisée pour un autre paiement.' };
   }
 
-  await paiementModel.definirTransactionMoncash(paiement.id, detail.transaction_id);
+  await paiementModel.definirTransactionExterne(paiement.id, detail.transactionId);
 
   const tarif = await tarifCourant(paiement.type_frais);
   if (tarif && montantDu < Number(tarif.montant)) {
     return {
       ok: true, statut: 'en_attente', partiel: true,
-      message: "Paiement MonCash reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
+      message: "Paiement reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
     };
   }
 
   return traiterValidation({
     idPaiement: paiement.id,
     statut: 'valide',
-    commentaire: `Payé via MonCash (transaction ${detail.transaction_id}).`,
+    commentaire: `Payé via ${paiement.methode_paiement} (transaction ${detail.transactionId}).`,
     idAdmin: null,
   });
 }

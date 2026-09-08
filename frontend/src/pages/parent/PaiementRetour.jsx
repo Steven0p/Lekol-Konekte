@@ -5,23 +5,23 @@ import Carte from '../../components/Carte.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 
-// Page de retour après paiement MonCash. Le lien envoyé par MonCash ne
-// transporte pas notre propre id de paiement : on le retrouve via
-// localStorage, posé juste avant la redirection vers MonCash (voir
+// Page de retour après paiement mobile (MonCash, NatCash, KashPay — via
+// plopplop). Le lien de retour ne transporte pas notre propre id de paiement :
+// on le retrouve via localStorage, posé juste avant la redirection (voir
 // DetailPaiement.jsx). S'il manque (autre appareil, stockage effacé…), le
 // parent est simplement invité à vérifier depuis la page du paiement, où un
 // bouton de vérification manuelle existe aussi. La vérification elle-même
-// (confirmerMoncash) n'a besoin d'aucun paramètre de cette page : le serveur
-// revérifie toujours directement auprès de MonCash via l'identifiant de
-// commande qu'il a lui-même généré, jamais via un identifiant de l'URL.
-export default function MoncashRetour() {
+// (confirmerPaiementMobile) n'a besoin d'aucun paramètre de cette page : le
+// serveur revérifie toujours directement auprès de plopplop via la référence
+// qu'il a lui-même générée, jamais via un identifiant de l'URL.
+export default function PaiementRetour() {
   const [etat, setEtat] = useState('en_cours'); // en_cours | succes | partiel | echec
   const [erreur, setErreur] = useState('');
   const [message, setMessage] = useState('');
   const [idPaiement, setIdPaiement] = useState(null);
 
   useEffect(() => {
-    const id = localStorage.getItem('moncash_paiement_id');
+    const id = localStorage.getItem('paiement_mobile_id');
 
     if (!id) {
       setEtat('echec');
@@ -30,9 +30,9 @@ export default function MoncashRetour() {
     }
 
     setIdPaiement(id);
-    paiementsApi.confirmerMoncash(id)
+    paiementsApi.confirmerPaiementMobile(id)
       .then((d) => {
-        localStorage.removeItem('moncash_paiement_id');
+        localStorage.removeItem('paiement_mobile_id');
         if (d.partiel) {
           setMessage(d.message);
           setEtat('partiel');
@@ -41,7 +41,7 @@ export default function MoncashRetour() {
         }
       })
       .catch((err) => {
-        localStorage.removeItem('moncash_paiement_id');
+        localStorage.removeItem('paiement_mobile_id');
         setErreur(err.message);
         setEtat('echec');
       });
@@ -50,12 +50,12 @@ export default function MoncashRetour() {
 
   return (
     <div style={{ maxWidth: 560 }}>
-      <div className="page-entete"><h1>Paiement MonCash</h1></div>
+      <div className="page-entete"><h1>Paiement mobile</h1></div>
       <Carte>
         {etat === 'en_cours' && (
           <>
             <Chargement />
-            <p className="texte-gris" style={{ marginTop: '.75rem' }}>Vérification du paiement auprès de MonCash…</p>
+            <p className="texte-gris" style={{ marginTop: '.75rem' }}>Vérification du paiement…</p>
           </>
         )}
         {etat === 'succes' && (

@@ -1,6 +1,6 @@
 // Configuration Connexion Google — vérification du jeton d'identité (ID token)
 // envoyé par le bouton « Se connecter avec Google » côté client (Google
-// Identity Services). Contrairement à mailer.js/sms.js/moncash.js, on utilise
+// Identity Services). Contrairement à mailer.js/sms.js/plopplop.js, on utilise
 // ici la bibliothèque officielle Google plutôt qu'un appel fetch brut : vérifier
 // soi-même une signature JWT (récupération des clés publiques tournantes de
 // Google, contrôle de l'émetteur/l'audience/l'expiration...) serait risqué à

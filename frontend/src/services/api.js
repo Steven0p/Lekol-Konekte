@@ -88,8 +88,8 @@ export const paiementsApi = {
     fd.append('preuve', fichier);
     return request(`/paiements/${id}/preuve`, { method: 'POST', body: fd });
   },
-  demarrerMoncash: (id) => request(`/paiements/${id}/moncash/demarrer`, { method: 'POST' }),
-  confirmerMoncash: (id) => request(`/paiements/${id}/moncash/confirmer`, { method: 'POST' }),
+  demarrerPaiementMobile: (id, methode) => request(`/paiements/${id}/paiement-mobile/demarrer`, { method: 'POST', body: json({ methode }) }),
+  confirmerPaiementMobile: (id) => request(`/paiements/${id}/paiement-mobile/confirmer`, { method: 'POST' }),
 };
 
 const qs = (params = {}) => {

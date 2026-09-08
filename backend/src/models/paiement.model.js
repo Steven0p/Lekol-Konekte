@@ -18,25 +18,26 @@ export async function definirPreuve(id, preuveUrl) {
   await pool.query('UPDATE paiements SET preuve_url = ? WHERE id = ?', [preuveUrl, id]);
 }
 
-// Marque un paiement comme réglé via MonCash et enregistre l'orderId de la
-// tentative (une nouvelle tentative écrase le précédent, sans conséquence :
-// seul le dernier échange compte).
-export async function definirMethodeMoncash(id, orderId) {
+// Marque un paiement comme réglé via un moyen mobile (moncash/natcash/kashpaw,
+// via plopplop) et enregistre la référence de la tentative (une nouvelle
+// tentative écrase la précédente, sans conséquence : seul le dernier échange
+// compte).
+export async function definirMethodeMobile(id, methode, referenceExterne) {
   await pool.query(
-    "UPDATE paiements SET methode_paiement = 'moncash', moncash_order_id = ? WHERE id = ?",
-    [orderId, id]
+    'UPDATE paiements SET methode_paiement = ?, reference_externe = ? WHERE id = ?',
+    [methode, referenceExterne, id]
   );
 }
 
-export async function definirTransactionMoncash(id, transactionId) {
-  await pool.query('UPDATE paiements SET moncash_transaction_id = ? WHERE id = ?', [transactionId, id]);
+export async function definirTransactionExterne(id, transactionId) {
+  await pool.query('UPDATE paiements SET transaction_externe_id = ? WHERE id = ?', [transactionId, id]);
 }
 
-// Retrouve le paiement (s'il existe) déjà crédité pour une transaction MonCash
+// Retrouve le paiement (s'il existe) déjà crédité pour une transaction externe
 // donnée — garde-fou anti-rejeu en complément de la contrainte UNIQUE en base.
-export async function trouverParTransactionMoncash(transactionId) {
+export async function trouverParTransactionExterne(transactionId) {
   const [rows] = await pool.query(
-    'SELECT id FROM paiements WHERE moncash_transaction_id = ? LIMIT 1', [transactionId]
+    'SELECT id FROM paiements WHERE transaction_externe_id = ? LIMIT 1', [transactionId]
   );
   return rows[0] || null;
 }

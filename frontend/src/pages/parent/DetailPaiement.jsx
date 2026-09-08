@@ -4,6 +4,8 @@ import {
   paiementsApi, notesApi, urlPreuvePaiement, urlDocumentOfficiel,
 } from '../../services/api.js';
 import { libelleTypeFrais, montantFr, dateHeureFr } from '../../utils/libelles.js';
+
+const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -20,7 +22,7 @@ export default function DetailPaiement() {
   const [fichier, setFichier] = useState(null);
   const [envoi, setEnvoi] = useState(false);
   const [msg, setMsg] = useState('');
-  const [moncashEnCours, setMoncashEnCours] = useState(false);
+  const [methodeEnCours, setMethodeEnCours] = useState(null);
   const [verifEnCours, setVerifEnCours] = useState(false);
 
   const charger = () => {
@@ -58,22 +60,22 @@ export default function DetailPaiement() {
     }
   };
 
-  const payerMoncash = async () => {
-    setErreur(''); setMoncashEnCours(true);
+  const payerMobile = async (methode) => {
+    setErreur(''); setMethodeEnCours(methode);
     try {
-      const d = await paiementsApi.demarrerMoncash(id);
-      localStorage.setItem('moncash_paiement_id', id);
+      const d = await paiementsApi.demarrerPaiementMobile(id, methode);
+      localStorage.setItem('paiement_mobile_id', id);
       window.location.href = d.urlRedirection;
     } catch (err) {
       setErreur(err.message);
-      setMoncashEnCours(false);
+      setMethodeEnCours(null);
     }
   };
 
-  const verifierMoncash = async () => {
+  const verifierMobile = async () => {
     setErreur(''); setMsg(''); setVerifEnCours(true);
     try {
-      await paiementsApi.confirmerMoncash(id);
+      await paiementsApi.confirmerPaiementMobile(id);
       setMsg('Paiement vérifié.');
       charger();
     } catch (err) {
@@ -125,34 +127,41 @@ export default function DetailPaiement() {
           </Carte>
         )}
 
-        {enAttente && paiement.devise === 'HTG' && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url && (
+        {enAttente && paiement.devise === 'HTG' && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
           <Carte titre="Payer en ligne">
             <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
-              Payez directement avec MonCash — le paiement est confirmé automatiquement,
+              Payez directement par mobile — le paiement est confirmé automatiquement,
               sans preuve à téléverser.
             </p>
-            <Bouton type="button" onClick={payerMoncash} enCours={moncashEnCours}>Payer avec MonCash</Bouton>
+            <div className="rangee">
+              {Object.entries(LIBELLE_METHODE).map(([m, libelle]) => (
+                <Bouton key={m} type="button" onClick={() => payerMobile(m)} enCours={methodeEnCours === m}>
+                  Payer avec {libelle}
+                </Bouton>
+              ))}
+            </div>
           </Carte>
         )}
 
-        {enAttente && paiement.methode_paiement === 'moncash' && (
-          <Carte titre="Paiement MonCash">
+        {enAttente && paiement.methode_paiement !== 'manuel' && (
+          <Carte titre={`Paiement ${LIBELLE_METHODE[paiement.methode_paiement] || paiement.methode_paiement}`}>
             <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
-              Un paiement MonCash a été démarré pour cette demande. S'il n'a pas été confirmé
-              automatiquement après votre retour de MonCash, vérifiez-le manuellement ci-dessous.
+              Un paiement {LIBELLE_METHODE[paiement.methode_paiement] || paiement.methode_paiement} a été démarré
+              pour cette demande. S'il n'a pas été confirmé automatiquement après votre retour, vérifiez-le
+              manuellement ci-dessous.
             </p>
             <div className="rangee">
-              <Bouton type="button" variante="secondaire" onClick={verifierMoncash} enCours={verifEnCours}>
+              <Bouton type="button" variante="secondaire" onClick={verifierMobile} enCours={verifEnCours}>
                 Vérifier le paiement
               </Bouton>
-              <Bouton type="button" variante="fantome" onClick={payerMoncash} enCours={moncashEnCours}>
-                Réessayer avec MonCash
+              <Bouton type="button" variante="fantome" onClick={() => payerMobile(paiement.methode_paiement)} enCours={methodeEnCours === paiement.methode_paiement}>
+                Réessayer avec {LIBELLE_METHODE[paiement.methode_paiement] || paiement.methode_paiement}
               </Bouton>
             </div>
           </Carte>
         )}
 
-        {enAttente && paiement.methode_paiement !== 'moncash' && !paiement.preuve_url && (
+        {enAttente && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
           <Carte titre="Téléverser la preuve de paiement">
             <form onSubmit={televerser}>
               <Champ label="Fichier (PDF, JPG, PNG — 5 Mo)" type="file"
