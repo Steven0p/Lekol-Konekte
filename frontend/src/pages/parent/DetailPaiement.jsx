@@ -4,14 +4,15 @@ import {
   paiementsApi, notesApi, urlPreuvePaiement, urlDocumentOfficiel,
 } from '../../services/api.js';
 import { libelleTypeFrais, montantFr, dateHeureFr } from '../../utils/libelles.js';
-
-const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Badge from '../../components/Badge.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+
+const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
+const LOGO_METHODE = { moncash: '/paiement/moncash.jpg', natcash: '/paiement/natcash.png', kashpaw: '/paiement/kashpaw.png' };
 
 export default function DetailPaiement() {
   const { id } = useParams();
@@ -133,10 +134,11 @@ export default function DetailPaiement() {
               Payez directement par mobile — le paiement est confirmé automatiquement,
               sans preuve à téléverser.
             </p>
-            <div className="rangee">
+            <div className="rangee" style={{ flexWrap: 'wrap' }}>
               {Object.entries(LIBELLE_METHODE).map(([m, libelle]) => (
-                <Bouton key={m} type="button" onClick={() => payerMobile(m)} enCours={methodeEnCours === m}>
-                  Payer avec {libelle}
+                <Bouton key={m} type="button" onClick={() => payerMobile(m)} enCours={methodeEnCours === m}
+                  style={{ padding: 0, background: 'transparent', border: 'none', overflow: 'hidden', borderRadius: 'var(--rayon-sm)' }}>
+                  <img src={LOGO_METHODE[m]} alt={`Payer avec ${libelle}`} style={{ height: 46, display: 'block' }} />
                 </Bouton>
               ))}
             </div>
