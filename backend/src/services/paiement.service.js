@@ -160,7 +160,10 @@ async function genererDocument(prop, duplicata) {
 }
 
 // Valide ou rejette un paiement. Retourne { ok, code?, erreur?, previewUrl, document? }
-export async function traiterValidation({ idPaiement, statut, commentaire, idAdmin }) {
+// noteAuteur (facultatif) : identité à tracer dans l'historique interne
+// uniquement (ex. e-mail d'un compte Économat, qui n'a pas d'idAdmin FK-
+// compatible) — ne doit JAMAIS atteindre le parent, contrairement à commentaire.
+export async function traiterValidation({ idPaiement, statut, commentaire, idAdmin, noteAuteur }) {
   if (statut !== 'valide' && statut !== 'rejete') {
     return { ok: false, code: 400, erreur: "statut doit être 'valide' ou 'rejete'." };
   }
@@ -178,10 +181,14 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
 
   const prop = await resoudreProprietaire(paiement.type_frais, paiement.id_reference);
 
+  const commentaireHistorique = noteAuteur
+    ? (commentaire ? `${noteAuteur} ${commentaire}` : noteAuteur)
+    : commentaire;
+
   await paiementModel.mettreAJourValidation(idPaiement, { statut, validePar: idAdmin });
   await journaliser({
     entite: 'paiement', idEntite: idPaiement, ancienStatut: 'en_attente',
-    nouveauStatut: statut, commentaire, idAuteur: idAdmin,
+    nouveauStatut: statut, commentaire: commentaireHistorique, idAuteur: idAdmin,
   });
 
   let document = null;

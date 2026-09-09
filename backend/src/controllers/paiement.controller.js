@@ -7,6 +7,7 @@ import {
 } from '../services/paiement.service.js';
 import { tarifCourant } from '../models/tarif.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { trouverParId as trouverEconomatAdminParId } from '../models/economatAdmin.model.js';
 
 // Types de frais à tarif fixe (voir services/paiement.service.js) — le montant
 // saisi par le parent est le montant réellement déposé (peut différer du tarif
@@ -172,8 +173,25 @@ export async function validation(req, res, next) {
   try {
     const statut = (req.body.statut || '').trim();
     const commentaire = req.body.commentaire ? String(req.body.commentaire).trim() : null;
+
+    // Le compte Économat est un système d'authentification indépendant (voir
+    // requireEconomatAdmin, middleware/auth.js) : son identifiant ne correspond
+    // à aucune ligne de la table utilisateurs, donc il ne peut jamais être
+    // stocké dans valide_par (clé étrangère vers utilisateurs — l'y mettre
+    // pointerait vers un compte école sans rapport, ou romprait la contrainte).
+    // On trace plutôt son identité dans noteAuteur, qui ne rejoint QUE
+    // l'historique interne (jamais commentaire, qui part aussi dans la
+    // notification envoyée au parent — y mettre un e-mail de l'équipe y
+    // fuiterait).
+    let idAdmin = req.session.userId || null;
+    let noteAuteur = null;
+    if (!idAdmin && req.session.economatAdminId) {
+      const admin = await trouverEconomatAdminParId(req.session.economatAdminId);
+      if (admin) noteAuteur = `[Économat : ${admin.email}]`;
+    }
+
     const r = await traiterValidation({
-      idPaiement: Number(req.params.id), statut, commentaire, idAdmin: req.session.userId,
+      idPaiement: Number(req.params.id), statut, commentaire, idAdmin, noteAuteur,
     });
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
     return res.json({
