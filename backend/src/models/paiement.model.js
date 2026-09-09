@@ -74,3 +74,19 @@ export async function listerAdmin(statut) {
   const [rows] = await pool.query('SELECT * FROM paiements ORDER BY id DESC');
   return rows;
 }
+
+// Paiements mobiles (moncash/natcash/kashpaw) encore en attente, démarrés
+// depuis moins de 48h — plopplop n'a pas de webhook, ce sont les seuls
+// candidats utiles pour une reconciliation périodique côté serveur (voir
+// reconcilierPaiementsMobilesEnAttente). Au-delà de 48h, une tentative
+// abandonnée n'a plus de raison d'être re-vérifiée en boucle.
+export async function listerMobilesEnAttente() {
+  const [rows] = await pool.query(
+    `SELECT * FROM paiements
+      WHERE statut = 'en_attente' AND methode_paiement != 'manuel'
+        AND reference_externe IS NOT NULL
+        AND cree_le >= (NOW() - INTERVAL 48 HOUR)
+      ORDER BY id`
+  );
+  return rows;
+}

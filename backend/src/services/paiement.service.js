@@ -255,10 +255,19 @@ export async function demarrerPaiementMobile(paiement, methode) {
     return { ok: false, code: 409, erreur: 'Le paiement mobile ne prend en charge que les paiements en HTG.' };
   }
 
+  // plopplop (NatCash en particulier) rejette les montants décimaux (503
+  // ERR_PARAMETERS_INVALID) et impose un minimum de 20 HTG — on arrondit au
+  // gourde supérieure (jamais en défaveur de l'école) et on vérifie ce même
+  // montant arrondi à la confirmation, pour que la comparaison reste cohérente.
+  const montantEnvoye = Math.ceil(Number(paiement.montant));
+  if (montantEnvoye < 20) {
+    return { ok: false, code: 400, erreur: 'Le montant minimum pour un paiement mobile est de 20 HTG.' };
+  }
+
   const referenceId = `lk-${paiement.id}-${crypto.randomBytes(4).toString('hex')}`;
   let creation;
   try {
-    creation = await creerPaiementPlopplop({ referenceId, montant: Number(paiement.montant), methode });
+    creation = await creerPaiementPlopplop({ referenceId, montant: montantEnvoye, methode });
   } catch (err) {
     return { ok: false, code: 502, erreur: `Paiement mobile indisponible : ${err.message}` };
   }
@@ -311,7 +320,9 @@ export async function confirmerPaiementMobile({ paiement }) {
   }
 
   const montantConfirme = Number(detail.montant);
-  const montantDu = Number(paiement.montant);
+  // Même arrondi qu'à la création (voir demarrerPaiementMobile) : plopplop ne
+  // connaît que des gourdes entières, la comparaison doit se faire sur la même base.
+  const montantDu = Math.ceil(Number(paiement.montant));
   if (montantConfirme !== montantDu) {
     return { ok: false, code: 409, erreur: 'Le montant confirmé ne correspond pas au paiement.' };
   }
@@ -340,4 +351,34 @@ export async function confirmerPaiementMobile({ paiement }) {
     commentaire: `Payé via ${paiement.methode_paiement} (transaction ${detail.transactionId}).`,
     idAdmin: null,
   });
+}
+
+// Reconciliation périodique des paiements mobiles en attente — plopplop
+// n'expose aucun webhook (confirmé dans sa documentation), donc rien ne
+// prévient le serveur qu'un paiement a fini par aboutir si le parent ne
+// revient jamais sur /paiements/retour (onglet fermé, page de publicité
+// affichée après un paiement NatCash, coupure réseau…). Sans cette relance,
+// un paiement réellement payé peut rester bloqué « en_attente » indéfiniment.
+// Appelée en tâche de fond depuis server.js (toutes les ~2 minutes), en plus
+// de la vérification déclenchée par le retour du parent ou une relance
+// manuelle — les trois chemins appellent la même confirmerPaiementMobile,
+// donc les mêmes garanties de sécurité (référence serveur, anti-rejeu,
+// tarif) s'appliquent partout.
+export async function reconcilierPaiementsMobilesEnAttente() {
+  const enAttente = await paiementModel.listerMobilesEnAttente();
+  let verifies = 0;
+  let confirmes = 0;
+  for (const paiement of enAttente) {
+    try {
+      const r = await confirmerPaiementMobile({ paiement });
+      verifies += 1;
+      if (r.ok && r.statut === 'valide') confirmes += 1;
+    } catch (err) {
+      console.error(`Reconciliation paiement #${paiement.id} échouée :`, err.message);
+    }
+  }
+  if (verifies > 0) {
+    console.log(`Reconciliation paiements mobiles : ${verifies} vérifiés, ${confirmes} confirmés.`);
+  }
+  return { verifies, confirmes };
 }
