@@ -10,6 +10,12 @@ const PAR_PAGE = 10;
 const LIBELLE_STATUT = { en_attente: 'En attente', valide: 'Validé', rejete: 'Rejeté' };
 const tonStatut = (s) => (s === 'valide' ? 'vert' : s === 'rejete' ? 'rouge' : 'or');
 
+// Un paiement mobile (MonCash/NatCash/KashPay, via plopplop) n'a jamais de
+// preuve téléversée : sa transaction est vérifiée directement auprès du
+// fournisseur, ce qui en tient lieu — seul un dépôt manuel exige une preuve.
+const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
+const estMobile = (p) => Object.prototype.hasOwnProperty.call(LIBELLE_METHODE, p.methode_paiement);
+
 function BadgeStatut({ statut }) {
   return <span className={`insc-badge insc-badge-${tonStatut(statut)}`}>{LIBELLE_STATUT[statut] || statut}</span>;
 }
@@ -150,7 +156,9 @@ export default function PaiementsTab() {
                     <td>
                       {p.preuve_url
                         ? <button type="button" className="paie-btn paie-voir" onClick={() => setDetails(p)}>Voir</button>
-                        : <span className="texte-gris">—</span>}
+                        : estMobile(p)
+                          ? <span className="texte-gris">{LIBELLE_METHODE[p.methode_paiement]}</span>
+                          : <span className="texte-gris">—</span>}
                     </td>
                     <td>{dateFr(p.cree_le)}</td>
                     <td>
@@ -236,13 +244,19 @@ export default function PaiementsTab() {
               </Alerte>
             )}
 
-            {confirmation.decision === 'valide' && !confirmation.paiement.preuve_url && (
+            {confirmation.decision === 'valide' && !estMobile(confirmation.paiement) && !confirmation.paiement.preuve_url && (
               <Alerte type="info">Aucune preuve téléversée : la validation est impossible.</Alerte>
             )}
             {confirmation.paiement.preuve_url && (
               <p style={{ marginBottom: '.75rem' }}>
                 <a href={urlPreuvePaiement(confirmation.paiement.id)} target="_blank" rel="noreferrer">Voir la preuve téléversée</a>
               </p>
+            )}
+            {estMobile(confirmation.paiement) && !confirmation.paiement.preuve_url && (
+              <Alerte type="info">
+                Payé via {LIBELLE_METHODE[confirmation.paiement.methode_paiement]} — la transaction a été vérifiée
+                directement auprès du fournisseur, aucune preuve n'est nécessaire.
+              </Alerte>
             )}
 
             {confirmation.decision === 'rejete' && (
@@ -258,7 +272,7 @@ export default function PaiementsTab() {
               <button type="button"
                 className={`paie-btn ${confirmation.decision === 'valide' ? 'paie-valider' : 'paie-rejeter'}`}
                 onClick={confirmer}
-                disabled={enCours || (confirmation.decision === 'valide' && !confirmation.paiement.preuve_url)}>
+                disabled={enCours || (confirmation.decision === 'valide' && !estMobile(confirmation.paiement) && !confirmation.paiement.preuve_url)}>
                 {enCours ? 'Traitement…' : 'Confirmer'}
               </button>
             </div>
