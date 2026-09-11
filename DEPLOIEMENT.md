@@ -85,6 +85,13 @@ mysql -h <HOTE>.proxy.rlwy.net -P <PORT> -u root -p<MDP> lekol_konekte < db/migr
 - **017 — 2FA connexion parent** : ajoute le type `connexion_2fa` à `codes_verification`.
   Nécessaire pour la double authentification des parents (sinon l'envoi du code échoue).
   Prérequis : courriel configuré (voir ci-dessous), sinon les parents ne peuvent pas se connecter.
+- **031 — suivi des tentatives de paiement mobile** : crée `paiement_tentatives`
+  et y reprend les tentatives déjà enregistrées. Sans elle, une relance
+  (« Réessayer ») écrasait la référence plopplop de la tentative précédente,
+  rendant introuvable une transaction pourtant payée — l'agrégateur n'ayant pas
+  de webhook, une référence perdue l'est définitivement. À appliquer **avant**
+  le redéploiement ; `paiements.reference_externe` est conservée, de sorte que
+  l'ancienne version du service continue de fonctionner entre les deux.
 - **018 — historique_statut.commentaire en TEXT** : les messages rédigés par
   l'assistant IA (Traiter le dossier) dépassent souvent l'ancienne limite de
   500 caractères, ce qui faisait échouer le changement de statut (erreur 500).

@@ -54,8 +54,11 @@ npm test
 ```
 
 Les tests couvrent les calculs à risque : moyennes pondérées, année scolaire
-courante, regroupement du relevé de notes, et l'ensemble du service Paiement
-(refus d'accès, double validation, génération des documents).
+courante, regroupement du relevé de notes, et le service Paiement — refus
+d'accès, double validation, génération des documents, ainsi que le chemin de
+paiement mobile (montant minimum et arrondi en gourdes, référence générée côté
+serveur, anti-rejeu d'une transaction, refus d'auto-valider un paiement partiel
+ou dépourvu de tarif en vigueur, reconciliation périodique).
 
 Ils tournent **sans MySQL et sans réseau** : les modèles, la génération PDF et
 l'envoi de courriel sont remplacés par des doublures. Un test qui exige une base
