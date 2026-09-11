@@ -1,5 +1,6 @@
 // Contrôleur Paiements
 import path from 'path';
+import fsPromises from 'fs/promises';
 import * as paiementModel from '../models/paiement.model.js';
 import { findParentIdByUserId } from '../models/user.model.js';
 import {
@@ -35,14 +36,38 @@ export async function creer(req, res, next) {
   }
 }
 
+// multer écrit le fichier sur disque AVANT que le contrôleur ne s'exécute : tout
+// refus ultérieur (paiement inconnu, non propriétaire, déjà traité) laisserait
+// sinon un fichier orphelin dans le volume des preuves.
+async function supprimerFichierOrphelin(fichier) {
+  if (fichier?.path) await fsPromises.unlink(fichier.path).catch(() => {});
+}
+
 // POST /api/paiements/:id/preuve (parent propriétaire)
 export async function televerserPreuve(req, res, next) {
   try {
     const paiement = await paiementModel.trouverParId(Number(req.params.id));
-    if (!paiement) return res.status(404).json({ erreur: 'Paiement introuvable.' });
+    if (!paiement) {
+      await supprimerFichierOrphelin(req.file);
+      return res.status(404).json({ erreur: 'Paiement introuvable.' });
+    }
 
     const idProprietaire = await proprietaireDe(paiement);
-    if (idProprietaire !== req.session.userId) return res.status(403).json({ erreur: 'Accès refusé.' });
+    if (idProprietaire !== req.session.userId) {
+      await supprimerFichierOrphelin(req.file);
+      return res.status(403).json({ erreur: 'Accès refusé.' });
+    }
+
+    // Une fois la décision prise, la preuve est la pièce sur laquelle l'économat
+    // s'est appuyé : la remplacer détruirait la justification de la validation
+    // (definirPreuve écrase sans historiser). L'interface masque déjà le
+    // formulaire, mais rien ne remplace le contrôle côté serveur.
+    if (paiement.statut !== 'en_attente') {
+      await supprimerFichierOrphelin(req.file);
+      return res.status(409).json({
+        erreur: 'Ce paiement a déjà été traité : la preuve ne peut plus être modifiée.',
+      });
+    }
 
     if (!req.file) return res.status(400).json({ erreur: 'Preuve requise (PDF/JPG/PNG, max 5 Mo).' });
 

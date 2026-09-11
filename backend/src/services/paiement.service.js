@@ -344,8 +344,22 @@ export async function confirmerPaiementMobile({ paiement }) {
 
   await paiementModel.definirTransactionExterne(paiement.id, detail.transactionId);
 
+  // Sans tarif en vigueur, il n'existe aucune référence à laquelle comparer le
+  // montant reçu : l'auto-validation est alors impossible à justifier et le
+  // paiement repart vers l'économat. Traiter ce cas comme une autorisation
+  // (`tarif && ...`) reviendrait à délivrer la prestation complète contre
+  // n'importe quel montant — 20 HTG suffiraient. Le cas est atteignable : un
+  // tarif dont la date effective est repoussée (préparation de rentrée) sort
+  // du champ de tarifCourant, qui renvoie alors null.
   const tarif = await tarifCourant(paiement.type_frais);
-  if (tarif && montantDu < Number(tarif.montant)) {
+  if (!tarif) {
+    return {
+      ok: true, statut: 'en_attente', partiel: true,
+      message: "Paiement reçu, mais aucun tarif n'est en vigueur pour ce type de frais : "
+        + "en attente de validation par l'économat.",
+    };
+  }
+  if (montantDu < Number(tarif.montant)) {
     return {
       ok: true, statut: 'en_attente', partiel: true,
       message: "Paiement reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
