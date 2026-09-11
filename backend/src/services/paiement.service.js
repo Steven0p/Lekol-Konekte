@@ -1,5 +1,6 @@
 // Service Paiement — création de demande, validation, confirmation / génération de documents
 import * as paiementModel from '../models/paiement.model.js';
+import * as tentativeModel from '../models/paiementTentative.model.js';
 import { tarifCourant } from '../models/tarif.model.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { trouverAvecProprietaire as trouverInscription, mettreAJourStatut as majInscription }
@@ -279,29 +280,43 @@ export async function demarrerPaiementMobile(paiement, methode) {
     return { ok: false, code: 502, erreur: `Paiement mobile indisponible : ${err.message}` };
   }
 
+  // La tentative est tracée à part : paiements.reference_externe ne retient que
+  // la dernière, or c'est justement la précédente qui risque d'être payée
+  // pendant qu'on en démarre une nouvelle (bouton « Réessayer »).
+  await tentativeModel.creer({
+    idPaiement: paiement.id, methode, referenceExterne: referenceId, montantEnvoye,
+  });
   await paiementModel.definirMethodeMobile(paiement.id, methode, referenceId);
   return { ok: true, urlRedirection: creation.url };
 }
 
 // Confirme un paiement mobile après le retour du parent sur le site (ou à la
-// demande, en relance manuelle) : revérifie la transaction directement auprès
-// de plopplop — jamais confiance à la seule redirection navigateur.
+// demande, en relance manuelle) : revérifie les transactions directement
+// auprès de plopplop — jamais confiance à la seule redirection navigateur.
 //
-// SÉCURITÉ : on interroge TOUJOURS plopplop via paiement.reference_externe,
-// la référence générée côté serveur pour CETTE demande précise — jamais via
-// un identifiant fourni par le client. Un identifiant de transaction
-// arbitraire (même issu d'un vrai paiement, même minime) ne doit jamais
-// pouvoir être « rejoué » pour valider un paiement différent de celui pour
-// lequel il a été émis : sans ce verrou, un paiement réel de faible montant
-// suffirait à confirmer frauduleusement n'importe quelle autre demande en
-// attente de même montant.
+// SÉCURITÉ : on interroge TOUJOURS plopplop par les références générées côté
+// serveur pour CETTE demande — jamais par un identifiant fourni par le client.
+// Un identifiant de transaction arbitraire (même issu d'un vrai paiement, même
+// minime) ne doit jamais pouvoir être « rejoué » pour valider un paiement
+// différent de celui pour lequel il a été émis : sans ce verrou, un paiement
+// réel de faible montant suffirait à confirmer frauduleusement n'importe quelle
+// autre demande en attente de même montant.
 //
-// Si le montant confirmé est inférieur au tarif en vigueur, le paiement N'EST
-// PAS auto-validé : un paiement partiel reste possible (décision produit
-// assumée pour le dépôt manuel), mais seule une validation manuelle par
-// l'économat peut alors débloquer la confirmation d'inscription ou la
-// génération de document — jamais l'automatisation, qui ne doit jamais
-// délivrer le bénéfice complet contre un paiement incomplet.
+// TOUTES les tentatives encore ouvertes sont vérifiées, pas seulement la
+// dernière : un parent qui relance parce qu'il doute de sa première tentative
+// peut très bien finir par payer celle-ci. Ne regarder que la plus récente
+// revenait à perdre définitivement l'argent débité sur la précédente.
+//
+// Une seule tentative peut créditer la demande. Les autres transactions
+// abouties sont conservées en 'non_imputee' — argent bien débité, mais que
+// rien ne doit valider automatiquement (double paiement, montant divergent,
+// transaction déjà utilisée ailleurs) : c'est à l'économat de trancher.
+//
+// Si le montant confirmé est inférieur au tarif en vigueur — ou si aucun tarif
+// n'est en vigueur — le paiement N'EST PAS auto-validé : seule une validation
+// manuelle par l'économat peut alors débloquer la confirmation d'inscription ou
+// la génération de document. L'automatisation ne doit jamais délivrer le
+// bénéfice complet contre un paiement incomplet ou invérifiable.
 export async function confirmerPaiementMobile({ paiement }) {
   if (!METHODES_VALIDES.includes(paiement.methode_paiement)) {
     return { ok: false, code: 409, erreur: 'Ce paiement ne passe pas par un moyen mobile.' };
@@ -311,67 +326,91 @@ export async function confirmerPaiementMobile({ paiement }) {
     // renvoie l'état actuel sans relancer les effets de bord.
     return { ok: true, statut: paiement.statut };
   }
-  if (!paiement.reference_externe) {
+
+  const tentatives = await tentativeModel.listerOuvertesParPaiement(paiement.id);
+  if (!tentatives.length) {
     return { ok: false, code: 409, erreur: 'Aucun paiement mobile démarré pour cette demande.' };
   }
 
-  let detail;
-  try {
-    detail = await verifierPaiementPlopplop(paiement.reference_externe);
-  } catch (err) {
-    return { ok: false, code: 502, erreur: `Vérification impossible : ${err.message}` };
+  let resultat = null;        // issue de la tentative qui a crédité la demande
+  let nonImputee = false;     // au moins une transaction aboutie sans imputation
+  let erreurReseau = null;    // dernière panne de vérification rencontrée
+
+  for (const tentative of tentatives) {
+    let detail;
+    try {
+      detail = await verifierPaiementPlopplop(tentative.reference_externe);
+    } catch (err) {
+      // La tentative reste ouverte : la reconciliation périodique réessaiera.
+      erreurReseau = err;
+      continue;
+    }
+
+    if (!detail || detail.statut !== 'ok') continue; // pas encore payée
+
+    const montantConfirme = Number(detail.montant);
+    const ecarter = async () => {
+      await tentativeModel.marquerNonImputee(tentative.id, {
+        transactionId: detail.transactionId, montantConfirme,
+      });
+      nonImputee = true;
+    };
+
+    // Le montant est comparé à celui réellement envoyé POUR CETTE tentative,
+    // et non au montant courant de la demande.
+    if (montantConfirme !== Number(tentative.montant_envoye)) { await ecarter(); continue; }
+
+    // Anti-rejeu entre demandes (la contrainte UNIQUE en base rejetterait de
+    // toute façon l'écriture — voir migrations 030 et 031).
+    const dejaUtilise = await paiementModel.trouverParTransactionExterne(detail.transactionId);
+    if (dejaUtilise && dejaUtilise.id !== paiement.id) { await ecarter(); continue; }
+
+    // Une tentative a déjà crédité la demande dans cette même boucle : le
+    // parent a payé deux fois.
+    if (resultat) { await ecarter(); continue; }
+
+    await paiementModel.definirTransactionExterne(paiement.id, detail.transactionId);
+    await tentativeModel.marquerConfirmee(tentative.id, {
+      transactionId: detail.transactionId, montantConfirme,
+    });
+
+    const tarif = await tarifCourant(paiement.type_frais);
+    if (!tarif) {
+      resultat = {
+        ok: true, statut: 'en_attente', partiel: true,
+        message: "Paiement reçu, mais aucun tarif n'est en vigueur pour ce type de frais : "
+          + "en attente de validation par l'économat.",
+      };
+      continue;
+    }
+    if (Number(tentative.montant_envoye) < Number(tarif.montant)) {
+      resultat = {
+        ok: true, statut: 'en_attente', partiel: true,
+        message: "Paiement reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
+      };
+      continue;
+    }
+
+    resultat = await traiterValidation({
+      idPaiement: paiement.id,
+      statut: 'valide',
+      commentaire: `Payé via ${tentative.methode} (transaction ${detail.transactionId}).`,
+      idAdmin: null,
+    });
   }
 
-  if (!detail || detail.statut !== 'ok') {
-    return { ok: false, code: 402, erreur: "Le paiement n'a pas abouti." };
-  }
-
-  const montantConfirme = Number(detail.montant);
-  // Même arrondi qu'à la création (voir demarrerPaiementMobile) : plopplop ne
-  // connaît que des gourdes entières, la comparaison doit se faire sur la même base.
-  const montantDu = Math.ceil(Number(paiement.montant));
-  if (montantConfirme !== montantDu) {
-    return { ok: false, code: 409, erreur: 'Le montant confirmé ne correspond pas au paiement.' };
-  }
-
-  // Transaction déjà utilisée pour créditer un autre paiement ? (garde-fou
-  // supplémentaire : la contrainte UNIQUE en base rejette de toute façon
-  // l'écriture ci-dessous si c'est le cas — voir migration 030.)
-  const dejaUtilise = await paiementModel.trouverParTransactionExterne(detail.transactionId);
-  if (dejaUtilise && dejaUtilise.id !== paiement.id) {
-    return { ok: false, code: 409, erreur: 'Cette transaction a déjà été utilisée pour un autre paiement.' };
-  }
-
-  await paiementModel.definirTransactionExterne(paiement.id, detail.transactionId);
-
-  // Sans tarif en vigueur, il n'existe aucune référence à laquelle comparer le
-  // montant reçu : l'auto-validation est alors impossible à justifier et le
-  // paiement repart vers l'économat. Traiter ce cas comme une autorisation
-  // (`tarif && ...`) reviendrait à délivrer la prestation complète contre
-  // n'importe quel montant — 20 HTG suffiraient. Le cas est atteignable : un
-  // tarif dont la date effective est repoussée (préparation de rentrée) sort
-  // du champ de tarifCourant, qui renvoie alors null.
-  const tarif = await tarifCourant(paiement.type_frais);
-  if (!tarif) {
+  if (resultat) return nonImputee ? { ...resultat, doublePaiement: true } : resultat;
+  if (nonImputee) {
     return {
-      ok: true, statut: 'en_attente', partiel: true,
-      message: "Paiement reçu, mais aucun tarif n'est en vigueur pour ce type de frais : "
-        + "en attente de validation par l'économat.",
+      ok: false, code: 409,
+      erreur: "Une transaction a abouti sans pouvoir être imputée à cette demande. "
+        + "L'économat a été saisi du dossier.",
     };
   }
-  if (montantDu < Number(tarif.montant)) {
-    return {
-      ok: true, statut: 'en_attente', partiel: true,
-      message: "Paiement reçu, mais inférieur au tarif en vigueur : en attente de validation par l'économat.",
-    };
+  if (erreurReseau) {
+    return { ok: false, code: 502, erreur: `Vérification impossible : ${erreurReseau.message}` };
   }
-
-  return traiterValidation({
-    idPaiement: paiement.id,
-    statut: 'valide',
-    commentaire: `Payé via ${paiement.methode_paiement} (transaction ${detail.transactionId}).`,
-    idAdmin: null,
-  });
+  return { ok: false, code: 402, erreur: "Le paiement n'a pas abouti." };
 }
 
 // Reconciliation périodique des paiements mobiles en attente — plopplop
@@ -383,10 +422,10 @@ export async function confirmerPaiementMobile({ paiement }) {
 // Appelée en tâche de fond depuis server.js (toutes les ~2 minutes), en plus
 // de la vérification déclenchée par le retour du parent ou une relance
 // manuelle — les trois chemins appellent la même confirmerPaiementMobile,
-// donc les mêmes garanties de sécurité (référence serveur, anti-rejeu,
-// tarif) s'appliquent partout.
+// donc les mêmes garanties de sécurité (références serveur, anti-rejeu,
+// tarif, suivi des transactions non imputées) s'appliquent partout.
 export async function reconcilierPaiementsMobilesEnAttente() {
-  const enAttente = await paiementModel.listerMobilesEnAttente();
+  const enAttente = await tentativeModel.listerPaiementsAvecTentativeOuverte();
   let verifies = 0;
   let confirmes = 0;
   for (const paiement of enAttente) {

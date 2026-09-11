@@ -20,6 +20,9 @@ function reinitialiser() {
   appels.transactionExterne = []; // definirTransactionExterne(id, transactionId)
   appels.plopplopCreations = [];  // corps envoyés à creerPaiementPlopplop
   appels.plopplopVerifs = [];     // références envoyées à verifierPaiementPlopplop
+  appels.tentativesCreees = [];      // tentative.creer
+  appels.tentativesConfirmees = [];  // tentative.marquerConfirmee
+  appels.tentativesNonImputees = []; // tentative.marquerNonImputee
 
   faux.inscription = null;      // ligne renvoyée par inscription.trouverAvecProprietaire
   faux.eleve = null;            // ligne renvoyée par eleve.trouverAvecProprietaire
@@ -33,7 +36,9 @@ function reinitialiser() {
   faux.erreurVerifPlopplop = null;     // si défini, verifierPaiementPlopplop lève
   faux.verifPlopplop = null;           // réponse de verifierPaiementPlopplop
   faux.paiementParTransaction = null;  // ligne renvoyée par trouverParTransactionExterne
-  faux.mobilesEnAttente = [];          // lignes renvoyées par listerMobilesEnAttente
+  faux.tentativesOuvertes = [];        // tentatives ouvertes de la demande vérifiée
+  faux.mobilesEnAttente = [];          // demandes candidates à la reconciliation
+  faux.verifsParReference = null;      // réponse par référence (sinon faux.verifPlopplop)
 }
 reinitialiser();
 
@@ -49,7 +54,17 @@ mock.module('../src/models/paiement.model.js', {
       appels.transactionExterne.push({ id, transactionId });
     },
     trouverParTransactionExterne: async () => faux.paiementParTransaction,
-    listerMobilesEnAttente: async () => faux.mobilesEnAttente,
+  },
+});
+// Suivi des tentatives de paiement mobile (migration 031).
+mock.module('../src/models/paiementTentative.model.js', {
+  exports: {
+    FENETRE_HEURES: 48,
+    creer: async (args) => { appels.tentativesCreees.push(args); return 900 + appels.tentativesCreees.length; },
+    listerOuvertesParPaiement: async () => faux.tentativesOuvertes,
+    marquerConfirmee: async (id, args) => { appels.tentativesConfirmees.push({ id, ...args }); },
+    marquerNonImputee: async (id, args) => { appels.tentativesNonImputees.push({ id, ...args }); },
+    listerPaiementsAvecTentativeOuverte: async () => faux.mobilesEnAttente,
   },
 });
 // Agrégateur de paiement mobile — aucun appel réseau dans les tests.
@@ -65,6 +80,8 @@ mock.module('../src/config/plopplop.js', {
     verifierPaiementPlopplop: async (reference) => {
       appels.plopplopVerifs.push(reference);
       if (faux.erreurVerifPlopplop) throw faux.erreurVerifPlopplop;
+      // Plusieurs tentatives ouvertes : chacune peut avoir sa propre réponse.
+      if (faux.verifsParReference) return faux.verifsParReference[reference] || null;
       return faux.verifPlopplop;
     },
   },
@@ -381,8 +398,8 @@ describe('proprietaireDe', () => {
 
 // ============================================================
 // Paiement mobile (MonCash / NatCash / KashPay via l'agrégateur plopplop).
-// C'est le chemin où circule l'argent : montants, anti-rejeu et conditions
-// d'auto-validation sont vérifiés ici, sans aucun appel réseau.
+// C'est le chemin où circule l'argent : montants, anti-rejeu, suivi des
+// tentatives et conditions d'auto-validation sont vérifiés ici, sans réseau.
 
 const paiementMobile = (patch = {}) => ({
   id: 77, type_frais: 'releve', id_reference: 3, statut: 'en_attente',
@@ -390,6 +407,17 @@ const paiementMobile = (patch = {}) => ({
   methode_paiement: 'moncash', reference_externe: 'lk-77-deadbeef',
   transaction_externe_id: null,
   ...patch,
+});
+
+const tentative = (patch = {}) => ({
+  id: 1, id_paiement: 77, methode: 'moncash', statut: 'ouverte',
+  reference_externe: 'lk-77-aaaaaaaa', montant_envoye: 2500,
+  transaction_externe_id: null, montant_confirme: null,
+  ...patch,
+});
+
+const transactionOk = (patch = {}) => ({
+  montant: 2500, statut: 'ok', transactionId: 'TX-1', methode: 'moncash', ...patch,
 });
 
 describe('demarrerPaiementMobile', () => {
@@ -432,29 +460,41 @@ describe('demarrerPaiementMobile', () => {
     const r = await demarrerPaiementMobile(paiementMobile({ montant: 2500.01 }), 'natcash');
     assert.equal(r.ok, true);
     assert.equal(appels.plopplopCreations[0].montant, 2501);
+    assert.equal(appels.tentativesCreees[0].montantEnvoye, 2501);
   });
 
-  test('génère une référence côté serveur, propre au paiement, et l’enregistre', async () => {
+  test('génère une référence côté serveur et enregistre la tentative', async () => {
     const r = await demarrerPaiementMobile(paiementMobile({ methode_paiement: 'manuel' }), 'kashpaw');
     assert.equal(r.ok, true);
     assert.equal(r.urlRedirection, 'https://plopplop.test/pay/abc');
 
     const reference = appels.plopplopCreations[0].referenceId;
     assert.match(reference, /^lk-77-[0-9a-f]{8}$/);
+    assert.deepEqual(appels.tentativesCreees, [
+      { idPaiement: 77, methode: 'kashpaw', referenceExterne: reference, montantEnvoye: 2500 },
+    ]);
     assert.deepEqual(appels.methodeMobile, [{ id: 77, methode: 'kashpaw', reference }]);
   });
 
-  test('deux démarrages produisent deux références distinctes', async () => {
+  // Le cœur du correctif : une relance n'efface plus la tentative précédente,
+  // elle en ajoute une seconde, toujours interrogeable.
+  test('une relance ajoute une tentative au lieu de remplacer la précédente', async () => {
     await demarrerPaiementMobile(paiementMobile(), 'moncash');
     await demarrerPaiementMobile(paiementMobile(), 'moncash');
-    assert.notEqual(appels.plopplopCreations[0].referenceId, appels.plopplopCreations[1].referenceId);
+
+    assert.equal(appels.tentativesCreees.length, 2);
+    assert.notEqual(
+      appels.tentativesCreees[0].referenceExterne,
+      appels.tentativesCreees[1].referenceExterne,
+    );
   });
 
-  test('remonte une panne de l’agrégateur en 502, sans marquer la méthode', async () => {
+  test('remonte une panne de l’agrégateur en 502, sans enregistrer de tentative', async () => {
     faux.erreurCreationPlopplop = new Error('service indisponible');
     const r = await demarrerPaiementMobile(paiementMobile({ methode_paiement: 'manuel' }), 'moncash');
     assert.equal(r.ok, false);
     assert.equal(r.code, 502);
+    assert.equal(appels.tentativesCreees.length, 0);
     assert.equal(appels.methodeMobile.length, 0);
   });
 });
@@ -476,79 +516,101 @@ describe('confirmerPaiementMobile', () => {
     assert.equal(appels.courriels.length, 0);
   });
 
-  test('refuse si aucun paiement mobile n’a été démarré (409)', async () => {
-    const r = await confirmerPaiementMobile({ paiement: paiementMobile({ reference_externe: null }) });
+  test('refuse si aucune tentative n’est ouverte (409)', async () => {
+    faux.tentativesOuvertes = [];
+    const r = await confirmerPaiementMobile({ paiement: paiementMobile() });
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
   });
 
   test('interroge l’agrégateur par la référence serveur, jamais par un identifiant client', async () => {
     faux.eleve = eleveDe();
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
-    await confirmerPaiementMobile({ paiement: paiementMobile() });
-    assert.deepEqual(appels.plopplopVerifs, ['lk-77-deadbeef']);
+    faux.paiement = paiementMobile();
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk();
+    await confirmerPaiementMobile({ paiement: faux.paiement });
+    assert.deepEqual(appels.plopplopVerifs, ['lk-77-aaaaaaaa']);
   });
 
-  test('remonte une vérification impossible en 502', async () => {
+  test('remonte une vérification impossible en 502, la tentative restant ouverte', async () => {
+    faux.tentativesOuvertes = [tentative()];
     faux.erreurVerifPlopplop = new Error('délai dépassé');
     const r = await confirmerPaiementMobile({ paiement: paiementMobile() });
     assert.equal(r.ok, false);
     assert.equal(r.code, 502);
     assert.equal(appels.validationMaj.length, 0);
+    assert.equal(appels.tentativesConfirmees.length, 0);
+    assert.equal(appels.tentativesNonImputees.length, 0);
   });
 
   test('une transaction encore en attente chez l’agrégateur ne valide rien (402)', async () => {
-    faux.verifPlopplop = { montant: 2500, statut: 'no', transactionId: 'TX-1', methode: 'moncash' };
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk({ statut: 'no' });
     const r = await confirmerPaiementMobile({ paiement: paiementMobile() });
     assert.equal(r.ok, false);
     assert.equal(r.code, 402);
     assert.equal(appels.validationMaj.length, 0);
   });
 
-  test('un montant confirmé différent du montant dû est refusé (409)', async () => {
-    faux.verifPlopplop = { montant: 20, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
+  test('un montant confirmé différent du montant envoyé n’est pas imputé, mais reste tracé', async () => {
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk({ montant: 20 });
     const r = await confirmerPaiementMobile({ paiement: paiementMobile() });
+
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
     assert.equal(appels.transactionExterne.length, 0);
+    assert.deepEqual(appels.tentativesNonImputees, [
+      { id: 1, transactionId: 'TX-1', montantConfirme: 20 },
+    ]);
   });
 
-  test('compare sur le montant arrondi, comme au démarrage', async () => {
+  test('compare au montant envoyé pour CETTE tentative, arrondi compris', async () => {
     faux.eleve = eleveDe();
-    faux.verifPlopplop = { montant: 2501, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
     faux.paiement = paiementMobile({ montant: 2500.01 });
+    faux.tentativesOuvertes = [tentative({ montant_envoye: 2501 })];
+    faux.verifPlopplop = transactionOk({ montant: 2501 });
     const r = await confirmerPaiementMobile({ paiement: faux.paiement });
     assert.equal(r.ok, true);
   });
 
   test('refuse de rejouer une transaction déjà utilisée pour un autre paiement (409)', async () => {
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk();
     faux.paiementParTransaction = { id: 12 };  // créditée sur un autre paiement
     const r = await confirmerPaiementMobile({ paiement: paiementMobile() });
+
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
     assert.equal(appels.transactionExterne.length, 0);
     assert.equal(appels.validationMaj.length, 0);
+    assert.equal(appels.tentativesNonImputees.length, 1);
   });
 
   test('accepte la même transaction déjà rattachée à CE paiement', async () => {
     faux.eleve = eleveDe();
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
-    faux.paiementParTransaction = { id: 77 };
     faux.paiement = paiementMobile();
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk();
+    faux.paiementParTransaction = { id: 77 };
     const r = await confirmerPaiementMobile({ paiement: faux.paiement });
     assert.equal(r.ok, true);
   });
 
   test('un paiement inférieur au tarif reste en attente de l’économat', async () => {
+    faux.paiement = paiementMobile({ montant: 500 });
     faux.tarif = { montant: 2500, devise: 'HTG' };
-    faux.verifPlopplop = { montant: 500, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
-    const r = await confirmerPaiementMobile({ paiement: paiementMobile({ montant: 500 }) });
+    faux.tentativesOuvertes = [tentative({ montant_envoye: 500 })];
+    faux.verifPlopplop = transactionOk({ montant: 500 });
+    const r = await confirmerPaiementMobile({ paiement: faux.paiement });
+
     assert.equal(r.ok, true);
     assert.equal(r.statut, 'en_attente');
     assert.equal(r.partiel, true);
     assert.equal(appels.validationMaj.length, 0);
     assert.equal(appels.documents.length, 0);
+    // La transaction est bien rattachée : l'argent reçu n'est pas perdu.
+    assert.equal(appels.tentativesConfirmees.length, 1);
   });
 
   // Régression : sans tarif en vigueur, la condition `tarif && montantDu < tarif`
@@ -556,8 +618,11 @@ describe('confirmerPaiementMobile', () => {
   // à débloquer la prestation complète.
   test('sans tarif en vigueur, n’auto-valide RIEN et renvoie vers l’économat', async () => {
     faux.tarif = null;
-    faux.verifPlopplop = { montant: 20, statut: 'ok', transactionId: 'TX-1', methode: 'moncash' };
-    const r = await confirmerPaiementMobile({ paiement: paiementMobile({ montant: 20 }) });
+    faux.paiement = paiementMobile({ montant: 20 });
+    faux.tentativesOuvertes = [tentative({ montant_envoye: 20 })];
+    faux.verifPlopplop = transactionOk({ montant: 20 });
+    const r = await confirmerPaiementMobile({ paiement: faux.paiement });
+
     assert.equal(r.ok, true);
     assert.equal(r.statut, 'en_attente');
     assert.equal(r.partiel, true);
@@ -568,13 +633,17 @@ describe('confirmerPaiementMobile', () => {
 
   test('un paiement complet est validé, la transaction enregistrée et le document généré', async () => {
     faux.eleve = eleveDe();
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-9', methode: 'moncash' };
     faux.paiement = paiementMobile();
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk({ transactionId: 'TX-9' });
     const r = await confirmerPaiementMobile({ paiement: faux.paiement });
 
     assert.equal(r.ok, true);
     assert.equal(r.statut, 'valide');
     assert.deepEqual(appels.transactionExterne, [{ id: 77, transactionId: 'TX-9' }]);
+    assert.deepEqual(appels.tentativesConfirmees, [
+      { id: 1, transactionId: 'TX-9', montantConfirme: 2500 },
+    ]);
     assert.equal(appels.validationMaj[0].statut, 'valide');
     assert.equal(appels.documents.length, 1);
     assert.match(appels.journal[0].commentaire, /TX-9/);
@@ -582,18 +651,71 @@ describe('confirmerPaiementMobile', () => {
 
   test('un paiement d’inscription complet confirme l’inscription', async () => {
     faux.inscription = inscriptionAcceptee();
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-9', methode: 'natcash' };
     faux.paiement = paiementMobile({ type_frais: 'inscription', id_reference: 9, methode_paiement: 'natcash' });
+    faux.tentativesOuvertes = [tentative({ methode: 'natcash' })];
+    faux.verifPlopplop = transactionOk({ transactionId: 'TX-9', methode: 'natcash' });
     const r = await confirmerPaiementMobile({ paiement: faux.paiement });
 
     assert.equal(r.ok, true);
     assert.deepEqual(appels.statutInscription, [{ id: 9, statut: 'confirmee' }]);
   });
+
+  // Le défaut corrigé : le parent doute de sa première tentative, relance, puis
+  // c'est finalement la PREMIÈRE qui aboutit. Avant la table des tentatives, sa
+  // référence était écrasée et l'argent débité n'était jamais crédité.
+  test('retrouve une tentative ancienne payée malgré une relance plus récente', async () => {
+    faux.eleve = eleveDe();
+    faux.paiement = paiementMobile();
+    faux.tentativesOuvertes = [
+      tentative({ id: 1, reference_externe: 'lk-77-ancienne' }),
+      tentative({ id: 2, reference_externe: 'lk-77-recente' }),
+    ];
+    faux.verifsParReference = {
+      'lk-77-ancienne': transactionOk({ transactionId: 'TX-ANCIENNE' }),
+      'lk-77-recente': transactionOk({ statut: 'no', transactionId: 'TX-RECENTE' }),
+    };
+
+    const r = await confirmerPaiementMobile({ paiement: faux.paiement });
+
+    assert.equal(r.ok, true);
+    assert.equal(r.statut, 'valide');
+    assert.deepEqual(appels.plopplopVerifs, ['lk-77-ancienne', 'lk-77-recente']);
+    assert.deepEqual(appels.transactionExterne, [{ id: 77, transactionId: 'TX-ANCIENNE' }]);
+    assert.equal(appels.tentativesConfirmees[0].id, 1);
+  });
+
+  // Deux tentatives réellement payées : une seule crédite la demande, l'autre
+  // est conservée en 'non_imputee' pour que l'économat puisse trancher.
+  test('un double paiement crédite une seule tentative et trace l’autre', async () => {
+    faux.eleve = eleveDe();
+    faux.paiement = paiementMobile();
+    faux.tentativesOuvertes = [
+      tentative({ id: 1, reference_externe: 'lk-77-une' }),
+      tentative({ id: 2, reference_externe: 'lk-77-deux' }),
+    ];
+    faux.verifsParReference = {
+      'lk-77-une': transactionOk({ transactionId: 'TX-UNE' }),
+      'lk-77-deux': transactionOk({ transactionId: 'TX-DEUX' }),
+    };
+
+    const r = await confirmerPaiementMobile({ paiement: faux.paiement });
+
+    assert.equal(r.ok, true);
+    assert.equal(r.statut, 'valide');
+    assert.equal(r.doublePaiement, true);
+    assert.deepEqual(appels.transactionExterne, [{ id: 77, transactionId: 'TX-UNE' }]);
+    assert.deepEqual(appels.tentativesConfirmees, [
+      { id: 1, transactionId: 'TX-UNE', montantConfirme: 2500 },
+    ]);
+    assert.deepEqual(appels.tentativesNonImputees, [
+      { id: 2, transactionId: 'TX-DEUX', montantConfirme: 2500 },
+    ]);
+  });
 });
 
 // ============================================================
 describe('reconcilierPaiementsMobilesEnAttente', () => {
-  test('ne fait rien quand aucun paiement mobile n’est en attente', async () => {
+  test('ne fait rien quand aucune demande n’a de tentative ouverte', async () => {
     const r = await reconcilierPaiementsMobilesEnAttente();
     assert.deepEqual(r, { verifies: 0, confirmes: 0 });
     assert.equal(appels.plopplopVerifs.length, 0);
@@ -601,18 +723,19 @@ describe('reconcilierPaiementsMobilesEnAttente', () => {
 
   test('confirme les paiements aboutis et compte les vérifications', async () => {
     faux.eleve = eleveDe();
-    faux.verifPlopplop = { montant: 2500, statut: 'ok', transactionId: 'TX-R', methode: 'moncash' };
     faux.paiement = paiementMobile();
-    faux.mobilesEnAttente = [paiementMobile(), paiementMobile({ id: 78, reference_externe: 'lk-78-cafe' })];
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk({ transactionId: 'TX-R' });
+    faux.mobilesEnAttente = [paiementMobile(), paiementMobile({ id: 78 })];
 
     const r = await reconcilierPaiementsMobilesEnAttente();
     assert.equal(r.verifies, 2);
     assert.equal(r.confirmes, 2);
-    assert.deepEqual(appels.plopplopVerifs, ['lk-77-deadbeef', 'lk-78-cafe']);
   });
 
   test('une transaction non aboutie est vérifiée sans être confirmée', async () => {
-    faux.verifPlopplop = { montant: 2500, statut: 'no', transactionId: 'TX-R', methode: 'moncash' };
+    faux.tentativesOuvertes = [tentative()];
+    faux.verifPlopplop = transactionOk({ statut: 'no' });
     faux.mobilesEnAttente = [paiementMobile()];
 
     const r = await reconcilierPaiementsMobilesEnAttente();

@@ -215,6 +215,27 @@ CREATE TABLE IF NOT EXISTS paiements (
   FOREIGN KEY (valide_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- Une ligne par démarrage de paiement mobile. paiements.reference_externe ne
+-- retient que la dernière tentative : c'est ici qu'elles sont toutes suivies,
+-- faute de quoi une relance rendrait introuvable une transaction déjà payée
+-- (plopplop n'expose aucun webhook, on ne peut l'interroger que par référence).
+CREATE TABLE IF NOT EXISTS paiement_tentatives (
+  id                     INT AUTO_INCREMENT PRIMARY KEY,
+  id_paiement            INT NOT NULL,
+  methode                ENUM('moncash','natcash','kashpaw') NOT NULL,
+  reference_externe      VARCHAR(64) NOT NULL,
+  transaction_externe_id VARCHAR(64),
+  statut                 ENUM('ouverte','confirmee','non_imputee') NOT NULL DEFAULT 'ouverte',
+  montant_envoye         INT NOT NULL,
+  montant_confirme       DECIMAL(10,2),
+  cree_le                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  verifiee_le            DATETIME,
+  UNIQUE KEY uq_tentatives_reference (reference_externe),
+  UNIQUE KEY uq_tentatives_transaction (transaction_externe_id),
+  KEY idx_tentatives_ouvertes (statut, cree_le),
+  FOREIGN KEY (id_paiement) REFERENCES paiements(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ============================================================
 -- Vlog (système indépendant : propre authentification, hors comptes école)
 -- ============================================================

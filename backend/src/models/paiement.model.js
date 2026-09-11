@@ -19,9 +19,11 @@ export async function definirPreuve(id, preuveUrl) {
 }
 
 // Marque un paiement comme réglé via un moyen mobile (moncash/natcash/kashpaw,
-// via plopplop) et enregistre la référence de la tentative (une nouvelle
-// tentative écrase la précédente, sans conséquence : seul le dernier échange
-// compte).
+// via plopplop) et retient la référence de la DERNIÈRE tentative, à titre
+// indicatif (affichage économat). La source de vérité est la table
+// paiement_tentatives : chaque démarrage y est conservé, faute de quoi une
+// relance rendrait introuvable une transaction déjà payée — voir
+// models/paiementTentative.model.js et la migration 031.
 export async function definirMethodeMobile(id, methode, referenceExterne) {
   await pool.query(
     'UPDATE paiements SET methode_paiement = ?, reference_externe = ? WHERE id = ?',
@@ -72,21 +74,5 @@ export async function listerAdmin(statut) {
     return rows;
   }
   const [rows] = await pool.query('SELECT * FROM paiements ORDER BY id DESC');
-  return rows;
-}
-
-// Paiements mobiles (moncash/natcash/kashpaw) encore en attente, démarrés
-// depuis moins de 48h — plopplop n'a pas de webhook, ce sont les seuls
-// candidats utiles pour une reconciliation périodique côté serveur (voir
-// reconcilierPaiementsMobilesEnAttente). Au-delà de 48h, une tentative
-// abandonnée n'a plus de raison d'être re-vérifiée en boucle.
-export async function listerMobilesEnAttente() {
-  const [rows] = await pool.query(
-    `SELECT * FROM paiements
-      WHERE statut = 'en_attente' AND methode_paiement != 'manuel'
-        AND reference_externe IS NOT NULL
-        AND cree_le >= (NOW() - INTERVAL 48 HOUR)
-      ORDER BY id`
-  );
   return rows;
 }
