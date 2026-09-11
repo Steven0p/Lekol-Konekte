@@ -6,7 +6,7 @@ import * as paiement from '../controllers/paiement.controller.js';
 import * as economatAuth from '../controllers/economatAuth.controller.js';
 import { requireAuth, requireRole, requireEconomatAdmin, requireAuthOuEconomatAdmin } from '../middleware/auth.js';
 import { uploadPreuve, uploadLogo, verifierContenuDocument, verifierContenuImage } from '../config/upload.js';
-import { uploadLimiter, authLimiter, paiementLimiter } from '../middleware/rateLimit.js';
+import { uploadLimiter, authLimiter, paiementLimiter, validationLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -75,6 +75,6 @@ router.get('/paiements/:id/preuve', requireAuthOuEconomatAdmin, paiement.servirP
 
 // Économat (système indépendant)
 router.get('/admin/paiements', requireEconomatAdmin, paiement.listerAdmin);
-router.patch('/paiements/:id/validation', requireEconomatAdmin, paiement.validation);
+router.patch('/paiements/:id/validation', requireEconomatAdmin, validationLimiter, paiement.validation);
 
 export default router;

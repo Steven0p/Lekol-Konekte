@@ -1,7 +1,7 @@
 // Tests — année scolaire courante (source unique utilisée partout dans l'app)
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { anneeScolaireCourante } from '../src/utils/dates.js';
+import { anneeScolaireCourante, dateISOValide } from '../src/utils/dates.js';
 
 // Dates construites en heure locale (new Date(annee, moisIndex, jour)) car
 // anneeScolaireCourante lit getFullYear()/getMonth(), qui sont locaux.
@@ -30,6 +30,38 @@ describe('anneeScolaireCourante', () => {
     for (const mois of [0, 5, 8, 11]) {
       const [debut, fin] = anneeScolaireCourante(new Date(2026, mois, 10)).split('-').map(Number);
       assert.equal(fin, debut + 1);
+    }
+  });
+});
+
+// ============================================================
+// dateISOValide — garde-fou sur les dates effectives de tarif, qui partaient
+// sinon telles quelles jusqu'à MySQL. Une date repoussée fait sortir le tarif
+// du champ de tarifCourant, avec les conséquences que l'on sait sur
+// l'auto-validation des paiements mobiles.
+describe('dateISOValide', () => {
+  test('accepte une date AAAA-MM-JJ réelle', () => {
+    assert.equal(dateISOValide('2026-09-01'), true);
+    assert.equal(dateISOValide('2024-02-29'), true, 'année bissextile');
+  });
+
+  test('refuse un format non conforme', () => {
+    for (const valeur of ['01/09/2026', '2026-9-1', '2026-09-01T00:00:00Z', 'demain', '']) {
+      assert.equal(dateISOValide(valeur), false, `« ${valeur} » doit être refusée`);
+    }
+  });
+
+  // new Date('2026-02-30') reporte silencieusement au 2 mars : le format seul
+  // ne suffit donc pas, il faut vérifier que la date existe.
+  test('refuse une date inexistante malgré un format correct', () => {
+    assert.equal(dateISOValide('2026-02-30'), false);
+    assert.equal(dateISOValide('2025-02-29'), false, 'année non bissextile');
+    assert.equal(dateISOValide('2026-13-01'), false);
+  });
+
+  test('refuse ce qui n’est pas une chaîne', () => {
+    for (const valeur of [null, undefined, 20260901, new Date(), {}]) {
+      assert.equal(dateISOValide(valeur), false);
     }
   });
 });

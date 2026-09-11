@@ -48,6 +48,19 @@ export const iaLimiter = rateLimit({
   message: { erreur: "Trop de questions à l'assistant. Réessayez plus tard." },
 });
 
+// Décision de l'économat sur un paiement (validation/rejet) : 120 requêtes /
+// 15 min par IP. Plafond volontairement large — enchaîner les validations est
+// le travail normal d'une session d'économat, et un limiteur trop serré
+// bloquerait un usage légitime. Il ne vise qu'un usage automatisé massif, qui
+// n'a aucune raison d'exister sur cette route.
+export const validationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: 'Trop de décisions enchaînées. Réessayez dans quelques minutes.' },
+});
+
 // Création/démarrage/confirmation de paiement : 20 requêtes / 15 min par IP —
 // bucket dédié (distinct d'authLimiter) pour qu'un usage automatisé sur les
 // paiements (tentative d'exploitation en série) ne partage pas son quota avec
