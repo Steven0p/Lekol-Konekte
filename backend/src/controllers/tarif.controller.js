@@ -5,9 +5,11 @@ import * as tarifModel from '../models/tarif.model.js';
 import * as ecoleModel from '../models/ecole.model.js';
 import * as eleveModel from '../models/eleve.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { dateISOValide } from '../utils/dates.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
+
 
 // GET /api/economat/niveaux (admin Économat) — liste des niveaux connus,
 // sans exposer les dossiers élèves (contrairement à /admin/eleves-codes).
@@ -31,7 +33,7 @@ export async function creerTarif(req, res, next) {
     if (!TYPES.includes(typeFrais)) return res.status(400).json({ erreur: `Type de frais invalide (${TYPES.join(', ')}).` });
     if (!Number.isFinite(montant) || montant <= 0) return res.status(400).json({ erreur: 'Montant invalide (> 0).' });
     if (!DEVISES.includes(devise)) return res.status(400).json({ erreur: 'Devise invalide (HTG, USD).' });
-    if (!dateEffective) return res.status(400).json({ erreur: 'dateEffective requise (AAAA-MM-JJ).' });
+    if (!dateISOValide(dateEffective)) return res.status(400).json({ erreur: 'dateEffective requise (AAAA-MM-JJ).' });
 
     const id = await tarifModel.creer({ typeFrais, montant, devise, dateEffective });
     return res.status(201).json({ tarif: { id, typeFrais, montant, devise, dateEffective } });
@@ -65,7 +67,12 @@ export async function mettreAJourTarif(req, res, next) {
       if (!DEVISES.includes(req.body.devise)) return res.status(400).json({ erreur: 'Devise invalide.' });
       patch.devise = req.body.devise;
     }
-    if (req.body.dateEffective !== undefined) patch.dateEffective = req.body.dateEffective;
+    if (req.body.dateEffective !== undefined) {
+      if (!dateISOValide(req.body.dateEffective)) {
+        return res.status(400).json({ erreur: 'dateEffective invalide (AAAA-MM-JJ).' });
+      }
+      patch.dateEffective = req.body.dateEffective;
+    }
 
     await tarifModel.mettreAJour(existant.id, patch);
     return res.json({ message: 'Tarif mis à jour.' });

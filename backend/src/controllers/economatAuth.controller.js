@@ -1,9 +1,17 @@
 // Contrôleur — authentification admin Économat (système indépendant)
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import * as adminModel from '../models/economatAdmin.model.js';
 import { regenererSession } from '../middleware/auth.js';
 
 const COURRIEL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Hachage factice, comparé quand le courriel est inconnu. Sans lui, une adresse
+// inexistante répond sans passer par bcrypt : l'écart de durée (quelques
+// centaines de millisecondes au coût 12) permet d'énumérer les comptes de
+// l'économat au chronomètre, même derrière authLimiter. Calculé une fois au
+// démarrage, jamais égal à un mot de passe réel.
+const HACHAGE_FACTICE = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 12);
 
 // POST /api/economat/admin/login
 export async function adminLogin(req, res, next) {
@@ -17,11 +25,11 @@ export async function adminLogin(req, res, next) {
       return res.status(400).json({ erreur: 'Courriel invalide.' });
     }
 
+    // Le hachage est TOUJOURS comparé, compte connu ou non : la réponse doit
+    // coûter le même temps dans les deux cas (voir HACHAGE_FACTICE).
     const admin = await adminModel.trouverParEmail(email);
-    if (!admin) return res.status(401).json({ erreur: 'Identifiants invalides.' });
-
-    const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
-    if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    const ok = await bcrypt.compare(motDePasse, admin ? admin.mot_de_passe_hash : HACHAGE_FACTICE);
+    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
     await regenererSession(req);
     req.session.economatAdminId = admin.id;

@@ -134,8 +134,16 @@ export async function servirPreuve(req, res, next) {
     const paiement = await chargerAutorise(req, res);
     if (!paiement) return;
     if (!paiement.preuve_url) return res.status(404).json({ erreur: 'Aucune preuve.' });
-    const chemin = path.resolve(UPLOAD_ROOT, paiement.preuve_url);
-    if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) return res.status(400).json({ erreur: 'Chemin invalide.' });
+    // Confinement au dossier des téléversements. `startsWith` sur le chemin
+    // résolu laissait passer un répertoire voisin au nom préfixé (« …/uploads »
+    // vs « …/uploads-old ») ; path.relative raisonne sur les segments, et un
+    // chemin qui s'échappe produit un résultat commençant par « .. » ou absolu.
+    const racine = path.resolve(UPLOAD_ROOT);
+    const chemin = path.resolve(racine, paiement.preuve_url);
+    const relatif = path.relative(racine, chemin);
+    if (!relatif || relatif.startsWith('..') || path.isAbsolute(relatif)) {
+      return res.status(400).json({ erreur: 'Chemin invalide.' });
+    }
     return res.sendFile(chemin);
   } catch (err) {
     next(err);
