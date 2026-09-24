@@ -10,7 +10,7 @@ export async function creer({ typeFrais, montant, devise, dateEffective }) {
 }
 
 export async function lister() {
-  const [rows] = await pool.query('SELECT * FROM tarifs ORDER BY type_frais, date_effective DESC');
+  const [rows] = await pool.query('SELECT * FROM tarifs ORDER BY type_frais, date_effective DESC, id DESC');
   return rows;
 }
 
@@ -30,12 +30,16 @@ export async function mettreAJour(id, { montant, devise, dateEffective }) {
   await pool.query(`UPDATE tarifs SET ${champs.join(', ')} WHERE id = ?`, params);
 }
 
-// Tarif en vigueur pour un type de frais (date effective la plus récente <= aujourd'hui)
+// Tarif en vigueur pour un type de frais (date effective la plus récente <=
+// aujourd'hui). En cas d'égalité de date_effective (deux entrées créées le
+// même jour), l'id le plus élevé (la saisie la plus récente) tranche — sans
+// ce départage, l'ordre entre lignes de même date n'est pas garanti par SQL,
+// ce qui rendrait le tarif réellement appliqué imprévisible.
 export async function tarifCourant(typeFrais) {
   const [rows] = await pool.query(
     `SELECT * FROM tarifs
       WHERE type_frais = ? AND date_effective <= CURDATE()
-      ORDER BY date_effective DESC LIMIT 1`,
+      ORDER BY date_effective DESC, id DESC LIMIT 1`,
     [typeFrais]
   );
   return rows[0] || null;
