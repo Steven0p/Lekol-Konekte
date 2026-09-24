@@ -2,12 +2,16 @@
 // Présence d'une ligne = à jour ; absence = non payé.
 import { pool } from '../config/db.js';
 
-export async function marquer({ idEleve, anneeScolaire, trimestre, acquittePar }) {
+// acquittePar : id utilisateurs (compte école) — jamais un id economat_admins
+// (clé étrangère incompatible, voir migration 031). acquitteParNote : identité
+// libre (ex. e-mail Économat) à tracer quand acquittePar ne peut pas l'être.
+export async function marquer({ idEleve, anneeScolaire, trimestre, acquittePar, acquitteParNote }) {
   await pool.query(
-    `INSERT INTO acquittements_scolarite (id_eleve, annee_scolaire, trimestre, acquitte_par)
-     VALUES (?, ?, ?, ?)
-     ON DUPLICATE KEY UPDATE acquitte_par = VALUES(acquitte_par), cree_le = CURRENT_TIMESTAMP`,
-    [idEleve, anneeScolaire, trimestre, acquittePar || null]
+    `INSERT INTO acquittements_scolarite (id_eleve, annee_scolaire, trimestre, acquitte_par, acquitte_par_note)
+     VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE acquitte_par = VALUES(acquitte_par),
+       acquitte_par_note = VALUES(acquitte_par_note), cree_le = CURRENT_TIMESTAMP`,
+    [idEleve, anneeScolaire, trimestre, acquittePar || null, acquitteParNote || null]
   );
 }
 

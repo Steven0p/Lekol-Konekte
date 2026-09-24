@@ -185,7 +185,13 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
     ? (commentaire ? `${noteAuteur} ${commentaire}` : noteAuteur)
     : commentaire;
 
-  await paiementModel.mettreAJourValidation(idPaiement, { statut, validePar: idAdmin });
+  const priseEnCompte = await paiementModel.mettreAJourValidation(idPaiement, { statut, validePar: idAdmin });
+  if (!priseEnCompte) {
+    // Un autre appel concurrent (retour parent, relance manuelle, cycle de
+    // reconciliation) a déjà fait la transition entre notre lecture ci-dessus
+    // et cet appel — on s'arrête net, sans dupliquer document/notification.
+    return { ok: true, statut: (await paiementModel.trouverParId(idPaiement)).statut };
+  }
   await journaliser({
     entite: 'paiement', idEntite: idPaiement, ancienStatut: 'en_attente',
     nouveauStatut: statut, commentaire: commentaireHistorique, idAuteur: idAdmin,

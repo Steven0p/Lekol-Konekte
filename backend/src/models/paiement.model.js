@@ -42,11 +42,20 @@ export async function trouverParTransactionExterne(transactionId) {
   return rows[0] || null;
 }
 
+// Prise atomique : la clause « AND statut = 'en_attente' » garantit qu'un
+// seul appelant peut faire passer ce paiement hors de en_attente, même si
+// deux vérifications tournent en même temps (retour du parent + relance
+// manuelle, ou la reconciliation périodique qui tombe au même moment) —
+// sans ça, les deux passeraient le contrôle « statut !== 'en_attente' » fait
+// en mémoire AVANT cet appel, et le document/la notification partiraient en
+// double. Retourne true si CET appel a bien fait la transition (donc doit
+// continuer vers les effets de bord), false si quelqu'un d'autre l'a déjà fait.
 export async function mettreAJourValidation(id, { statut, validePar }) {
-  await pool.query(
-    'UPDATE paiements SET statut = ?, valide_par = ?, valide_le = NOW() WHERE id = ?',
+  const [res] = await pool.query(
+    "UPDATE paiements SET statut = ?, valide_par = ?, valide_le = NOW() WHERE id = ? AND statut = 'en_attente'",
     [statut, validePar || null, id]
   );
+  return res.affectedRows > 0;
 }
 
 // Paiements d'un parent (résolution polymorphe de la propriété)

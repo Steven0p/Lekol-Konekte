@@ -294,6 +294,7 @@ CREATE TABLE IF NOT EXISTS acquittements_scolarite (
   annee_scolaire VARCHAR(9) NOT NULL,
   trimestre      ENUM('1er_trimestre','2e_trimestre','3e_trimestre') NOT NULL,
   acquitte_par   INT NULL,
+  acquitte_par_note VARCHAR(255) NULL,
   cree_le        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_acquittement (id_eleve, annee_scolaire, trimestre),
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE,

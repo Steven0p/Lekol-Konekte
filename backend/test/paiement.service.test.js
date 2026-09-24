@@ -16,6 +16,8 @@ function reinitialiser() {
   appels.journal = [];
   appels.documents = [];
   appels.courriels = [];
+  appels.sms = [];
+  appels.trouverParId = 0;
 
   faux.inscription = null;      // ligne renvoyée par inscription.trouverAvecProprietaire
   faux.eleve = null;            // ligne renvoyée par eleve.trouverAvecProprietaire
@@ -23,14 +25,26 @@ function reinitialiser() {
   faux.paiement = null;         // ligne renvoyée par paiement.trouverParId
   faux.ecole = { nom: 'FDSE', coordonnees_bancaires: 'Sogebank 123', coordonnees_moncash: '3xxx' };
   faux.erreurCourriel = null;   // si défini, envoyerCourriel lève cette erreur
+  faux.erreurSms = null;        // si défini, envoyerSms lève cette erreur
+  faux.priseEnCompte = true;    // mettreAJourValidation : false simule une prise concurrente
+  faux.paiementApresConcurrence = null;
 }
 reinitialiser();
 
 mock.module('../src/models/paiement.model.js', {
   exports: {
     creer: async (args) => { appels.paiementCree.push(args); return 77; },
-    trouverParId: async () => faux.paiement,
-    mettreAJourValidation: async (id, args) => { appels.validationMaj.push({ id, ...args }); },
+    trouverParId: async () => {
+      appels.trouverParId += 1;
+      // 2e appel (après une prise atomique refusée) : simule qu'un autre appel
+      // concurrent a déjà fait passer le paiement hors de en_attente.
+      if (appels.trouverParId > 1 && faux.paiementApresConcurrence) return faux.paiementApresConcurrence;
+      return faux.paiement;
+    },
+    mettreAJourValidation: async (id, args) => {
+      appels.validationMaj.push({ id, ...args });
+      return faux.priseEnCompte;
+    },
   },
 });
 mock.module('../src/models/tarif.model.js', {
@@ -74,6 +88,23 @@ mock.module('../src/config/mailer.js', {
       appels.courriels.push(msg);
       return { previewUrl: 'https://apercu/1' };
     },
+  },
+});
+mock.module('../src/config/sms.js', {
+  exports: {
+    envoyerSms: async (msg) => {
+      if (faux.erreurSms) throw faux.erreurSms;
+      appels.sms.push(msg);
+    },
+  },
+});
+// iaConfiguree() renvoie false : le message de repli (déterministe) est
+// utilisé, sans appel réseau réel à Groq — voir genererMessagePaiement.
+mock.module('../src/config/ia.js', {
+  exports: {
+    iaConfiguree: () => false,
+    clientIA: () => { throw new Error('IA non configurée (test)'); },
+    MODELE_IA: 'test-modele',
   },
 });
 
@@ -218,6 +249,23 @@ describe('traiterValidation', () => {
     assert.equal(r.ok, false);
     assert.equal(r.code, 409);
     assert.equal(appels.documents.length, 0, 'aucun document ne doit être régénéré');
+  });
+
+  test('une prise concurrente (cron/retour parent) empêche la double notification', async () => {
+    faux.paiement = paiementEnAttente('releve');
+    faux.eleve = eleveDe();
+    faux.priseEnCompte = false;
+    faux.paiementApresConcurrence = { ...paiementEnAttente('releve'), statut: 'valide' };
+
+    const r = await traiterValidation({ idPaiement: 77, statut: 'valide', idAdmin: 1 });
+
+    assert.equal(r.ok, true);
+    assert.equal(r.statut, 'valide');
+    assert.deepEqual(appels.validationMaj, [{ id: 77, statut: 'valide', validePar: 1 }]);
+    assert.equal(appels.journal.length, 0, 'aucune écriture d’historique en double');
+    assert.equal(appels.documents.length, 0, 'aucun document régénéré');
+    assert.equal(appels.courriels.length, 0, 'aucune notification en double');
+    assert.equal(appels.sms.length, 0, 'aucune notification en double');
   });
 
   test('refuse de valider un paiement sans preuve téléversée (400)', async () => {

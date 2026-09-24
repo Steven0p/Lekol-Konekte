@@ -352,7 +352,8 @@
       "Bash(curl -s -I http://localhost:4000/api/health)",
       "Bash(python3 -c \"import secrets; print\\(secrets.token_hex\\(48\\)\\)\")",
       "Bash(curl -s -I -H \"Origin: https://lekol-konekte-production.up.railway.app\" https://lekol-konekte-production.up.railway.app/api/health)",
-      "Bash(curl -s -D - -o /tmp/login_resp.json -X POST https://lekol-konekte-production.up.railway.app/api/auth/login -H 'Content-Type: application/json' -d '{\"courriel\":\"admin@lekol.ht\",\"motDePasse\":\"admin1234\"}')"
+      "Bash(curl -s -D - -o /tmp/login_resp.json -X POST https://lekol-konekte-production.up.railway.app/api/auth/login -H 'Content-Type: application/json' -d '{\"courriel\":\"admin@lekol.ht\",\"motDePasse\":\"admin1234\"}')",
+      "Bash(node --check src/config/sms.js)"
     ],
     "additionalDirectories": [
       "C:\\Users\\Hz\\Documents\\Lekol Konekte\\backend\\uploads\\bulletins"

@@ -1,5 +1,7 @@
-// Contrôleur Acquittement scolarité (économat) — géré par admin/direction
+// Contrôleur Acquittement scolarité — géré par le compte Économat (système
+// d'authentification indépendant, voir requireEconomatAdmin)
 import * as acquittementModel from '../models/acquittement.model.js';
+import { trouverParId as trouverEconomatAdminParId } from '../models/economatAdmin.model.js';
 
 const TRIMESTRES = ['1er_trimestre', '2e_trimestre', '3e_trimestre'];
 
@@ -9,7 +11,7 @@ function validerCle({ anneeScolaire, trimestre }) {
   return null;
 }
 
-// GET /api/admin/acquittements?niveau=&anneeScolaire=&trimestre= (admin/direction)
+// GET /api/admin/acquittements?niveau=&anneeScolaire=&trimestre= (Économat)
 export async function lister(req, res, next) {
   try {
     const niveau = (req.query.niveau || '').trim();
@@ -27,7 +29,7 @@ export async function lister(req, res, next) {
   }
 }
 
-// POST /api/admin/acquittements (admin/direction) — marque un élève « à jour »
+// POST /api/admin/acquittements (Économat) — marque un élève « à jour »
 export async function marquer(req, res, next) {
   try {
     const idEleve = Number(req.body.idEleve);
@@ -38,14 +40,26 @@ export async function marquer(req, res, next) {
     const erreur = validerCle({ anneeScolaire, trimestre });
     if (erreur) return res.status(400).json({ erreur });
 
-    await acquittementModel.marquer({ idEleve, anneeScolaire, trimestre, acquittePar: req.session.userId });
+    // req.session.userId n'existe que pour un compte école (admin/direction) ;
+    // cette route n'est accessible qu'au compte Économat (economatAdminId),
+    // qui n'a pas d'id compatible avec acquitte_par (FK vers utilisateurs) —
+    // on trace donc son e-mail séparément.
+    let acquitteParNote = null;
+    if (req.session.economatAdminId) {
+      const admin = await trouverEconomatAdminParId(req.session.economatAdminId);
+      if (admin) acquitteParNote = admin.email;
+    }
+
+    await acquittementModel.marquer({
+      idEleve, anneeScolaire, trimestre, acquittePar: req.session.userId || null, acquitteParNote,
+    });
     return res.status(201).json({ message: 'Élève marqué à jour.' });
   } catch (err) {
     next(err);
   }
 }
 
-// DELETE /api/admin/acquittements (admin/direction) — retire le statut « à jour »
+// DELETE /api/admin/acquittements (Économat) — retire le statut « à jour »
 export async function retirer(req, res, next) {
   try {
     const idEleve = Number(req.body.idEleve);
