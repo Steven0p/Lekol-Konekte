@@ -84,6 +84,47 @@ app.use(
   })
 );
 
+// Mode maintenance — un seul interrupteur (MAINTENANCE_MODE=true), activable/
+// désactivable sans redéploiement. Bloque TOUT LE MONDE sans exception, y
+// compris le personnel déjà connecté : placé avant la session, il ne dépend
+// d'aucun état d'authentification. /api/health reste exclu — c'est la sonde
+// de santé de l'hébergeur, pas un visiteur ; la bloquer ferait croire au
+// service qu'il est en panne et déclencherait un redémarrage inutile.
+const maintenanceActif = () => (process.env.MAINTENANCE_MODE || '').trim() === 'true';
+const PAGE_MAINTENANCE = `<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lekòl Konekte — An antretyen</title>
+<style>
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg,#1A365D 0%,#2B4C7E 100%);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    color:#fff; padding:1.5rem; box-sizing:border-box; text-align:center; }
+  .carte { max-width:440px; }
+  .icone { font-size:3rem; margin-bottom:1rem; }
+  h1 { font-size:1.4rem; margin:0 0 .75rem; }
+  p { color:#CBD5E0; line-height:1.6; margin:0; }
+</style>
+</head>
+<body>
+  <div class="carte">
+    <div class="icone">🛠️</div>
+    <h1>Sit la an antretyen pou kounye a</h1>
+    <p>Nou ap fè kèk amelyorasyon. Tanpri repase talè oswa demen. Mèsi pou pasyans ou.</p>
+  </div>
+</body>
+</html>`;
+
+app.use((req, res, next) => {
+  if (!maintenanceActif() || req.path === '/api/health') return next();
+  if (req.path.startsWith('/api/')) {
+    return res.status(503).json({ erreur: 'Sit la an antretyen pou kounye a. Tanpri repase pita.' });
+  }
+  res.status(503).set('Content-Type', 'text/html').send(PAGE_MAINTENANCE);
+});
+
 // Store de session dans MySQL
 const MySQLStore = MySQLStoreFactory(session);
 const sessionStore = new MySQLStore({
