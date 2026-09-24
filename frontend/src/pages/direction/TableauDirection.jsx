@@ -14,11 +14,6 @@ const IcoPublications = () => (
     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-5h2v5zm4 0h-2V7h2v10zm4 0h-2v-8h2v8z" />
   </svg>
 );
-const IcoTarifs = () => (
-  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <path d="M21.41 11.58 12.41 2.58A2 2 0 0 0 11 2H4a2 2 0 0 0-2 2v7a2 2 0 0 0 .59 1.42l9 9a2 2 0 0 0 2.82 0l7-7a2 2 0 0 0 0-2.84zM6.5 8A1.5 1.5 0 1 1 8 6.5 1.5 1.5 0 0 1 6.5 8z" />
-  </svg>
-);
 const IcoEcole = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" />
@@ -30,8 +25,6 @@ const SECTIONS = [
     desc: 'Configurez les matières et leurs coefficients par niveau.', to: '/direction/matieres' },
   { Icone: IcoPublications, ton: 'or', titre: 'Publication des notes',
     desc: 'Publiez les notes par niveau et par trimestre.', to: '/direction/publications' },
-  { Icone: IcoTarifs, ton: 'vert', titre: 'Tarifs',
-    desc: "Définissez les frais d'inscription, de relevé et de duplicata.", to: '/direction/tarifs' },
   { Icone: IcoEcole, ton: 'info', titre: "Coordonnées de l'école",
     desc: 'Renseignez les coordonnées bancaires / MonCash.', to: '/direction/ecole' },
 ];
