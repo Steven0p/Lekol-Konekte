@@ -11,7 +11,8 @@ export default function Enseignants() {
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
 
-  const [form, setForm] = useState({ nom: '', courriel: '', motDePasse: '' });
+  const [form, setForm] = useState({ nom: '', prenom: '', courriel: '', motDePasse: '' });
+  const [matieresChoisies, setMatieresChoisies] = useState([]);
   const [enCours, setEnCours] = useState(false);
 
   const [assignation, setAssignation] = useState({}); // { [idEnseignant]: idMatiere }
@@ -25,11 +26,17 @@ export default function Enseignants() {
   };
   useEffect(charger, []);
 
+  const basculerMatiereChoisie = (idMatiere) => {
+    setMatieresChoisies((liste) => (
+      liste.includes(idMatiere) ? liste.filter((id) => id !== idMatiere) : [...liste, idMatiere]
+    ));
+  };
+
   const creerCompte = async (e) => {
     e.preventDefault();
     setErreur(''); setMsg('');
-    if (!form.nom.trim() || !form.courriel.trim() || !form.motDePasse) {
-      setErreur('Nom, courriel et mot de passe sont requis.');
+    if (!form.nom.trim() || !form.prenom.trim() || !form.courriel.trim() || !form.motDePasse) {
+      setErreur('Nom, prénom, courriel et mot de passe sont requis.');
       return;
     }
     if (form.motDePasse.length < 8) {
@@ -38,11 +45,15 @@ export default function Enseignants() {
     }
     setEnCours(true);
     try {
-      await enseignantsApi.creer({
-        nom: form.nom.trim(), courriel: form.courriel.trim(), motDePasse: form.motDePasse,
+      const { enseignant } = await enseignantsApi.creer({
+        nom: `${form.prenom.trim()} ${form.nom.trim()}`, courriel: form.courriel.trim(), motDePasse: form.motDePasse,
       });
+      for (const idMatiere of matieresChoisies) {
+        await enseignantsApi.assignerMatiere(enseignant.id, idMatiere);
+      }
       setMsg('Compte professeur créé.');
-      setForm({ nom: '', courriel: '', motDePasse: '' });
+      setForm({ nom: '', prenom: '', courriel: '', motDePasse: '' });
+      setMatieresChoisies([]);
       charger();
     } catch (err) { setErreur(err.message); }
     finally { setEnCours(false); }
@@ -90,10 +101,15 @@ export default function Enseignants() {
       <div className="notes-section-titre">Nouveau compte professeur</div>
       <div className="carte">
         <form onSubmit={creerCompte} className="notes-form-grille">
-          <div className="notes-champ" style={{ flex: '1 1 200px' }}>
-            <label htmlFor="ens-nom">Nom complet</label>
+          <div className="notes-champ">
+            <label htmlFor="ens-prenom">Prénom</label>
+            <input id="ens-prenom" value={form.prenom} onChange={(e) => setForm({ ...form, prenom: e.target.value })}
+              placeholder="ex. Marie" />
+          </div>
+          <div className="notes-champ">
+            <label htmlFor="ens-nom">Nom</label>
             <input id="ens-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              placeholder="ex. Marie Pierre" />
+              placeholder="ex. Pierre" />
           </div>
           <div className="notes-champ" style={{ flex: '1 1 220px' }}>
             <label htmlFor="ens-courriel">Courriel</label>
@@ -105,6 +121,29 @@ export default function Enseignants() {
             <input id="ens-mdp" type="password" value={form.motDePasse}
               onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} placeholder="min. 8 caractères" />
           </div>
+
+          <div className="notes-champ" style={{ flexBasis: '100%' }}>
+            <label>Classes (matières) dont il/elle sera titulaire</label>
+            {matieres.length === 0 ? (
+              <p className="texte-gris" style={{ fontSize: '.85rem' }}>Aucune matière configurée pour le moment.</p>
+            ) : (
+              <div className="rangee" style={{ flexWrap: 'wrap', gap: '.5rem' }}>
+                {matieres.map((m) => (
+                  <label key={m.id} className="rangee" style={{
+                    gap: '.35rem', border: '1px solid #E2E8F0', borderRadius: 8,
+                    padding: '.35rem .6rem', fontSize: '.85rem', cursor: 'pointer',
+                  }}>
+                    <input type="checkbox" checked={matieresChoisies.includes(m.id)} onChange={() => basculerMatiereChoisie(m.id)} />
+                    {m.nom} — {m.niveau}
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="texte-gris" style={{ fontSize: '.8rem', marginTop: '.4rem' }}>
+              Le compte n'aura accès qu'à ces classes — devoirs, documents et horaire.
+            </p>
+          </div>
+
           <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
             {enCours ? 'Création…' : 'Créer le compte'}
           </button>
