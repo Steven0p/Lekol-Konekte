@@ -44,7 +44,7 @@ a:hover { text-decoration: underline; }
 .auth-ecran {
   --a-navy: #1A365D;
   --a-navy-h: #2B4C7E;
-  --a-or: #F5A623;
+  --a-or: #D69E2E;
   --a-bord: #E2E8F0;
   --a-focus-bg: #EBF4FF;
   --a-focus-bord: #3182CE;
@@ -659,7 +659,7 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 .accueil {
   --acc-marine: #1A365D;
   --acc-marine-h: #2B4C7E;
-  --acc-or: #F5A623;
+  --acc-or: #D69E2E;
   --acc-or-txt: #B4740A;   /* or assombri : lisible sur fond blanc */
   --acc-fond-alt: #F7FAFC;
   --acc-txt: #2D3748;
@@ -800,7 +800,7 @@ table.tableau tbody tr:hover { background: var(--gris-champ); }
 .site-pied-inner .texte-gris { color: #A0AEC0; }
 .site-pied-liens { display: flex; gap: 1.4rem; flex-wrap: wrap; }
 .site-pied-liens a { color: #E2E8F0; font-weight: 600; }
-.site-pied-liens a:hover { color: #F5A623; text-decoration: none; }
+.site-pied-liens a:hover { color: #D69E2E; text-decoration: none; }
 
 /* ============================================================
    TABLEAU DE BORD SECRÉTARIAT (rôle admin)
