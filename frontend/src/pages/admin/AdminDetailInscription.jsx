@@ -101,7 +101,7 @@ export default function AdminDetailInscription() {
       <Link to="/admin/inscriptions" className="traiter-retour">‹ File des inscriptions</Link>
       <div className="traiter-entete">
         <div>
-          <h1 style={{ color: '#1A365D' }}>Traiter le dossier</h1>
+          <h1>Traiter le dossier</h1>
           <p className="texte-gris">Consultez les informations et prenez une décision.</p>
         </div>
         <BadgeStatut statut={inscription.statut} />

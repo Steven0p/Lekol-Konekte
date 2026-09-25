@@ -18,6 +18,7 @@ const MENUS = {
   plus: {
     label: 'Plus',
     items: [
+      { to: '/economat/admin', label: 'Économat' },
       { to: '/contact', label: 'Contact' },
       { to: '/calendrier', label: 'Calendrier' },
       { to: '/support', label: 'Support' },

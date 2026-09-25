@@ -113,18 +113,18 @@ export default function TarifsTab() {
             <h2 style={{ marginBottom: '1rem' }}>Nouveau montant — {libelleTypeFrais(edition)}</h2>
             {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
             <div className="notes-modal-champ">
-              <label>Montant</label>
-              <input type="number" min="1" step="0.01" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} autoFocus />
+              <label htmlFor="tarif-montant">Montant</label>
+              <input id="tarif-montant" type="number" min="1" step="0.01" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} autoFocus />
             </div>
             <div className="notes-modal-champ">
-              <label>Devise</label>
-              <select value={form.devise} onChange={(e) => setForm({ ...form, devise: e.target.value })}>
+              <label htmlFor="tarif-devise">Devise</label>
+              <select id="tarif-devise" value={form.devise} onChange={(e) => setForm({ ...form, devise: e.target.value })}>
                 <option value="HTG">HTG</option><option value="USD">USD</option>
               </select>
             </div>
             <div className="notes-modal-champ">
-              <label>Date d'effet</label>
-              <input type="date" value={form.dateEffective} onChange={(e) => setForm({ ...form, dateEffective: e.target.value })} />
+              <label htmlFor="tarif-date-effet">Date d'effet</label>
+              <input id="tarif-date-effet" type="date" value={form.dateEffective} onChange={(e) => setForm({ ...form, dateEffective: e.target.value })} />
             </div>
             <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="insc-btn-reinit" onClick={() => setEdition(null)} disabled={enCours}>Annuler</button>
@@ -216,36 +216,36 @@ function AutresFrais() {
   const champsFrais = (valeurs, setV, prefixe) => (
     <>
       <div className="notes-champ" style={{ flex: '1 1 180px' }}>
-        <label>Nom du frais</label>
-        <input value={valeurs.nom} onChange={(e) => setV({ ...valeurs, nom: e.target.value })} placeholder="Écolage, Cantine…" />
+        <label htmlFor={`${prefixe}-nom`}>Nom du frais</label>
+        <input id={`${prefixe}-nom`} value={valeurs.nom} onChange={(e) => setV({ ...valeurs, nom: e.target.value })} placeholder="Écolage, Cantine…" />
       </div>
       <div className="notes-champ">
-        <label>Classe (optionnel)</label>
-        <select value={valeurs.niveau} onChange={(e) => setV({ ...valeurs, niveau: e.target.value })}>
+        <label htmlFor={`${prefixe}-classe`}>Classe (optionnel)</label>
+        <select id={`${prefixe}-classe`} value={valeurs.niveau} onChange={(e) => setV({ ...valeurs, niveau: e.target.value })}>
           <option value="">Toutes les classes</option>
           {niveaux.map((n) => <option key={`${prefixe}-${n}`} value={n}>{n}</option>)}
         </select>
       </div>
       <div className="notes-champ">
-        <label>Année (opt.)</label>
-        <select value={valeurs.anneeScolaire} onChange={(e) => setV({ ...valeurs, anneeScolaire: e.target.value })}>
+        <label htmlFor={`${prefixe}-annee`}>Année (opt.)</label>
+        <select id={`${prefixe}-annee`} value={valeurs.anneeScolaire} onChange={(e) => setV({ ...valeurs, anneeScolaire: e.target.value })}>
           <option value="">—</option>
           {anneesScolaires().map((a) => <option key={`${prefixe}-${a}`} value={a}>{a}</option>)}
         </select>
       </div>
       <div className="notes-champ">
-        <label>Montant</label>
-        <input type="number" min="1" step="0.01" value={valeurs.montant} onChange={(e) => setV({ ...valeurs, montant: e.target.value })} style={{ width: 120 }} />
+        <label htmlFor={`${prefixe}-montant`}>Montant</label>
+        <input id={`${prefixe}-montant`} type="number" min="1" step="0.01" value={valeurs.montant} onChange={(e) => setV({ ...valeurs, montant: e.target.value })} style={{ width: 120 }} />
       </div>
       <div className="notes-champ">
-        <label>Devise</label>
-        <select value={valeurs.devise} onChange={(e) => setV({ ...valeurs, devise: e.target.value })}>
+        <label htmlFor={`${prefixe}-devise`}>Devise</label>
+        <select id={`${prefixe}-devise`} value={valeurs.devise} onChange={(e) => setV({ ...valeurs, devise: e.target.value })}>
           <option value="HTG">HTG</option><option value="USD">USD</option>
         </select>
       </div>
       <div className="notes-champ">
-        <label>Unité (opt.)</label>
-        <select value={valeurs.unite} onChange={(e) => setV({ ...valeurs, unite: e.target.value })}>
+        <label htmlFor={`${prefixe}-unite`}>Unité (opt.)</label>
+        <select id={`${prefixe}-unite`} value={valeurs.unite} onChange={(e) => setV({ ...valeurs, unite: e.target.value })}>
           {UNITES.map((u) => <option key={`${prefixe}-${u || 'x'}`} value={u}>{u || '(aucune)'}</option>)}
           {valeurs.unite && !UNITES.includes(valeurs.unite) && <option value={valeurs.unite}>{valeurs.unite}</option>}
         </select>

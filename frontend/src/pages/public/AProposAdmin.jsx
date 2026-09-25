@@ -58,12 +58,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
+            <label htmlFor="apropa-identifiant">Identifiant</label>
+            <input id="apropa-identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="apropa-mdp">Mot de passe</label>
+            <input id="apropa-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -210,17 +210,17 @@ function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
 
           <form onSubmit={soumettre}>
             <div className="vadm-champ">
-              <label>Titre</label>
-              <input value={form.titre} onChange={maj('titre')} placeholder="Ex. Notre mission" />
+              <label htmlFor="apropa-titre">Titre</label>
+              <input id="apropa-titre" value={form.titre} onChange={maj('titre')} placeholder="Ex. Notre mission" />
             </div>
             <div className="vadm-champ">
-              <label>Contenu</label>
-              <textarea rows={6} value={form.contenu} onChange={maj('contenu')}
+              <label htmlFor="apropa-contenu">Contenu</label>
+              <textarea id="apropa-contenu" rows={6} value={form.contenu} onChange={maj('contenu')}
                 placeholder="Rédigez le texte de cette section…" />
             </div>
             <div className="vadm-champ">
-              <label>Ordre d'affichage (optionnel)</label>
-              <input type="number" min="0" value={form.ordre} onChange={maj('ordre')}
+              <label htmlFor="apropa-ordre">Ordre d'affichage (optionnel)</label>
+              <input id="apropa-ordre" type="number" min="0" value={form.ordre} onChange={maj('ordre')}
                 placeholder="Laisser vide = à la fin" />
               <p className="vadm-info">Plus le nombre est petit, plus la section apparaît haut.</p>
             </div>

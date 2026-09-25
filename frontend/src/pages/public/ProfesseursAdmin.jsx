@@ -101,12 +101,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
+            <label htmlFor="profa-identifiant">Identifiant</label>
+            <input id="profa-identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="profa-mdp">Mot de passe</label>
+            <input id="profa-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -123,16 +123,16 @@ function ChampsFiche({ valeurs, setV, modeEdition }) {
   return (
     <>
       <div className="ens-form-grille">
-        <div className="vadm-champ"><label>Nom</label>
-          <input value={valeurs.nom} onChange={maj('nom')} placeholder="Ex. Pierre" /></div>
-        <div className="vadm-champ"><label>Prénom</label>
-          <input value={valeurs.prenom} onChange={maj('prenom')} placeholder="Ex. Marie" /></div>
-        <div className="vadm-champ"><label>Matière / discipline</label>
-          <input value={valeurs.matiere} onChange={maj('matiere')} placeholder="Ex. Mathématiques" /></div>
-        <div className="vadm-champ"><label>Fonction / titre</label>
-          <input value={valeurs.fonction} onChange={maj('fonction')} placeholder="Ex. Professeur titulaire" /></div>
-        <div className="vadm-champ"><label>Années d'expérience</label>
-          <input type="number" min="0" value={valeurs.experienceAnnees} onChange={maj('experienceAnnees')} placeholder="Ex. 8" /></div>
+        <div className="vadm-champ"><label htmlFor="profa-nom">Nom</label>
+          <input id="profa-nom" value={valeurs.nom} onChange={maj('nom')} placeholder="Ex. Pierre" /></div>
+        <div className="vadm-champ"><label htmlFor="profa-prenom">Prénom</label>
+          <input id="profa-prenom" value={valeurs.prenom} onChange={maj('prenom')} placeholder="Ex. Marie" /></div>
+        <div className="vadm-champ"><label htmlFor="profa-matiere">Matière / discipline</label>
+          <input id="profa-matiere" value={valeurs.matiere} onChange={maj('matiere')} placeholder="Ex. Mathématiques" /></div>
+        <div className="vadm-champ"><label htmlFor="profa-fonction">Fonction / titre</label>
+          <input id="profa-fonction" value={valeurs.fonction} onChange={maj('fonction')} placeholder="Ex. Professeur titulaire" /></div>
+        <div className="vadm-champ"><label htmlFor="profa-experience">Années d'expérience</label>
+          <input id="profa-experience" type="number" min="0" value={valeurs.experienceAnnees} onChange={maj('experienceAnnees')} placeholder="Ex. 8" /></div>
         <div className="vadm-champ"><label>{modeEdition ? 'Nouvelle photo (opt.)' : 'Photo (optionnel)'}</label>
           <div className="vadm-fichier">
             <label className="vadm-fichier-btn">Choisir un fichier
@@ -141,14 +141,14 @@ function ChampsFiche({ valeurs, setV, modeEdition }) {
           </div>
         </div>
       </div>
-      <div className="vadm-champ"><label>Formation & diplômes</label>
-        <textarea rows={2} value={valeurs.diplomes} onChange={maj('diplomes')}
+      <div className="vadm-champ"><label htmlFor="profa-diplomes">Formation &amp; diplômes</label>
+        <textarea id="profa-diplomes" rows={2} value={valeurs.diplomes} onChange={maj('diplomes')}
           placeholder="Ex. Licence en sciences de l'éducation, Université d'État d'Haïti" /></div>
 
       <AssistantIA valeurs={valeurs} setV={setV} />
 
-      <div className="vadm-champ"><label>Parcours (biographie)</label>
-        <textarea rows={3} value={valeurs.parcours} onChange={maj('parcours')}
+      <div className="vadm-champ"><label htmlFor="profa-parcours">Parcours (biographie)</label>
+        <textarea id="profa-parcours" rows={3} value={valeurs.parcours} onChange={maj('parcours')}
           placeholder="Décrivez le parcours professionnel, les établissements, les réalisations…" /></div>
     </>
   );

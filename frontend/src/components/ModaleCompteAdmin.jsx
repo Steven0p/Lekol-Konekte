@@ -50,24 +50,24 @@ export default function ModaleCompteAdmin({ identifiantActuel, onSoumettre, onFe
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={nouvelIdentifiant} onChange={(e) => setNouvelIdentifiant(e.target.value)} required />
+            <label htmlFor="cpt-identifiant">Identifiant</label>
+            <input id="cpt-identifiant" value={nouvelIdentifiant} onChange={(e) => setNouvelIdentifiant(e.target.value)} required />
           </div>
           <div className="vadm-champ">
-            <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-            <input type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)}
+            <label htmlFor="cpt-nouveau-mdp">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+            <input id="cpt-nouveau-mdp" type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)}
               autoComplete="new-password" placeholder="min. 8 caractères" />
           </div>
           {nouveauMotDePasse && (
             <div className="vadm-champ">
-              <label>Confirmer le nouveau mot de passe</label>
-              <input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)}
+              <label htmlFor="cpt-confirmation">Confirmer le nouveau mot de passe</label>
+              <input id="cpt-confirmation" type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)}
                 autoComplete="new-password" required />
             </div>
           )}
           <div className="vadm-champ">
-            <label>Mot de passe actuel (obligatoire pour confirmer)</label>
-            <input type="password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
+            <label htmlFor="cpt-mdp-actuel">Mot de passe actuel (obligatoire pour confirmer)</label>
+            <input id="cpt-mdp-actuel" type="password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
               autoComplete="current-password" required />
           </div>
           <div className="badges-actions" style={{ justifyContent: 'flex-end', marginTop: '.5rem' }}>

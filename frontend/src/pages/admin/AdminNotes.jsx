@@ -243,26 +243,26 @@ export default function AdminNotes() {
                 {msg && <Alerte type="info">{msg}</Alerte>}
                 <form onSubmit={saisir} className="notes-form-grille">
                   <div className="notes-champ">
-                    <label>Élève</label>
-                    <select value={form.idEleve} onChange={majForm('idEleve')}>
+                    <label htmlFor="note-add-eleve">Élève</label>
+                    <select id="note-add-eleve" value={form.idEleve} onChange={majForm('idEleve')}>
                       <option value="">— Choisir —</option>
                       {eleves.map((el) => <option key={el.id} value={el.id}>{el.nom}</option>)}
                     </select>
                   </div>
                   <div className="notes-champ">
-                    <label>Matière</label>
-                    <select value={form.idMatiere} onChange={majForm('idMatiere')}>
+                    <label htmlFor="note-add-matiere">Matière</label>
+                    <select id="note-add-matiere" value={form.idMatiere} onChange={majForm('idMatiere')}>
                       <option value="">— Choisir —</option>
                       {matieres.map((m) => <option key={m.id} value={m.id}>{m.nom} (coef {Number(m.coefficient).toFixed(2)})</option>)}
                     </select>
                   </div>
                   <div className="notes-champ">
-                    <label>Note</label>
-                    <input type="number" min="0" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 90 }} />
+                    <label htmlFor="note-add-valeur">Note</label>
+                    <input id="note-add-valeur" type="number" min="0" step="0.01" value={form.valeur} onChange={majForm('valeur')} style={{ width: 90 }} />
                   </div>
                   <div className="notes-champ">
-                    <label>Sur</label>
-                    <input list="notes-baremes" type="number" min="0.01" step="0.01"
+                    <label htmlFor="note-add-bareme">Sur</label>
+                    <input id="note-add-bareme" list="notes-baremes" type="number" min="0.01" step="0.01"
                       value={form.bareme} onChange={majForm('bareme')} style={{ width: 90 }} />
                     <datalist id="notes-baremes">
                       <option value="10" /><option value="20" /><option value="100" />
@@ -364,12 +364,12 @@ export default function AdminNotes() {
             <p style={{ color: '#4A5568', marginBottom: '1rem' }}>{edition.eleve_nom} — {edition.matiere}</p>
             {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
             <div className="notes-modal-champ">
-              <label>Note</label>
-              <input type="number" min="0" step="0.01" value={editVal} onChange={(e) => setEditVal(e.target.value)} autoFocus style={{ width: 90 }} />
+              <label htmlFor="note-edit-valeur">Note</label>
+              <input id="note-edit-valeur" type="number" min="0" step="0.01" value={editVal} onChange={(e) => setEditVal(e.target.value)} autoFocus style={{ width: 90 }} />
             </div>
             <div className="notes-modal-champ">
-              <label>Sur</label>
-              <input type="number" min="0.01" step="0.01" value={editBareme} onChange={(e) => setEditBareme(e.target.value)} style={{ width: 90 }} />
+              <label htmlFor="note-edit-bareme">Sur</label>
+              <input id="note-edit-bareme" type="number" min="0.01" step="0.01" value={editBareme} onChange={(e) => setEditBareme(e.target.value)} style={{ width: 90 }} />
             </div>
             <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="insc-btn-reinit" onClick={() => setEdition(null)} disabled={modalEnCours}>Annuler</button>

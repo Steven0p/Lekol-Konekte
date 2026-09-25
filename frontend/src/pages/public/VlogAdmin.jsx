@@ -61,12 +61,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
+            <label htmlFor="vloga-identifiant">Identifiant</label>
+            <input id="vloga-identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="vloga-mdp">Mot de passe</label>
+            <input id="vloga-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -192,16 +192,16 @@ function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
 
           <form onSubmit={publier}>
             <div className="vadm-champ">
-              <label>Titre</label>
-              <input value={form.titre} onChange={maj('titre')} placeholder="Ex. Journée sportive" />
+              <label htmlFor="vloga-titre">Titre</label>
+              <input id="vloga-titre" value={form.titre} onChange={maj('titre')} placeholder="Ex. Journée sportive" />
             </div>
             <div className="vadm-champ">
-              <label>Message</label>
-              <textarea rows={4} value={form.contenu} onChange={maj('contenu')} placeholder="Décrivez l'activité, l'actualité ou l'annonce…" />
+              <label htmlFor="vloga-message">Message</label>
+              <textarea id="vloga-message" rows={4} value={form.contenu} onChange={maj('contenu')} placeholder="Décrivez l'activité, l'actualité ou l'annonce…" />
             </div>
             <div className="vadm-champ">
-              <label>Catégorie</label>
-              <select value={form.categorie} onChange={maj('categorie')}>
+              <label htmlFor="vloga-categorie">Catégorie</label>
+              <select id="vloga-categorie" value={form.categorie} onChange={maj('categorie')}>
                 <option value="actualite">Actualité</option>
                 <option value="photo">Photo</option>
                 <option value="annonce">Annonce</option>

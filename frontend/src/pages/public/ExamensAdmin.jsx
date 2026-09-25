@@ -57,12 +57,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
+            <label htmlFor="exama-identifiant">Identifiant</label>
+            <input id="exama-identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="exama-mdp">Mot de passe</label>
+            <input id="exama-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -160,15 +160,15 @@ function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
 
           <form onSubmit={publier}>
             <div className="vadm-champ">
-              <label>Niveau / Classe</label>
-              <input value={form.niveau} onChange={maj('niveau')} placeholder="ex. 9e AF, NS4, Philo" list="exam-niveaux" />
+              <label htmlFor="exama-niveau">Niveau / Classe</label>
+              <input id="exama-niveau" value={form.niveau} onChange={maj('niveau')} placeholder="ex. 9e AF, NS4, Philo" list="exam-niveaux" />
               <datalist id="exam-niveaux">
                 {niveaux.map((n) => <option key={n} value={n} />)}
               </datalist>
             </div>
             <div className="vadm-champ">
-              <label>Titre / Description (optionnel)</label>
-              <input value={form.titre} onChange={maj('titre')} placeholder="ex. Mathématiques — 3e trimestre 2024" />
+              <label htmlFor="exama-titre">Titre / Description (optionnel)</label>
+              <input id="exama-titre" value={form.titre} onChange={maj('titre')} placeholder="ex. Mathématiques — 3e trimestre 2024" />
             </div>
             <div className="vadm-champ">
               <label><Icone nom="attach" /> Photo de la feuille d'examen</label>

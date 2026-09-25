@@ -61,12 +61,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Courriel</label>
-            <input type="email" value={form.email} onChange={maj('email')} required autoComplete="username" />
+            <label htmlFor="ecoa-courriel">Courriel</label>
+            <input id="ecoa-courriel" type="email" value={form.email} onChange={maj('email')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="ecoa-mdp">Mot de passe</label>
+            <input id="ecoa-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -186,24 +186,24 @@ function ModaleCompte({ admin, onFermer, onMaj }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Courriel</label>
-            <input type="email" value={nouveauEmail} onChange={(e) => setNouveauEmail(e.target.value)} required />
+            <label htmlFor="ecoa-cpt-courriel">Courriel</label>
+            <input id="ecoa-cpt-courriel" type="email" value={nouveauEmail} onChange={(e) => setNouveauEmail(e.target.value)} required />
           </div>
           <div className="vadm-champ">
-            <label>Nouveau mot de passe (laisser vide pour ne pas changer)</label>
-            <input type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)}
+            <label htmlFor="ecoa-cpt-nouveau-mdp">Nouveau mot de passe (laisser vide pour ne pas changer)</label>
+            <input id="ecoa-cpt-nouveau-mdp" type="password" value={nouveauMotDePasse} onChange={(e) => setNouveauMotDePasse(e.target.value)}
               autoComplete="new-password" placeholder="min. 8 caractères" />
           </div>
           {nouveauMotDePasse && (
             <div className="vadm-champ">
-              <label>Confirmer le nouveau mot de passe</label>
-              <input type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)}
+              <label htmlFor="ecoa-cpt-confirmation">Confirmer le nouveau mot de passe</label>
+              <input id="ecoa-cpt-confirmation" type="password" value={confirmation} onChange={(e) => setConfirmation(e.target.value)}
                 autoComplete="new-password" required />
             </div>
           )}
           <div className="vadm-champ">
-            <label>Mot de passe actuel (obligatoire pour confirmer)</label>
-            <input type="password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
+            <label htmlFor="ecoa-cpt-mdp-actuel">Mot de passe actuel (obligatoire pour confirmer)</label>
+            <input id="ecoa-cpt-mdp-actuel" type="password" value={motDePasseActuel} onChange={(e) => setMotDePasseActuel(e.target.value)}
               autoComplete="current-password" required />
           </div>
           <div className="badges-actions" style={{ justifyContent: 'flex-end', marginTop: '.5rem' }}>

@@ -261,8 +261,8 @@ export default function PaiementsTab() {
 
             {confirmation.decision === 'rejete' && (
               <div className="champ">
-                <label>Motif du rejet (obligatoire)</label>
-                <textarea rows={3} value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
+                <label htmlFor="paie-motif-rejet">Motif du rejet (obligatoire)</label>
+                <textarea id="paie-motif-rejet" rows={3} value={commentaire} onChange={(e) => setCommentaire(e.target.value)}
                   placeholder="Expliquez pourquoi ce paiement est rejeté…" />
               </div>
             )}

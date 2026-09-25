@@ -100,30 +100,30 @@ export default function Ecole() {
           <div className="traiter-titre"><Icone nom="edit" /> Informations de l'école</div>
           <form onSubmit={enregistrer}>
             <div className="ecole-champ">
-              <label><Icone nom="school" /> Nom de l'école</label>
-              <input value={form.nom} onChange={maj('nom')} placeholder="ex. FDSE" />
+              <label htmlFor="ecole-nom"><Icone nom="school" /> Nom de l'école</label>
+              <input id="ecole-nom" value={form.nom} onChange={maj('nom')} placeholder="ex. FDSE" />
             </div>
             <div className="ecole-champ">
-              <label><Icone nom="bank" /> Coordonnées bancaires</label>
-              <textarea rows={2} value={form.coordonneesBancaires} onChange={maj('coordonneesBancaires')}
+              <label htmlFor="ecole-bancaires"><Icone nom="bank" /> Coordonnées bancaires</label>
+              <textarea id="ecole-bancaires" rows={2} value={form.coordonneesBancaires} onChange={maj('coordonneesBancaires')}
                 placeholder="Banque, numéro de compte… (ex. BUH 999)" />
             </div>
             <div className="ecole-champ">
-              <label><Icone nom="phone" /> Coordonnées MonCash</label>
-              <input value={form.coordonneesMoncash} onChange={maj('coordonneesMoncash')} placeholder="ex. 509 49177804" />
+              <label htmlFor="ecole-moncash"><Icone nom="phone" /> Coordonnées MonCash</label>
+              <input id="ecole-moncash" value={form.coordonneesMoncash} onChange={maj('coordonneesMoncash')} placeholder="ex. 509 49177804" />
             </div>
             <div className="ecole-champ">
-              <label><Icone nom="school" /> Adresse de l'école</label>
-              <input value={form.adresse} onChange={maj('adresse')} placeholder="ex. Delmas 33, Port-au-Prince" />
+              <label htmlFor="ecole-adresse"><Icone nom="school" /> Adresse de l'école</label>
+              <input id="ecole-adresse" value={form.adresse} onChange={maj('adresse')} placeholder="ex. Delmas 33, Port-au-Prince" />
               <p className="ecole-info">Apparaît sur le badge des élèves (carte d'identité).</p>
             </div>
             <div className="ecole-champ">
-              <label><Icone nom="phone" /> Téléphone de l'école</label>
-              <input value={form.telephone} onChange={maj('telephone')} placeholder="ex. +509 0000 0000" />
+              <label htmlFor="ecole-telephone"><Icone nom="phone" /> Téléphone de l'école</label>
+              <input id="ecole-telephone" value={form.telephone} onChange={maj('telephone')} placeholder="ex. +509 0000 0000" />
             </div>
             <div className="ecole-champ">
-              <label><Icone nom="comment" /> Courriel de l'école</label>
-              <input value={form.courriel} onChange={maj('courriel')} placeholder="ex. contact@lekol.ht" />
+              <label htmlFor="ecole-courriel"><Icone nom="comment" /> Courriel de l'école</label>
+              <input id="ecole-courriel" value={form.courriel} onChange={maj('courriel')} placeholder="ex. contact@lekol.ht" />
             </div>
             <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>
               {enCours ? 'Enregistrement…' : 'Enregistrer'}
@@ -177,7 +177,7 @@ export default function Ecole() {
                 <img src={apercu} alt="Aperçu" className="ecole-drop-preview" />
               ) : (
                 <>
-                  <div aria-hidden="true" style={{ color: '#A0AEC0' }}><Icone nom="upload" size={32} /></div>
+                  <div aria-hidden="true" style={{ color: '#6b7280' }}><Icone nom="upload" size={32} /></div>
                   <p>Cliquez ou déposez une image ici</p>
                 </>
               )}

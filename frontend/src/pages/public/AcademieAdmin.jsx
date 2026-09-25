@@ -64,12 +64,12 @@ function FormLogin({ onConnecte }) {
         <form onSubmit={soumettre}>
           {erreur && <Alerte type="erreur">{erreur}</Alerte>}
           <div className="vadm-champ">
-            <label>Identifiant</label>
-            <input value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
+            <label htmlFor="acada-identifiant">Identifiant</label>
+            <input id="acada-identifiant" value={form.identifiant} onChange={maj('identifiant')} required autoComplete="username" />
           </div>
           <div className="vadm-champ">
-            <label>Mot de passe</label>
-            <input type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
+            <label htmlFor="acada-mdp">Mot de passe</label>
+            <input id="acada-mdp" type="password" value={form.motDePasse} onChange={maj('motDePasse')} required autoComplete="current-password" />
           </div>
           <button type="submit" className="vadm-login-btn" disabled={enCours}>{enCours ? 'Connexion…' : 'Se connecter'}</button>
         </form>
@@ -221,23 +221,23 @@ function PanneauAdmin({ admin, onAdminMaj, onLogout }) {
 
           <form onSubmit={soumettre}>
             <div className="vadm-champ">
-              <label>Cycle (niveau)</label>
-              <select value={form.niveau} onChange={maj('niveau')}>
+              <label htmlFor="acada-niveau">Cycle (niveau)</label>
+              <select id="acada-niveau" value={form.niveau} onChange={maj('niveau')}>
                 {NIVEAUX.map((n) => <option key={n.cle} value={n.cle}>{n.label}</option>)}
               </select>
             </div>
             <div className="vadm-champ">
-              <label>Titre</label>
-              <input value={form.titre} onChange={maj('titre')} placeholder="Ex. Notre programme" />
+              <label htmlFor="acada-titre">Titre</label>
+              <input id="acada-titre" value={form.titre} onChange={maj('titre')} placeholder="Ex. Notre programme" />
             </div>
             <div className="vadm-champ">
-              <label>Contenu</label>
-              <textarea rows={6} value={form.contenu} onChange={maj('contenu')}
+              <label htmlFor="acada-contenu">Contenu</label>
+              <textarea id="acada-contenu" rows={6} value={form.contenu} onChange={maj('contenu')}
                 placeholder="Rédigez le texte de cette section…" />
             </div>
             <div className="vadm-champ">
-              <label>Ordre d'affichage (optionnel)</label>
-              <input type="number" min="0" value={form.ordre} onChange={maj('ordre')}
+              <label htmlFor="acada-ordre">Ordre d'affichage (optionnel)</label>
+              <input id="acada-ordre" type="number" min="0" value={form.ordre} onChange={maj('ordre')}
                 placeholder="Laisser vide = à la fin" />
               <p className="vadm-info">Plus le nombre est petit, plus la section apparaît haut.</p>
             </div>

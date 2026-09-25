@@ -90,7 +90,7 @@ function Recto({ badge, photoSrc, logoSrc }) {
           border: `3px solid ${MARINE}`, background: '#EDF2F7', display: 'grid', placeItems: 'center' }}>
           {badge.aPhoto && photoSrc
             ? <img src={photoSrc} alt="Photo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <span style={{ fontSize: '.72rem', color: '#A0AEC0', textAlign: 'center' }}>Aucune<br />photo</span>}
+            : <span style={{ fontSize: '.72rem', color: '#6b7280', textAlign: 'center' }}>Aucune<br />photo</span>}
         </div>
       </div>
 
@@ -157,7 +157,7 @@ function Verso({ badge, logoSrc }) {
           <div style={{ fontSize: '.66rem', color: MARINE, marginTop: 5, fontWeight: 700 }}>
             Scannez pour accéder aux résultats
           </div>
-          <div style={{ fontSize: '.62rem', color: '#A0AEC0', marginTop: 1, fontFamily: 'monospace', letterSpacing: '.5px' }}>
+          <div style={{ fontSize: '.62rem', color: '#6b7280', marginTop: 1, fontFamily: 'monospace', letterSpacing: '.5px' }}>
             {badge.nisu || '—'}
           </div>
         </div>

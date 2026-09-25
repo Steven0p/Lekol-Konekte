@@ -44,8 +44,8 @@ export default function AnnonceSms() {
         )}
 
         <div className="champ">
-          <label>Message</label>
-          <textarea rows={5} maxLength={LONGUEUR_MAX} value={message}
+          <label htmlFor="sms-message">Message</label>
+          <textarea id="sms-message" rows={5} maxLength={LONGUEUR_MAX} value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ex. : L'école sera fermée demain pour cause de..." />
           <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '.25rem' }}>

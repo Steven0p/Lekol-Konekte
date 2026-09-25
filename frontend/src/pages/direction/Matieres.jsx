@@ -136,12 +136,12 @@ export default function Matieres() {
               <div className="carte">
                 <form onSubmit={ajouter} className="notes-form-grille">
                   <div className="notes-champ" style={{ flex: '1 1 220px' }}>
-                    <label>Nom</label>
-                    <input value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex. Mathématiques" />
+                    <label htmlFor="mat-add-nom">Nom</label>
+                    <input id="mat-add-nom" value={form.nom} onChange={(e) => setForm({ ...form, nom: e.target.value })} placeholder="ex. Mathématiques" />
                   </div>
                   <div className="notes-champ">
-                    <label>Coefficient</label>
-                    <input type="number" min="0.1" max="99.99" step="0.1" value={form.coefficient}
+                    <label htmlFor="mat-add-coef">Coefficient</label>
+                    <input id="mat-add-coef" type="number" min="0.1" max="99.99" step="0.1" value={form.coefficient}
                       onChange={(e) => setForm({ ...form, coefficient: e.target.value })} style={{ width: 120 }} />
                   </div>
                   <button type="submit" className="eco-batch-btn eco-batch-ok" disabled={enCours}>{enCours ? 'Ajout…' : 'Ajouter'}</button>
@@ -221,12 +221,12 @@ export default function Matieres() {
             <h2 style={{ marginBottom: '1rem' }}>Modifier la matière</h2>
             {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
             <div className="notes-modal-champ">
-              <label>Nom</label>
-              <input value={editForm.nom} onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })} autoFocus />
+              <label htmlFor="mat-edit-nom">Nom</label>
+              <input id="mat-edit-nom" value={editForm.nom} onChange={(e) => setEditForm({ ...editForm, nom: e.target.value })} autoFocus />
             </div>
             <div className="notes-modal-champ">
-              <label>Coefficient</label>
-              <input type="number" min="0.1" max="99.99" step="0.1" value={editForm.coefficient}
+              <label htmlFor="mat-edit-coef">Coefficient</label>
+              <input id="mat-edit-coef" type="number" min="0.1" max="99.99" step="0.1" value={editForm.coefficient}
                 onChange={(e) => setEditForm({ ...editForm, coefficient: e.target.value })} />
             </div>
             <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>

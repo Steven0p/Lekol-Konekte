@@ -93,22 +93,22 @@ export default function AnnonceCourriel() {
           maxLength={200} placeholder="Objet du courriel" />
 
         <div className="champ">
-          <label>Introduction</label>
-          <textarea rows={3} maxLength={LONGUEUR_MAX_SECTION} value={champs.introduction}
+          <label htmlFor="annonce-intro">Introduction</label>
+          <textarea id="annonce-intro" rows={3} maxLength={LONGUEUR_MAX_SECTION} value={champs.introduction}
             onChange={majChamp('introduction')}
             placeholder="Met le message en contexte…" />
         </div>
 
         <div className="champ">
-          <label>Développement</label>
-          <textarea rows={6} maxLength={LONGUEUR_MAX_SECTION} value={champs.developpement}
+          <label htmlFor="annonce-dev">Développement</label>
+          <textarea id="annonce-dev" rows={6} maxLength={LONGUEUR_MAX_SECTION} value={champs.developpement}
             onChange={majChamp('developpement')}
             placeholder="Détaille l'information à communiquer…" />
         </div>
 
         <div className="champ">
-          <label>Conclusion</label>
-          <textarea rows={3} maxLength={LONGUEUR_MAX_SECTION} value={champs.conclusion}
+          <label htmlFor="annonce-conclusion">Conclusion</label>
+          <textarea id="annonce-conclusion" rows={3} maxLength={LONGUEUR_MAX_SECTION} value={champs.conclusion}
             onChange={majChamp('conclusion')}
             placeholder="Clôt le message (rappel, invitation à contacter l'école, etc.)…" />
         </div>

@@ -142,7 +142,7 @@ export default function Accueil() {
           </p>
         ) : (
         <form className="acc-form" onSubmit={envoyer}>
-          {erreur && <p className="acc-note" style={{ color: '#C53030' }}>{erreur}</p>}
+          {erreur && <p className="acc-note" style={{ color: 'var(--erreur)' }}>{erreur}</p>}
           <div className="acc-form-rangee">
             <div>
               <label htmlFor="acc-nom">Nom</label>

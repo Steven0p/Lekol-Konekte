@@ -164,21 +164,21 @@ export default function Publications() {
           <div className="carte">
             <form onSubmit={ouvrirConfirmation} className="notes-form-grille">
               <div className="notes-champ">
-                <label>Niveau (classe)</label>
-                <select value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })}>
+                <label htmlFor="pub-niveau">Niveau (classe)</label>
+                <select id="pub-niveau" value={form.niveau} onChange={(e) => setForm({ ...form, niveau: e.target.value })}>
                   <option value="">Choisir un niveau…</option>
                   {niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
                 </select>
               </div>
               <div className="notes-champ">
-                <label>Année scolaire</label>
-                <select value={form.anneeScolaire} onChange={(e) => setForm({ ...form, anneeScolaire: e.target.value })}>
+                <label htmlFor="pub-annee">Année scolaire</label>
+                <select id="pub-annee" value={form.anneeScolaire} onChange={(e) => setForm({ ...form, anneeScolaire: e.target.value })}>
                   {anneesScolaires().map((a) => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
               <div className="notes-champ">
-                <label>Trimestre</label>
-                <select value={form.trimestre} onChange={(e) => setForm({ ...form, trimestre: e.target.value })}>
+                <label htmlFor="pub-trimestre">Trimestre</label>
+                <select id="pub-trimestre" value={form.trimestre} onChange={(e) => setForm({ ...form, trimestre: e.target.value })}>
                   {TRIMESTRES.map((t) => <option key={t.valeur} value={t.valeur}>{t.libelle}</option>)}
                 </select>
               </div>
