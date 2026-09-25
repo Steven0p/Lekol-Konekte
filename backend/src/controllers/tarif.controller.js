@@ -9,6 +9,11 @@ import { UPLOAD_ROOT } from '../config/upload.js';
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
 
+// Un seul tarif valable par type : les tarifs remplacés sont supprimés
+async function purgerTarifsRemplaces() {
+  for (const type of TYPES) await tarifModel.purgerRemplaces(type);
+}
+
 // GET /api/economat/niveaux (admin Économat) — liste des niveaux connus,
 // sans exposer les dossiers élèves (contrairement à /admin/eleves-codes).
 export async function niveaux(req, res, next) {
@@ -34,6 +39,7 @@ export async function creerTarif(req, res, next) {
     if (!dateEffective) return res.status(400).json({ erreur: 'dateEffective requise (AAAA-MM-JJ).' });
 
     const id = await tarifModel.creer({ typeFrais, montant, devise, dateEffective });
+    await purgerTarifsRemplaces();
     return res.status(201).json({ tarif: { id, typeFrais, montant, devise, dateEffective } });
   } catch (err) {
     next(err);
@@ -43,6 +49,7 @@ export async function creerTarif(req, res, next) {
 // GET /api/tarifs (connecté)
 export async function listerTarifs(req, res, next) {
   try {
+    await purgerTarifsRemplaces();
     return res.json({ tarifs: await tarifModel.lister() });
   } catch (err) {
     next(err);
@@ -68,7 +75,21 @@ export async function mettreAJourTarif(req, res, next) {
     if (req.body.dateEffective !== undefined) patch.dateEffective = req.body.dateEffective;
 
     await tarifModel.mettreAJour(existant.id, patch);
+    await purgerTarifsRemplaces();
     return res.json({ message: 'Tarif mis à jour.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/tarifs/:id (admin Économat) — les paiements gardent leur
+// propre montant : supprimer un tarif ne modifie aucun paiement existant.
+export async function supprimerTarif(req, res, next) {
+  try {
+    const existant = await tarifModel.trouverParId(Number(req.params.id));
+    if (!existant) return res.status(404).json({ erreur: 'Tarif introuvable.' });
+    await tarifModel.supprimer(existant.id);
+    return res.json({ message: 'Tarif supprimé.' });
   } catch (err) {
     next(err);
   }

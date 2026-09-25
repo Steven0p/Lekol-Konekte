@@ -45,6 +45,7 @@ router.get('/economat/niveaux', requireEconomatAdmin, tarif.niveaux);
 router.post('/tarifs', requireEconomatAdmin, tarif.creerTarif);
 router.get('/tarifs', requireAuthOuEconomatAdmin, tarif.listerTarifs);
 router.put('/tarifs/:id', requireEconomatAdmin, tarif.mettreAJourTarif);
+router.delete('/tarifs/:id', requireEconomatAdmin, tarif.supprimerTarif);
 router.put('/ecole', requireRole('direction'), tarif.definirEcole);
 router.get('/ecole/coordonnees', requireAuth, tarif.coordonneesEcole);
 router.put('/ecole-entete', requireRole('admin', 'direction'), tarif.majEnteteEcole);

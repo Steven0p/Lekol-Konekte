@@ -187,6 +187,7 @@ export const directionApi = {
   bulletinsNiveau: (niveau) => request(`/admin/bulletins${qs({ niveau })}`),
   tarifs: () => request('/tarifs'),
   creerTarif: (body) => request('/tarifs', { method: 'POST', body: json(body) }),
+  supprimerTarif: (id) => request(`/tarifs/${id}`, { method: 'DELETE' }),
   fraisDivers: () => request('/frais-divers'),
   creerFrais: (body) => request('/frais-divers', { method: 'POST', body: json(body) }),
   majFrais: (id, body) => request(`/frais-divers/${id}`, { method: 'PUT', body: json(body) }),

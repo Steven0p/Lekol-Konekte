@@ -23,6 +23,7 @@ export default function TarifsTab() {
   const [form, setForm] = useState({ montant: '', devise: 'HTG', dateEffective: '' });
   const [enCours, setEnCours] = useState(false);
   const [erreurModal, setErreurModal] = useState('');
+  const [suppression, setSuppression] = useState(null); // tarif à supprimer (historique)
 
   const charger = () => directionApi.tarifs().then((d) => setTarifs(d.tarifs)).catch((e) => setErreur(e.message));
   useEffect(() => { charger(); }, []);
@@ -46,6 +47,16 @@ export default function TarifsTab() {
     } catch (err) { setErreurModal(err.message); }
     finally { setEnCours(false); }
   };
+
+  const confirmerSuppression = async () => {
+    setEnCours(true); setErreurModal('');
+    try {
+      await directionApi.supprimerTarif(suppression.id);
+      setMsg('Tarif supprimé.'); setSuppression(null); charger();
+    } catch (err) { setErreurModal(err.message); }
+    finally { setEnCours(false); }
+  };
+  const estActuel = (t) => tarifCourant(tarifs || [], t.type_frais)?.id === t.id;
 
   return (
     <div className="eco-onglet-corps tarifs-page">
@@ -91,17 +102,43 @@ export default function TarifsTab() {
       ) : (
         <div className="tableau-enveloppe">
           <table className="tableau insc-tableau">
-            <thead><tr><th>Type</th><th>Montant</th><th>Date d'effet</th></tr></thead>
+            <thead><tr><th>Type</th><th>Montant</th><th>Date d'effet</th><th>Actions</th></tr></thead>
             <tbody>
               {tarifs.map((t) => (
                 <tr key={t.id}>
                   <td className="insc-nom">{libelleTypeFrais(t.type_frais)}</td>
                   <td className="paie-montant">{montantFr(t.montant, t.devise)}</td>
                   <td>{dateFr(t.date_effective)}</td>
+                  <td>
+                    <button type="button" className="paie-btn paie-rejeter" onClick={() => { setSuppression(t); setErreurModal(''); }}>Supprimer</button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Modale : supprimer un tarif de l'historique */}
+      {suppression && (
+        <div className="prof-modal-fond" onClick={() => !enCours && setSuppression(null)}>
+          <div className="prof-modal carte" role="dialog" aria-modal="true" onClick={(ev) => ev.stopPropagation()}>
+            <button type="button" className="prof-modal-fermer" onClick={() => setSuppression(null)} aria-label="Fermer">×</button>
+            <h2 style={{ marginBottom: '.75rem' }}>Supprimer le tarif</h2>
+            <p style={{ color: '#4A5568', marginBottom: '1.25rem' }}>
+              Voulez-vous vraiment supprimer le tarif « <strong>{libelleTypeFrais(suppression.type_frais)}</strong> —{' '}
+              {montantFr(suppression.montant, suppression.devise)} » du {dateFr(suppression.date_effective)} ?
+              {estActuel(suppression) && (
+                <> <strong>C'est le tarif actuel</strong> : ce type de frais n'aura plus de tarif
+                  {suppression.type_frais === 'inscription' ? " et les inscriptions en ligne seront bloquées jusqu'à la saisie d'un nouveau tarif" : ''}.</>
+              )}
+            </p>
+            {erreurModal && <Alerte type="erreur">{erreurModal}</Alerte>}
+            <div className="badges-actions" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="insc-btn-reinit" onClick={() => setSuppression(null)} disabled={enCours}>Annuler</button>
+              <button type="button" className="paie-btn paie-rejeter" onClick={confirmerSuppression} disabled={enCours}>{enCours ? 'Suppression…' : 'Confirmer'}</button>
+            </div>
+          </div>
         </div>
       )}
 
