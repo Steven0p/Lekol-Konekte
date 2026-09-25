@@ -75,6 +75,44 @@ export const eleveApi = {
     fd.append('photo', fichier);
     return request('/eleve/photo', { method: 'POST', body: fd });
   },
+  mesDevoirs: () => request('/eleve/devoirs'),
+  mesDocuments: () => request('/eleve/documents'),
+  monHoraire: () => request('/eleve/horaire'),
+};
+
+// Comptes professeur — créés et assignés à des classes (matières) par la direction
+export const enseignantsApi = {
+  lister: () => request('/direction/enseignants'),
+  creer: (body) => request('/direction/enseignants', { method: 'POST', body: json(body) }),
+  definirStatut: (id, statut) => request(`/direction/enseignants/${id}`, { method: 'PATCH', body: json({ statut }) }),
+  assignerMatiere: (id, idMatiere) =>
+    request(`/direction/enseignants/${id}/matieres`, { method: 'POST', body: json({ idMatiere }) }),
+  retirerMatiere: (id, idMatiere) =>
+    request(`/direction/enseignants/${id}/matieres/${idMatiere}`, { method: 'DELETE' }),
+};
+
+// Espace professeur : ses classes, devoirs, documents, horaires
+export const professeurApi = {
+  mesMatieres: () => request('/professeur/mes-matieres'),
+
+  devoirs: (idMatiere) => request(`/professeur/devoirs${qs({ idMatiere })}`),
+  creerDevoir: (body) => request('/professeur/devoirs', { method: 'POST', body: json(body) }),
+  supprimerDevoir: (id) => request(`/professeur/devoirs/${id}`, { method: 'DELETE' }),
+
+  documents: (idMatiere) => request(`/professeur/documents${qs({ idMatiere })}`),
+  creerDocument: ({ idMatiere, titre, fichier }) => {
+    const fd = new FormData();
+    fd.append('idMatiere', idMatiere);
+    fd.append('titre', titre);
+    fd.append('fichier', fichier);
+    return request('/professeur/documents', { method: 'POST', body: fd });
+  },
+  supprimerDocument: (id) => request(`/professeur/documents/${id}`, { method: 'DELETE' }),
+
+  horaires: (idMatiere) => request(`/professeur/horaires${qs({ idMatiere })}`),
+  creerHoraire: (body) => request('/professeur/horaires', { method: 'POST', body: json(body) }),
+  modifierHoraire: (id, body) => request(`/professeur/horaires/${id}`, { method: 'PUT', body: json(body) }),
+  supprimerHoraire: (id) => request(`/professeur/horaires/${id}`, { method: 'DELETE' }),
 };
 
 export const paiementsApi = {
@@ -313,6 +351,7 @@ export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
 export const urlPhotoVlog = (id) => `${API_URL}/vlog/${id}/photo`;
 export const urlPhotoProf = (id) => `${API_URL}/professeurs/${id}/photo`;
 export const urlPhotoExamen = (id) => `${API_URL}/examens/${id}/photo`;
+export const urlDocumentCours = (id) => `${API_URL}/documents-cours/${id}/fichier`;
 
 // Marque de l'école (nom + présence d'un logo) — endpoint public utilisé par
 // l'en-tête du site public et la barre latérale de l'espace connecté.

@@ -12,5 +12,6 @@ export default function TableauDeBord() {
   if (utilisateur.role === 'admin') return <TableauAdmin />;
   if (utilisateur.role === 'direction') return <TableauDirection />;
   if (utilisateur.role === 'eleve') return <Navigate to="/eleve/notes" replace />;
+  if (utilisateur.role === 'professeur') return <Navigate to="/professeur/tableau" replace />;
   return <TableauParent />; // parent
 }

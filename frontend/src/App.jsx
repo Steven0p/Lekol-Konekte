@@ -24,6 +24,7 @@ import MotDePasseOublie from './pages/auth/MotDePasseOublie.jsx';
 import Register from './pages/auth/Register.jsx';
 import EspaceEleve from './pages/eleve/EspaceEleve.jsx';
 import BadgeEleve from './pages/eleve/BadgeEleve.jsx';
+import MesCours from './pages/eleve/MesCours.jsx';
 import TableauDeBord from './pages/TableauDeBord.jsx';
 import MesInscriptions from './pages/parent/MesInscriptions.jsx';
 import NouvelleInscription from './pages/parent/NouvelleInscription.jsx';
@@ -44,6 +45,8 @@ import AdminAnciensEleves from './pages/admin/AdminAnciensEleves.jsx';
 import Matieres from './pages/direction/Matieres.jsx';
 import Publications from './pages/direction/Publications.jsx';
 import Ecole from './pages/direction/Ecole.jsx';
+import Enseignants from './pages/direction/Enseignants.jsx';
+import TableauProfesseur from './pages/professeur/TableauProfesseur.jsx';
 import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
 import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
@@ -91,7 +94,7 @@ export default function App() {
         }
       >
         <Route path="/tableau-de-bord" element={<TableauDeBord />} />
-        <Route path="/mon-compte" element={<RoutePrivee roles={['parent', 'admin', 'direction', 'proprietaire']}><MonCompte /></RoutePrivee>} />
+        <Route path="/mon-compte" element={<RoutePrivee roles={['parent', 'admin', 'direction', 'proprietaire', 'professeur']}><MonCompte /></RoutePrivee>} />
         <Route path="/annonce-sms" element={<RoutePrivee roles={['admin', 'direction', 'proprietaire']}><AnnonceSms /></RoutePrivee>} />
         <Route path="/proprietaire/annonce-courriel" element={<RoutePrivee roles={['proprietaire']}><AnnonceCourriel /></RoutePrivee>} />
 
@@ -106,6 +109,7 @@ export default function App() {
         {/* Espace élève (connexion par code) */}
         <Route path="/eleve/notes" element={<RoutePrivee roles={['eleve']}><EspaceEleve /></RoutePrivee>} />
         <Route path="/eleve/badge" element={<RoutePrivee roles={['eleve']}><BadgeEleve /></RoutePrivee>} />
+        <Route path="/eleve/cours" element={<RoutePrivee roles={['eleve']}><MesCours /></RoutePrivee>} />
 
         {/* Parent — Paiements */}
         <Route path="/paiements" element={<RoutePrivee roles={['parent']}><Paiements /></RoutePrivee>} />
@@ -126,6 +130,10 @@ export default function App() {
         <Route path="/direction/matieres" element={<RoutePrivee roles={['direction']}><Matieres /></RoutePrivee>} />
         <Route path="/direction/publications" element={<RoutePrivee roles={['direction']}><Publications /></RoutePrivee>} />
         <Route path="/direction/ecole" element={<RoutePrivee roles={['direction']}><Ecole /></RoutePrivee>} />
+        <Route path="/direction/enseignants" element={<RoutePrivee roles={['direction']}><Enseignants /></RoutePrivee>} />
+
+        {/* Professeur (compte individuel, assigné à des classes par la direction) */}
+        <Route path="/professeur/tableau" element={<RoutePrivee roles={['professeur']}><TableauProfesseur /></RoutePrivee>} />
 
         {/* Propriétaire — Contrôle d'accès */}
         <Route path="/proprietaire/statistiques" element={<RoutePrivee roles={['proprietaire']}><Statistiques /></RoutePrivee>} />

@@ -95,6 +95,16 @@ export function requireAuthOuEconomatAdmin(req, res, next) {
   return res.status(401).json({ erreur: 'Authentification requise.' });
 }
 
+// Exige soit un compte école (professeur y compris, via userId), soit une
+// session élève — pour un fichier de cours qu'un professeur et un élève de sa
+// classe doivent tous deux pouvoir ouvrir.
+export function requireAuthOuEleve(req, res, next) {
+  if (req.session && (req.session.userId || (req.session.eleveId && req.session.role === 'eleve'))) {
+    return next();
+  }
+  return res.status(401).json({ erreur: 'Authentification requise.' });
+}
+
 // Exige qu'une action ne soit pas désactivée par le propriétaire (voir
 // permissions.service.js). À utiliser APRÈS requireRole sur les routes
 // direction/admin concernées — le propriétaire lui-même n'emprunte pas ces

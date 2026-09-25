@@ -24,9 +24,10 @@ const DEST_LOGOS = path.join(UPLOAD_ROOT, 'logos');     // logo de l'école
 const DEST_VLOG = path.join(UPLOAD_ROOT, 'vlog');       // photos des publications du vlog
 const DEST_PROFS = path.join(UPLOAD_ROOT, 'professeurs'); // photos des fiches du corps enseignant
 const DEST_EXAMENS = path.join(UPLOAD_ROOT, 'examens'); // photos des feuilles d'examen
+const DEST_COURS = path.join(UPLOAD_ROOT, 'cours');     // documents de cours (professeurs)
 
 // Crée les sous-dossiers si absents (conteneur / volume vierge en production)
-for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS, DEST_EXAMENS]) {
+for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS, DEST_EXAMENS, DEST_COURS]) {
   fs.mkdirSync(dossier, { recursive: true });
 }
 
@@ -62,6 +63,7 @@ export const uploadLogo = creerUpload(DEST_LOGOS, imageFilter, TYPES_IMAGE);    
 export const uploadVlog = creerUpload(DEST_VLOG, imageFilter, TYPES_IMAGE);     // photo publication vlog
 export const uploadProf = creerUpload(DEST_PROFS, imageFilter, TYPES_IMAGE);    // photo fiche professeur
 export const uploadExamen = creerUpload(DEST_EXAMENS, imageFilter, TYPES_IMAGE); // photo feuille d'examen
+export const uploadCours = creerUpload(DEST_COURS);      // document de cours (professeur)
 
 // Vérifie le CONTENU réel d'un fichier déjà téléversé (signature/magic bytes),
 // indépendamment du Content-Type déclaré par le client — un champ multipart

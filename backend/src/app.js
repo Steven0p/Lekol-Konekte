@@ -24,6 +24,7 @@ import contactMessageRoutes from './routes/contactMessage.routes.js';
 import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
 import annonceRoutes from './routes/annonce.routes.js';
+import enseignantRoutes from './routes/enseignant.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
 import { PAGES_SEO } from './config/seoPages.js';
@@ -198,6 +199,9 @@ app.use('/api', ancienEleveRoutes);
 
 // Annonces SMS groupées (admin/direction/propriétaire)
 app.use('/api', annonceRoutes);
+
+// Professeurs : comptes (direction), devoirs/documents/horaires (professeur + élève)
+app.use('/api', enseignantRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';

@@ -36,6 +36,7 @@ const ICONES = {
   archive: 'M20.54 5.23 19.15 3.55A1.99 1.99 0 0 0 17.63 3H6.37c-.61 0-1.19.26-1.52.68L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM6.24 5h11.52l.83 1H5.42l.82-1zM5 19V8h14v11H5zm3-9h8v2H8v-2z',
   sms: 'M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z',
   mail: 'M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z',
+  horaire: 'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67V7z',
 };
 const Icone = ({ nom }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={ICONES[nom]} /></svg>
@@ -71,11 +72,18 @@ const MENUS = {
     { titre: null, items: [{ to: '/tableau-de-bord', libelle: 'Tableau de bord', icone: 'dashboard', fin: true }] },
     { titre: 'Direction', items: [
       { to: '/direction/matieres', libelle: 'Matières', icone: 'matieres' },
+      { to: '/direction/enseignants', libelle: 'Professeurs', icone: 'compte' },
       { to: '/direction/publications', libelle: 'Publications', icone: 'publications' },
       { to: '/direction/ecole', libelle: 'École', icone: 'ecole' },
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },
+      { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
+    ] },
+  ],
+  professeur: [
+    { titre: null, items: [
+      { to: '/professeur/tableau', libelle: 'Mes classes', icone: 'dashboard', fin: true },
       { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
   ],
@@ -93,12 +101,16 @@ const MENUS = {
   eleve: [
     { titre: null, items: [
       { to: '/eleve/notes', libelle: 'Mes résultats', icone: 'resultats' },
+      { to: '/eleve/cours', libelle: 'Mes cours', icone: 'horaire' },
       { to: '/eleve/badge', libelle: 'Mon badge', icone: 'badges' },
     ] },
   ],
 };
 
-const LIBELLE_ROLE = { parent: 'Parent', admin: 'Secrétariat', direction: 'Direction', eleve: 'Élève', proprietaire: 'Propriétaire' };
+const LIBELLE_ROLE = {
+  parent: 'Parent', admin: 'Secrétariat', direction: 'Direction', eleve: 'Élève',
+  proprietaire: 'Propriétaire', professeur: 'Professeur',
+};
 
 export default function BarreNav() {
   const { utilisateur, logout } = useAuth();

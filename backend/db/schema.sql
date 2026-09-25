@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
   courriel          VARCHAR(180) NOT NULL UNIQUE,
   mot_de_passe_hash VARCHAR(255) NULL,
   google_id         VARCHAR(255) NULL UNIQUE,
-  role              ENUM('parent','eleve','admin','direction','proprietaire') NOT NULL DEFAULT 'parent',
+  role              ENUM('parent','eleve','admin','direction','proprietaire','professeur') NOT NULL DEFAULT 'parent',
   statut            ENUM('actif','inactif') NOT NULL DEFAULT 'actif',
   courriel_verifie  TINYINT(1) NOT NULL DEFAULT 0,
   cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -274,6 +274,53 @@ CREATE TABLE IF NOT EXISTS notes (
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE,
   FOREIGN KEY (id_matiere) REFERENCES matieres(id) ON DELETE SET NULL,
   FOREIGN KEY (saisie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- Quelles matières (= classes) un professeur enseigne.
+CREATE TABLE IF NOT EXISTS enseignant_matieres (
+  id             INT AUTO_INCREMENT PRIMARY KEY,
+  id_utilisateur INT NOT NULL,
+  id_matiere     INT NOT NULL,
+  cree_le        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_enseignant_matiere (id_utilisateur, id_matiere),
+  FOREIGN KEY (id_utilisateur) REFERENCES utilisateurs(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_matiere) REFERENCES matieres(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS devoirs (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  id_matiere    INT NOT NULL,
+  id_enseignant INT NOT NULL,
+  titre         VARCHAR(200) NOT NULL,
+  description   TEXT,
+  date_limite   DATE,
+  cree_le       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_matiere) REFERENCES matieres(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_enseignant) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS documents_cours (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  id_matiere    INT NOT NULL,
+  id_enseignant INT NOT NULL,
+  titre         VARCHAR(200) NOT NULL,
+  url_fichier   VARCHAR(500) NOT NULL,
+  cree_le       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_matiere) REFERENCES matieres(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_enseignant) REFERENCES utilisateurs(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS horaires_cours (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  id_matiere    INT NOT NULL,
+  id_enseignant INT NOT NULL,
+  jour_semaine  ENUM('lundi','mardi','mercredi','jeudi','vendredi','samedi') NOT NULL,
+  heure_debut   TIME NOT NULL,
+  heure_fin     TIME NOT NULL,
+  salle         VARCHAR(60),
+  cree_le       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_matiere) REFERENCES matieres(id) ON DELETE CASCADE,
+  FOREIGN KEY (id_enseignant) REFERENCES utilisateurs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS publications_notes (
