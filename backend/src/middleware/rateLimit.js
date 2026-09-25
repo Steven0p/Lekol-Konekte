@@ -59,3 +59,15 @@ export const paiementLimiter = rateLimit({
   legacyHeaders: false,
   message: { erreur: 'Trop de requêtes de paiement. Réessayez plus tard.' },
 });
+
+// Webhook plopplop (notification serveur-à-serveur, pas d'utilisateur derrière) :
+// plafond large, juste un garde-fou anti-abus basique — la sécurité réelle
+// vient de la revérification systématique auprès de plopplop avant toute
+// action (voir paiement.controller.js webhookPlopplop), pas de cette limite.
+export const webhookLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: 'Trop de requêtes.' },
+});

@@ -95,6 +95,49 @@ export async function confirmerMobile(req, res, next) {
   }
 }
 
+// POST /api/paiements/webhook/plopplop (public — appelé par le serveur
+// plopplop, pas par un navigateur, donc sans session). plopplop signale
+// qu'une transaction a changé d'état ; on ne fait JAMAIS confiance au contenu
+// de la notification elle-même (payload potentiellement falsifiable, et le
+// format exact des événements transaction.created / transaction.status_changed
+// n'est pas documenté avec certitude) — elle sert uniquement de déclencheur
+// pour revérifier IMMÉDIATEMENT auprès de plopplop via confirmerPaiementMobile,
+// le même chemin que le retour du parent et la reconciliation périodique
+// (server.js), qui reste la seule source de vérité. Un identifiant de
+// référence inconnu ou une notification sans référence exploitable est
+// silencieusement ignorée (toujours 200, pour éviter que plopplop ne
+// retente en boucle).
+export async function webhookPlopplop(req, res, next) {
+  try {
+    const corps = req.body || {};
+    const referenceExterne =
+      corps.refference_id || corps.reference_id
+      || corps?.data?.refference_id || corps?.data?.reference_id
+      || corps?.transaction?.refference_id || corps?.transaction?.reference_id
+      || null;
+
+    if (!referenceExterne) {
+      console.warn('Webhook plopplop reçu sans référence exploitable :', JSON.stringify(corps).slice(0, 500));
+      return res.status(200).json({ recu: true });
+    }
+
+    const paiement = await paiementModel.trouverParReferenceExterne(referenceExterne);
+    if (!paiement) {
+      return res.status(200).json({ recu: true });
+    }
+
+    // Ne bloque jamais la réponse HTTP sur la vérification serveur-à-serveur
+    // auprès de plopplop : on répond vite, comme la reconciliation périodique.
+    confirmerPaiementMobile({ paiement }).catch((err) => {
+      console.error(`Webhook plopplop : confirmation paiement #${paiement.id} échouée :`, err.message);
+    });
+
+    return res.status(200).json({ recu: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // GET /api/paiements (parent — les siens)
 export async function listerMiens(req, res, next) {
   try {

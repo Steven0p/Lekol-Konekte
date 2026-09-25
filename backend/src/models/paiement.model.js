@@ -42,6 +42,16 @@ export async function trouverParTransactionExterne(transactionId) {
   return rows[0] || null;
 }
 
+// Retrouve le paiement par sa référence générée côté serveur (reference_externe,
+// voir demarrerPaiementMobile) — utilisé par le webhook plopplop pour savoir
+// QUEL paiement revérifier, jamais pour décider seul de son statut.
+export async function trouverParReferenceExterne(referenceExterne) {
+  const [rows] = await pool.query(
+    'SELECT * FROM paiements WHERE reference_externe = ? LIMIT 1', [referenceExterne]
+  );
+  return rows[0] || null;
+}
+
 // Prise atomique : la clause « AND statut = 'en_attente' » garantit qu'un
 // seul appelant peut faire passer ce paiement hors de en_attente, même si
 // deux vérifications tournent en même temps (retour du parent + relance

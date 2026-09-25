@@ -6,7 +6,7 @@ import * as paiement from '../controllers/paiement.controller.js';
 import * as economatAuth from '../controllers/economatAuth.controller.js';
 import { requireAuth, requireRole, requireEconomatAdmin, requireAuthOuEconomatAdmin } from '../middleware/auth.js';
 import { uploadPreuve, uploadLogo, verifierContenuDocument, verifierContenuImage } from '../config/upload.js';
-import { uploadLimiter, authLimiter, paiementLimiter } from '../middleware/rateLimit.js';
+import { uploadLimiter, authLimiter, paiementLimiter, webhookLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -61,6 +61,10 @@ router.get('/frais-divers', requireEconomatAdmin, fraisDivers.lister);
 router.post('/frais-divers', requireEconomatAdmin, fraisDivers.creer);
 router.put('/frais-divers/:id', requireEconomatAdmin, fraisDivers.mettreAJour);
 router.delete('/frais-divers/:id', requireEconomatAdmin, fraisDivers.supprimer);
+
+// Webhook plopplop (notification serveur-à-serveur, aucune session) — voir
+// paiement.controller.js webhookPlopplop pour le modèle de confiance.
+router.post('/paiements/webhook/plopplop', webhookLimiter, paiement.webhookPlopplop);
 
 // Paiements — parent
 router.post('/paiements', requireRole('parent'), paiementLimiter, paiement.creer);
