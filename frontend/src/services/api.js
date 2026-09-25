@@ -18,7 +18,18 @@ async function request(chemin, options = {}) {
   try { data = await res.json(); } catch { /* pas de corps JSON */ }
 
   if (!res.ok) {
-    const err = new Error((data && data.erreur) || 'Une erreur est survenue.');
+    const message = (data && data.erreur) || 'Une erreur est survenue.';
+    // Session expirée en cours d'usage (ex. onglet resté ouvert plus de 8h,
+    // voir cookie.maxAge côté serveur) : le message exact ci-dessous ne vient
+    // QUE de requireAuth/requireRole/requireEleve (jamais d'un login qui a
+    // simplement échoué, qui répond « Identifiants invalides » ou équivalent)
+    // — sans ce renvoi, la page reste plantée sur une erreur technique brute
+    // au lieu de ramener la personne se reconnecter.
+    if (res.status === 401 && message === 'Authentification requise.'
+      && !chemin.endsWith('/me') && window.location.pathname !== '/login') {
+      window.location.href = '/login?session=expiree';
+    }
+    const err = new Error(message);
     err.status = res.status;
     err.payload = data || {};
     throw err;

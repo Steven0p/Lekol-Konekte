@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -11,11 +11,15 @@ export default function Login() {
   const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
-  const info = location.state?.info;
+  // ?session=expiree : renvoi automatique depuis api.js (401 « Authentification
+  // requise » en cours d'usage) — une navigation plein-page, sans location.state.
+  const info = location.state?.info
+    || (searchParams.get('session') === 'expiree' ? 'Votre session a expiré. Reconnectez-vous.' : '');
 
   // Étape de double authentification (comptes parent) : 'identifiants' | 'code'
   const [etape, setEtape] = useState('identifiants');
