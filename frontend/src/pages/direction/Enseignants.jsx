@@ -11,7 +11,7 @@ export default function Enseignants() {
   const [erreur, setErreur] = useState('');
   const [msg, setMsg] = useState('');
 
-  const [form, setForm] = useState({ nom: '', prenom: '', courriel: '', motDePasse: '' });
+  const [form, setForm] = useState({ nom: '', prenom: '', courriel: '' });
   const [matieresChoisies, setMatieresChoisies] = useState([]);
   const [enCours, setEnCours] = useState(false);
 
@@ -35,24 +35,20 @@ export default function Enseignants() {
   const creerCompte = async (e) => {
     e.preventDefault();
     setErreur(''); setMsg('');
-    if (!form.nom.trim() || !form.prenom.trim() || !form.courriel.trim() || !form.motDePasse) {
-      setErreur('Nom, prénom, courriel et mot de passe sont requis.');
-      return;
-    }
-    if (form.motDePasse.length < 8) {
-      setErreur('Le mot de passe doit contenir au moins 8 caractères.');
+    if (!form.nom.trim() || !form.prenom.trim() || !form.courriel.trim()) {
+      setErreur('Nom, prénom et courriel sont requis.');
       return;
     }
     setEnCours(true);
     try {
-      const { enseignant } = await enseignantsApi.creer({
-        nom: `${form.prenom.trim()} ${form.nom.trim()}`, courriel: form.courriel.trim(), motDePasse: form.motDePasse,
+      const { message, enseignant } = await enseignantsApi.creer({
+        nom: `${form.prenom.trim()} ${form.nom.trim()}`, courriel: form.courriel.trim(),
       });
       for (const idMatiere of matieresChoisies) {
         await enseignantsApi.assignerMatiere(enseignant.id, idMatiere);
       }
-      setMsg('Compte professeur créé.');
-      setForm({ nom: '', prenom: '', courriel: '', motDePasse: '' });
+      setMsg(message);
+      setForm({ nom: '', prenom: '', courriel: '' });
       setMatieresChoisies([]);
       charger();
     } catch (err) { setErreur(err.message); }
@@ -92,7 +88,8 @@ export default function Enseignants() {
     <div className="insc-page matieres-page">
       <div className="page-entete">
         <h1>Professeurs</h1>
-        <p>Créez un compte pour chaque professeur et assignez-lui les classes qu'il enseigne.</p>
+        <p>Créez un compte pour chaque professeur et assignez-lui les classes qu'il enseigne.
+          Un lien lui sera envoyé par courriel pour qu'il choisisse lui-même son mot de passe.</p>
       </div>
 
       {erreur && <Alerte type="erreur">{erreur}</Alerte>}
@@ -115,11 +112,6 @@ export default function Enseignants() {
             <label htmlFor="ens-courriel">Courriel</label>
             <input id="ens-courriel" type="email" value={form.courriel}
               onChange={(e) => setForm({ ...form, courriel: e.target.value })} placeholder="ex. prof@lekol.ht" />
-          </div>
-          <div className="notes-champ">
-            <label htmlFor="ens-mdp">Mot de passe provisoire</label>
-            <input id="ens-mdp" type="password" value={form.motDePasse}
-              onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} placeholder="min. 8 caractères" />
           </div>
 
           <div className="notes-champ" style={{ flexBasis: '100%' }}>

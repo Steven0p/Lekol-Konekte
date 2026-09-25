@@ -1,12 +1,12 @@
 // Contrôleur Enseignant — gestion des comptes professeur (direction) et
 // consultation de ses propres matières (professeur, self-service).
-import bcrypt from 'bcrypt';
 import { findByCourriel } from '../models/user.model.js';
 import * as enseignantModel from '../models/enseignant.model.js';
 import { trouverParId as trouverMatiereParId } from '../models/matiere.model.js';
+import { envoyerLienCreationMotDePasse } from '../services/otp.service.js';
+import { courrielConfigure } from '../config/mailer.js';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const SALT_ROUNDS = 12;
 
 // GET /api/direction/enseignants (direction) — liste des comptes professeur
 export async function lister(req, res, next) {
@@ -19,20 +19,24 @@ export async function lister(req, res, next) {
 }
 
 // POST /api/direction/enseignants (direction) — crée un compte professeur
+// sans mot de passe : un lien lui est envoyé par courriel pour qu'il en
+// choisisse un lui-même (la direction ne le définit jamais à sa place).
 export async function creer(req, res, next) {
   try {
     const nom = (req.body.nom || '').trim();
     const courriel = (req.body.courriel || '').trim().toLowerCase();
-    const motDePasse = req.body.motDePasse || '';
 
-    if (!nom || !courriel || !motDePasse) {
-      return res.status(400).json({ erreur: 'Nom, courriel et mot de passe sont requis.' });
+    if (!nom || !courriel) {
+      return res.status(400).json({ erreur: 'Nom et courriel sont requis.' });
     }
     if (!COURRIEL_REGEX.test(courriel)) {
       return res.status(400).json({ erreur: 'Courriel invalide.' });
     }
-    if (motDePasse.length < 8) {
-      return res.status(400).json({ erreur: 'Le mot de passe doit contenir au moins 8 caractères.' });
+    if (!courrielConfigure()) {
+      return res.status(503).json({
+        erreur: "L'envoi de courriel n'est pas configuré sur le serveur : impossible d'inviter un professeur "
+          + 'à créer son mot de passe.',
+      });
     }
 
     const existant = await findByCourriel(courriel);
@@ -40,10 +44,19 @@ export async function creer(req, res, next) {
       return res.status(409).json({ erreur: 'Ce courriel est déjà utilisé.' });
     }
 
-    const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
-    const enseignant = await enseignantModel.creer({ nom, courriel, motDePasseHash });
+    const enseignant = await enseignantModel.creer({ nom, courriel, motDePasseHash: null });
 
-    return res.status(201).json({ message: 'Compte professeur créé.', enseignant });
+    try {
+      await envoyerLienCreationMotDePasse({ idUtilisateur: enseignant.id, courriel, nom });
+    } catch (err) {
+      console.error(`✖ Envoi du lien de création à ${courriel} échoué :`, err.message);
+      return res.status(201).json({
+        message: "Compte créé, mais l'envoi du courriel a échoué. Utilisez « Mot de passe oublié » pour lui renvoyer un lien.",
+        enseignant,
+      });
+    }
+
+    return res.status(201).json({ message: 'Compte professeur créé. Un lien lui a été envoyé par courriel.', enseignant });
   } catch (err) {
     next(err);
   }

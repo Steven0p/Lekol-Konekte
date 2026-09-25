@@ -20,6 +20,12 @@ function expirationMinutes() {
   return Number(process.env.OTP_EXPIRATION_MIN) || 10;
 }
 
+// Un compte fraîchement créé par la direction (professeur) n'a pas encore de
+// mot de passe — contrairement à un « mot de passe oublié », rien ne presse
+// la personne à agir dans les minutes qui suivent : 7 jours plutôt que les 10
+// minutes habituelles du code de réinitialisation.
+const EXPIRATION_CREATION_MINUTES = 7 * 24 * 60;
+
 // Génère un code numérique à 6 chiffres (aléatoire cryptographique)
 function genererCode() {
   return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
@@ -80,6 +86,41 @@ export async function envoyerCodeReinitialisation({ idUtilisateur, courriel, nom
     `<p>Il expire dans ${minutes} minutes.</p>` +
     `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : ` +
     `votre mot de passe reste inchangé.</p>`;
+
+  const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
+  return { previewUrl };
+}
+
+// Compte créé par la direction (professeur) sans mot de passe : envoie un
+// lien (+ code, au cas où le lien serait filtré) pour que la personne
+// choisisse elle-même son mot de passe. Réutilise le type et la vérification
+// de « mot de passe oublié » (reinitialiserMotDePasse) — seule l'expiration
+// et le message diffèrent.
+export async function envoyerLienCreationMotDePasse({ idUtilisateur, courriel, nom }) {
+  await invaliderCodesActifs(idUtilisateur, TYPE_RESET);
+
+  const code = genererCode();
+  const codeHash = await bcrypt.hash(code, SALT_ROUNDS);
+  const expireLe = new Date(Date.now() + EXPIRATION_CREATION_MINUTES * 60 * 1000);
+
+  await creerCode({ idUtilisateur, codeHash, type: TYPE_RESET, expireLe });
+
+  const origine = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
+  const lien = `${origine}/mot-de-passe-oublie?courriel=${encodeURIComponent(courriel)}&code=${code}`;
+  const sujet = 'Lekòl Konekte — créez votre mot de passe';
+  const texte =
+    `Bonjour ${nom || ''},\n\n` +
+    `Un compte professeur vient d'être créé pour vous sur Lekòl Konekte.\n` +
+    `Cliquez sur ce lien pour choisir votre mot de passe :\n${lien}\n\n` +
+    `Si le lien ne fonctionne pas, utilisez le code ${code} sur la page « Mot de passe oublié » avec le courriel ${courriel}.\n` +
+    `Ce lien est valable 7 jours.`;
+  const html =
+    `<p>Bonjour ${nom || ''},</p>` +
+    `<p>Un compte professeur vient d'être créé pour vous sur Lekòl Konekte.</p>` +
+    `<p><a href="${lien}">Cliquez ici pour choisir votre mot de passe</a></p>` +
+    `<p style="color:#6b7280">Si le lien ne fonctionne pas, utilisez le code ` +
+    `<strong>${code}</strong> sur la page « Mot de passe oublié » avec le courriel ${courriel}.</p>` +
+    `<p style="color:#6b7280">Ce lien est valable 7 jours.</p>`;
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };

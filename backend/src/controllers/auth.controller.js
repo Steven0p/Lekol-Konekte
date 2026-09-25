@@ -247,10 +247,12 @@ export async function login(req, res, next) {
     if (utilisateur.statut !== 'actif') {
       return res.status(403).json({ erreur: 'Compte inactif.' });
     }
-    // Compte créé uniquement via Google : pas de mot de passe à comparer.
+    // Pas de mot de passe : compte Google, ou compte professeur créé par la
+    // direction qui n'a pas encore suivi le lien de création reçu par courriel.
     if (!utilisateur.mot_de_passe_hash) {
       return res.status(400).json({
-        erreur: 'Ce compte utilise la connexion Google. Utilisez le bouton « Se connecter avec Google ».',
+        erreur: 'Aucun mot de passe défini pour ce compte. Utilisez « Se connecter avec Google » '
+          + 'ou « Mot de passe oublié » pour en créer un.',
       });
     }
 
