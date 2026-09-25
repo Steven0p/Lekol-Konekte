@@ -202,7 +202,7 @@ CREATE TABLE IF NOT EXISTS frais_divers (
 CREATE TABLE IF NOT EXISTS paiements (
   id                     INT AUTO_INCREMENT PRIMARY KEY,
   type_frais             ENUM('inscription','releve','duplicata') NOT NULL,
-  methode_paiement       ENUM('manuel','moncash','natcash','kashpaw') NOT NULL DEFAULT 'manuel',
+  methode_paiement       ENUM('manuel','moncash','natcash','kashpaw','carte') NOT NULL DEFAULT 'manuel',
   id_reference           INT NOT NULL,
   montant                DECIMAL(10,2) NOT NULL,
   devise                 ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',

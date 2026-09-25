@@ -9,7 +9,16 @@ dotenv.config();
 const BASE_URL = 'https://plopplop.solutionip.app';
 const DELAI_MS = 15_000;
 
-export const METHODES_VALIDES = ['moncash', 'natcash', 'kashpaw'];
+export const METHODES_VALIDES = ['moncash', 'natcash', 'kashpaw', 'carte'];
+
+// Valeur payment_method envoyée à plopplop pour chaque méthode interne. La
+// carte (Visa/Mastercard) passe par le même agrégateur ; sa valeur exacte
+// côté plopplop n'étant pas documentée publiquement, elle est configurable
+// (PLOPPLOP_METHODE_CARTE) plutôt que figée dans le code.
+function methodePlopplop(methode) {
+  if (methode === 'carte') return (process.env.PLOPPLOP_METHODE_CARTE || 'card').trim();
+  return methode;
+}
 
 function clientId() {
   return (process.env.PLOPPLOP_CLIENT_ID || '').trim();
@@ -60,7 +69,7 @@ export async function creerPaiementPlopplop({ referenceId, montant, methode }) {
     client_id: id,
     refference_id: referenceId,
     montant,
-    payment_method: methode,
+    payment_method: methodePlopplop(methode),
   });
   if (!donnees.url) throw new Error("plopplop n'a renvoyé aucune URL de paiement.");
   return { url: donnees.url, transactionId: donnees.transaction_id };

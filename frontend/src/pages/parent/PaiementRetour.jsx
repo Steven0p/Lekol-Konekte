@@ -5,7 +5,7 @@ import Carte from '../../components/Carte.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 
-// Page de retour après paiement mobile (MonCash, NatCash, KashPay — via
+// Page de retour après paiement en ligne (MonCash, NatCash, KashPay, carte — via
 // plopplop). Le lien de retour ne transporte pas notre propre id de paiement :
 // on le retrouve via localStorage, posé juste avant la redirection (voir
 // DetailPaiement.jsx). S'il manque (autre appareil, stockage effacé…), le

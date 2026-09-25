@@ -11,8 +11,8 @@ import Badge from '../../components/Badge.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 
-const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
-const LOGO_METHODE = { moncash: '/paiement/moncash.jpg', natcash: '/paiement/natcash.png', kashpaw: '/paiement/kashpaw.png' };
+const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay', carte: 'Carte Visa/Mastercard' };
+const LOGO_METHODE = { moncash: '/paiement/moncash.jpg', natcash: '/paiement/natcash.png', kashpaw: '/paiement/kashpaw.png', carte: '/paiement/carte.png' };
 
 export default function DetailPaiement() {
   const { id } = useParams();
@@ -131,7 +131,7 @@ export default function DetailPaiement() {
         {enAttente && paiement.devise === 'HTG' && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
           <Carte titre="Payer en ligne">
             <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
-              Payez directement par mobile — le paiement est confirmé automatiquement,
+              Payez directement par mobile ou par carte Visa/Mastercard — le paiement est confirmé automatiquement,
               sans preuve à téléverser.
             </p>
             <div className="rangee" style={{ flexWrap: 'wrap' }}>

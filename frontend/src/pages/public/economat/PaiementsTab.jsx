@@ -13,7 +13,7 @@ const tonStatut = (s) => (s === 'valide' ? 'vert' : s === 'rejete' ? 'rouge' : '
 // Un paiement mobile (MonCash/NatCash/KashPay, via plopplop) n'a jamais de
 // preuve téléversée : sa transaction est vérifiée directement auprès du
 // fournisseur, ce qui en tient lieu — seul un dépôt manuel exige une preuve.
-const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay' };
+const LIBELLE_METHODE = { moncash: 'MonCash', natcash: 'NatCash', kashpaw: 'KashPay', carte: 'Carte Visa/Mastercard' };
 const estMobile = (p) => Object.prototype.hasOwnProperty.call(LIBELLE_METHODE, p.methode_paiement);
 
 function BadgeStatut({ statut }) {
