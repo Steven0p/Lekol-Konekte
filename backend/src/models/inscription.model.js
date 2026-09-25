@@ -3,7 +3,7 @@ import { pool } from '../config/db.js';
 
 // Crée l'élève (rattaché au parent) + l'inscription (en_attente), en transaction.
 export async function creerInscription({
-  idParent, eleveNom, elevePrenom, dateNaissance, niveau, anneeScolaire,
+  idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
   nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
 }) {
   const conn = await pool.getConnection();
@@ -11,8 +11,8 @@ export async function creerInscription({
     await conn.beginTransaction();
 
     const [eleveRes] = await conn.query(
-      'INSERT INTO eleves (id_parent, nom, prenom, date_naissance, niveau) VALUES (?, ?, ?, ?, ?)',
-      [idParent, eleveNom, elevePrenom || null, dateNaissance || null, niveau || null]
+      'INSERT INTO eleves (id_parent, nom, prenom, sexe, date_naissance, niveau) VALUES (?, ?, ?, ?, ?, ?)',
+      [idParent, eleveNom, elevePrenom || null, sexe || null, dateNaissance || null, niveau || null]
     );
     const idEleve = eleveRes.insertId;
 
@@ -56,7 +56,7 @@ export async function trouverAvecProprietaire(idInscription) {
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
             i.nom_parent, i.profession_parent, i.telephone_parent, i.courriel_parent,
             i.ancienne_ecole, i.ancienne_classe, i.raison_choix,
-            e.id AS id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, e.date_naissance,
+            e.id AS id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, e.sexe, e.date_naissance,
             p.id AS id_parent, u.id AS id_utilisateur,
             u.courriel AS parent_courriel, u.nom AS parent_nom
        FROM inscriptions i

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { inscriptionsApi, adminApi, urlDocumentSoumis } from '../../services/api.js';
-import { dateHeureFr } from '../../utils/libelles.js';
+import { dateHeureFr, dateFr, calculerAge, libelleSexe } from '../../utils/libelles.js';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
 import Icone from '../../components/Icone.jsx';
@@ -117,6 +117,9 @@ export default function AdminDetailInscription() {
             <div className="traiter-titre"><Icone nom="clipboard" /> Informations</div>
             <div className="traiter-infos traiter-infos-2">
               <Info libelle="Élève" valeur={inscription.eleve_nom} />
+              <Info libelle="Sexe" valeur={libelleSexe(inscription.sexe)} />
+              <Info libelle="Date de naissance" valeur={inscription.date_naissance ? dateFr(inscription.date_naissance) : ''} />
+              <Info libelle="Âge" valeur={inscription.date_naissance ? `${calculerAge(inscription.date_naissance)} ans` : ''} />
               <Info libelle="Niveau" valeur={inscription.niveau} />
               <Info libelle="Année" valeur={inscription.annee_scolaire} />
               <Info libelle="Parent" valeur={inscription.parent_nom} />

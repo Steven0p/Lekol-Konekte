@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { inscriptionsApi } from '../../services/api.js';
-import { anneeScolaireCourante } from '../../utils/libelles.js';
+import { anneeScolaireCourante, NIVEAUX_GROUPES } from '../../utils/libelles.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -12,7 +12,7 @@ export default function NouvelleInscription() {
   const navigate = useNavigate();
   const { utilisateur } = useAuth();
   const [form, setForm] = useState({
-    eleveNom: '', elevePrenom: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
+    eleveNom: '', elevePrenom: '', sexe: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
     nomParent: utilisateur?.nom || '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
@@ -50,13 +50,30 @@ export default function NouvelleInscription() {
           <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <Champ label="Nom de famille" value={form.eleveNom} onChange={maj('eleveNom')} required />
             <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')} required />
+            <Champ label="Sexe" id="insc-sexe" enfant={
+              <select id="insc-sexe" value={form.sexe} onChange={maj('sexe')} required>
+                <option value="">— Choisir —</option>
+                <option value="F">Féminin</option>
+                <option value="M">Masculin</option>
+              </select>
+            } />
           </div>
           <Champ label="Date de naissance" type="date" value={form.dateNaissance}
             onChange={maj('dateNaissance')} max={new Date().toISOString().slice(0, 10)} required />
-          <Champ label="Niveau scolaire visé" value={form.niveau}
-            onChange={maj('niveau')} placeholder="ex. 6e année" required />
-          <Champ label="Année scolaire" value={form.anneeScolaire}
-            onChange={maj('anneeScolaire')} placeholder="ex. 2026-2027" required />
+          <Champ label="Niveau scolaire visé" id="insc-niveau" enfant={
+            <select id="insc-niveau" value={form.niveau} onChange={maj('niveau')} required>
+              <option value="">— Choisir —</option>
+              {NIVEAUX_GROUPES.map((g) => (
+                <optgroup key={g.groupe} label={g.groupe}>
+                  {g.niveaux.map((n) => <option key={n} value={n}>{n}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          } />
+          <Champ label="Année scolaire" value={form.anneeScolaire} disabled readOnly />
+          <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
+            Toujours l'année scolaire en cours — déterminée automatiquement.
+          </p>
 
           <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Informations sur le parent / tuteur</h3>
           <Champ label="Nom complet du parent" value={form.nomParent}
@@ -78,8 +95,8 @@ export default function NouvelleInscription() {
             onChange={maj('ancienneClasse')} placeholder="ex. 5e année" />
 
           <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Motivation</h3>
-          <Champ label="Raison du choix de l'école" enfant={
-            <textarea value={form.raisonChoix} onChange={maj('raisonChoix')} rows={3}
+          <Champ label="Raison du choix de l'école" id="insc-raison" enfant={
+            <textarea id="insc-raison" value={form.raisonChoix} onChange={maj('raisonChoix')} rows={3}
               placeholder="Pourquoi avez-vous choisi Lekòl Konekte ?" />
           } />
 

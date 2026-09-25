@@ -21,6 +21,16 @@ import { anneeScolaireCourante } from '../utils/dates.js';
 
 const TYPES_DOCUMENT = ['acte_naissance', 'bulletin', 'photo', 'autre'];
 
+// Niveaux scolaires proposés à l'inscription (système éducatif haïtien :
+// préscolaire, fondamentale 1-9, nouveau secondaire NS1-NS4). Liste fermée :
+// la saisie libre historique a produit des valeurs incohérentes en base
+// (« 6 anne », « NSII », « 1 »…) qu'un menu déroulant élimine à la source.
+export const NIVEAUX = [
+  '1ère année préscolaire', '2e année préscolaire', '3e année préscolaire',
+  '1ère AF', '2e AF', '3e AF', '4e AF', '5e AF', '6e AF', '7e AF', '8e AF', '9e AF',
+  'NS1', 'NS2', 'NS3', 'NS4',
+];
+
 // Décisions possibles + libellé humain pour l'assistant IA
 const DECISIONS_IA = {
   accepte: 'accepter le dossier',
@@ -42,11 +52,22 @@ export async function creer(req, res, next) {
 
     const eleveNom = (req.body.eleveNom || '').trim();
     const elevePrenom = (req.body.elevePrenom || '').trim();
-    // Année scolaire : automatique (année courante) si non fournie.
-    const anneeScolaire = (req.body.anneeScolaire || '').trim() || anneeScolaireCourante();
+    // Année scolaire : toujours l'année courante, jamais choisie par le parent
+    // (évite qu'une inscription atterrisse sur la mauvaise année scolaire).
+    const anneeScolaire = anneeScolaireCourante();
     const niveau = (req.body.niveau || '').trim();
+    if (!NIVEAUX.includes(niveau)) {
+      return res.status(400).json({ erreur: 'Niveau scolaire invalide.' });
+    }
+    const sexe = (req.body.sexe || '').trim().toUpperCase();
+    if (sexe !== 'M' && sexe !== 'F') {
+      return res.status(400).json({ erreur: 'Sexe invalide.' });
+    }
     const dateNaissance = req.body.dateNaissance || null;
-    if (dateNaissance && !/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
+    if (!dateNaissance) {
+      return res.status(400).json({ erreur: 'Date de naissance requise.' });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateNaissance)) {
       return res.status(400).json({ erreur: 'Date de naissance invalide.' });
     }
 
@@ -67,7 +88,7 @@ export async function creer(req, res, next) {
     }
 
     const { idInscription, idEleve } = await creerInscription({
-      idParent, eleveNom, elevePrenom, dateNaissance, niveau, anneeScolaire,
+      idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
       nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
 

@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS eleves (
   id_parent          INT NULL,  -- NULL pour un ancien élève sans compte parent actif
   nom                VARCHAR(120) NOT NULL,
   prenom             VARCHAR(120),
+  sexe               ENUM('M','F'),
   date_naissance     DATE,
   niveau             VARCHAR(60),
   code_acces         VARCHAR(20) UNIQUE,
