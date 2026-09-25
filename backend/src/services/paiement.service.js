@@ -2,9 +2,11 @@
 import * as paiementModel from '../models/paiement.model.js';
 import { tarifCourant } from '../models/tarif.model.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
-import { trouverAvecProprietaire as trouverInscription, mettreAJourStatut as majInscription }
-  from '../models/inscription.model.js';
-import { trouverAvecProprietaire as trouverEleve } from '../models/eleve.model.js';
+import {
+  trouverAvecProprietaire as trouverInscription, mettreAJourStatut as majInscription,
+  transmettreApresPaiement, annulerSiNonPayee, listerNonPayeesExpirees, STATUTS_NON_PAYES,
+} from '../models/inscription.model.js';
+import { trouverAvecProprietaire as trouverEleve, genererCodeAcces } from '../models/eleve.model.js';
 import { notesValideesToutes } from '../models/note.model.js';
 import { creer as creerDocumentOfficiel } from '../models/documentOfficiel.model.js';
 import { journaliser } from '../models/historique.model.js';
@@ -26,13 +28,18 @@ const LIBELLE_TYPE = {
 // au contexte (type de frais, motif du rejet le cas échéant) via l'IA (Groq).
 // Repli sur un message générique si l'IA n'est pas configurée ou échoue — la
 // notification ne doit jamais dépendre de la disponibilité de l'IA.
-async function genererMessagePaiement({ statut, typeFrais, montant, devise, commentaire, parentNom, eleveNom }) {
+async function genererMessagePaiement({
+  statut, typeFrais, montant, devise, commentaire, parentNom, eleveNom, dossierTransmis,
+}) {
   const salutation = `Bonjour ${parentNom || ''},\n\n`;
   let fallback;
   if (statut === 'rejete') {
     fallback = `${salutation}Votre preuve de paiement a été rejetée.` +
       (commentaire ? `\nMotif : ${commentaire}` : '') +
       `\nVeuillez soumettre une nouvelle preuve.`;
+  } else if (typeFrais === 'inscription' && dossierTransmis) {
+    fallback = `${salutation}Le paiement des frais d'inscription a été reçu. Le dossier de ${eleveNom} `
+      + 'est transmis au secrétariat, qui vous informera de sa décision.';
   } else if (typeFrais === 'inscription') {
     fallback = `${salutation}Le paiement a été validé. L'inscription de ${eleveNom} est maintenant confirmée.`;
   } else {
@@ -61,7 +68,9 @@ async function genererMessagePaiement({ statut, typeFrais, montant, devise, comm
             + (statut === 'rejete'
               ? `Motif du rejet : ${commentaire || 'non précisé'}.\n`
               : `Ce que cela débloque (ne décris rien d'autre) : ${
-                typeFrais === 'inscription'
+                typeFrais === 'inscription' && dossierTransmis
+                  ? `le dossier d'inscription de ${eleveNom || "l'élève"} est transmis au secrétariat, qui l'examinera et informera le parent de sa décision (l'inscription n'est PAS encore acceptée).`
+                  : typeFrais === 'inscription'
                   ? `l'inscription de ${eleveNom || "l'élève"} est confirmée dans le système.`
                   : `le document (${LIBELLE_TYPE[typeFrais] || typeFrais}) est téléchargeable en ligne, dans l'espace parent du site — aucun retrait physique n'est nécessaire.`
               }\n`)
@@ -199,9 +208,28 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
 
   let document = null;
   let sujet;
+  let dossierTransmis = false;
 
   if (statut === 'rejete') {
     sujet = 'Lekòl Konekte — paiement rejeté';
+  } else if (paiement.type_frais === 'inscription' && STATUTS_NON_PAYES.includes(prop?.inscription?.statut)) {
+    // Frais payés à la soumission du dossier : il est maintenant transmis au
+    // secrétariat (même s'il avait été annulé entre-temps — le paiement a
+    // abouti après le délai, l'argent du parent ne doit pas être perdu).
+    dossierTransmis = true;
+    if (await transmettreApresPaiement(paiement.id_reference)) {
+      await journaliser({
+        entite: 'inscription', idEntite: paiement.id_reference,
+        ancienStatut: prop.inscription.statut, nouveauStatut: 'en_attente',
+        commentaire: "Frais d'inscription payés — dossier transmis au secrétariat", idAuteur: idAdmin,
+      });
+      try {
+        await genererCodeAcces(prop.idEleve);
+      } catch (err) {
+        console.error('Génération du code élève échouée :', err.message);
+      }
+    }
+    sujet = 'Lekòl Konekte — dossier transmis au secrétariat';
   } else if (paiement.type_frais === 'inscription') {
     await majInscription(paiement.id_reference, 'confirmee');
     await journaliser({
@@ -219,7 +247,7 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
 
   const corps = await genererMessagePaiement({
     statut, typeFrais: paiement.type_frais, montant: paiement.montant, devise: paiement.devise,
-    commentaire, parentNom: prop?.parentNom, eleveNom: prop?.eleveNom,
+    commentaire, parentNom: prop?.parentNom, eleveNom: prop?.eleveNom, dossierTransmis,
   });
 
   let previewUrl = null;
@@ -266,6 +294,15 @@ export async function demarrerPaiementMobile(paiement, methode) {
   }
   if (paiement.devise !== 'HTG') {
     return { ok: false, code: 409, erreur: 'Le paiement mobile ne prend en charge que les paiements en HTG.' };
+  }
+  if (paiement.type_frais === 'inscription') {
+    const ins = await trouverInscription(paiement.id_reference);
+    if (ins?.statut === 'annulee') {
+      return {
+        ok: false, code: 409,
+        erreur: 'Ce dossier a été annulé (délai de paiement dépassé). Veuillez soumettre un nouveau dossier.',
+      };
+    }
   }
 
   // plopplop (NatCash en particulier) rejette les montants décimaux (503
@@ -394,4 +431,23 @@ export async function reconcilierPaiementsMobilesEnAttente() {
     console.log(`Reconciliation paiements mobiles : ${verifies} vérifiés, ${confirmes} confirmés.`);
   }
   return { verifies, confirmes };
+}
+
+// Annule les dossiers d'inscription dont les frais n'ont pas été payés dans le
+// délai (DELAI_PAIEMENT_MINUTES) — appelée en tâche de fond depuis server.js.
+// Un paiement démarré qui aboutit plus tard réactive le dossier (voir
+// traiterValidation) : la reconciliation continue de le vérifier.
+export async function annulerInscriptionsNonPayees() {
+  const ids = await listerNonPayeesExpirees();
+  let annulees = 0;
+  for (const id of ids) {
+    if (await annulerSiNonPayee(id)) {
+      annulees += 1;
+      await journaliser({
+        entite: 'inscription', idEntite: id, ancienStatut: 'attente_paiement', nouveauStatut: 'annulee',
+        commentaire: "Frais d'inscription non payés dans le délai", idAuteur: null,
+      });
+    }
+  }
+  return { annulees };
 }

@@ -6,14 +6,19 @@ import {
   listerParParent,
   trouverAvecProprietaire,
   listerTout,
+  annulerSiNonPayee,
+  STATUTS_NON_PAYES,
+  DELAI_PAIEMENT_MINUTES,
 } from '../models/inscription.model.js';
-import { genererCodeAcces } from '../models/eleve.model.js';
+import * as paiementModel from '../models/paiement.model.js';
+import { tarifCourant } from '../models/tarif.model.js';
+import { plopplopConfigure } from '../config/plopplop.js';
 import {
   creerDocument,
   listerParInscription,
   trouverAvecProprietaire as trouverDocument,
 } from '../models/document.model.js';
-import { listerPourEntite } from '../models/historique.model.js';
+import { listerPourEntite, journaliser } from '../models/historique.model.js';
 import { changerStatut } from '../services/inscription.service.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
@@ -87,25 +92,33 @@ export async function creer(req, res, next) {
       return res.status(400).json({ erreur: "Le nom de l'élève est requis." });
     }
 
+    // Les frais d'inscription se paient en ligne dès la soumission : sans
+    // tarif en HTG ou sans paiement en ligne configuré, le dossier ne
+    // pourrait jamais être payé — on refuse avant de créer quoi que ce soit.
+    const tarif = await tarifCourant('inscription');
+    if (!tarif || tarif.devise !== 'HTG' || !plopplopConfigure()) {
+      return res.status(503).json({
+        erreur: "Les inscriptions en ligne sont momentanément indisponibles (paiement des frais non configuré). Contactez l'école.",
+      });
+    }
+
     const { idInscription, idEleve } = await creerInscription({
       idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
       nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
     });
-
-    // Code d'accès élève généré automatiquement dès l'inscription (3 lettres du nom + chiffres)
-    let codeAcces = null;
-    try {
-      codeAcces = await genererCodeAcces(idEleve);
-    } catch (err) {
-      console.error('Génération du code élève échouée :', err.message);
-    }
+    // Le code d'accès élève est généré au paiement des frais (voir
+    // traiterValidation), pas ici : un dossier impayé ne donne accès à rien.
+    const idPaiement = await paiementModel.creer({
+      typeFrais: 'inscription', idReference: idInscription, montant: tarif.montant, devise: tarif.devise,
+    });
 
     return res.status(201).json({
-      message: 'Inscription créée.',
+      message: 'Inscription créée — en attente du paiement des frais.',
       inscription: {
-        id: idInscription, idEleve, statut: 'en_attente', eleveNom, anneeScolaire, niveau,
-        ...(codeAcces ? { codeAcces } : {}),
+        id: idInscription, idEleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau,
       },
+      paiement: { id: idPaiement, montant: tarif.montant, devise: tarif.devise },
+      delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
     });
   } catch (err) {
     next(err);
@@ -135,6 +148,11 @@ async function chargerAutorisee(req, res) {
     res.status(403).json({ erreur: 'Accès refusé.' });
     return null;
   }
+  // Un dossier impayé n'existe pas encore pour l'école
+  if (inscription.id_utilisateur !== req.session.userId && STATUTS_NON_PAYES.includes(inscription.statut)) {
+    res.status(404).json({ erreur: 'Inscription introuvable.' });
+    return null;
+  }
   return inscription;
 }
 
@@ -145,7 +163,15 @@ export async function detail(req, res, next) {
     if (!inscription) return;
     const documents = await listerParInscription(inscription.id);
     const historique = await listerPourEntite('inscription', inscription.id);
-    return res.json({ inscription, documents, historique });
+    // Côté parent : paiement des frais (pour « Payer maintenant ») et échéance
+    let paiement = null;
+    let echeancePaiement = null;
+    if (inscription.statut === 'attente_paiement') {
+      const p = await paiementModel.trouverPourInscription(inscription.id);
+      if (p) paiement = { id: p.id, montant: p.montant, devise: p.devise, statut: p.statut };
+      echeancePaiement = new Date(new Date(inscription.date_soumission).getTime() + DELAI_PAIEMENT_MINUTES * 60_000);
+    }
+    return res.json({ inscription, documents, historique, paiement, echeancePaiement });
   } catch (err) {
     next(err);
   }
@@ -196,6 +222,9 @@ export async function servirFichier(req, res, next) {
     if (!estAdmin(req) && doc.id_utilisateur !== req.session.userId) {
       return res.status(403).json({ erreur: 'Accès refusé.' });
     }
+    if (doc.id_utilisateur !== req.session.userId && STATUTS_NON_PAYES.includes(doc.inscription_statut)) {
+      return res.status(404).json({ erreur: 'Document introuvable.' });
+    }
     // Défense en profondeur : le chemin résolu doit rester dans UPLOAD_ROOT
     const chemin = path.resolve(UPLOAD_ROOT, doc.url_fichier);
     if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
@@ -228,7 +257,10 @@ export async function messageParentIA(req, res, next) {
     const precision = (req.body.precision || '').trim().slice(0, 500);
 
     const inscription = await trouverAvecProprietaire(Number(req.params.id));
-    if (!inscription) return res.status(404).json({ erreur: 'Inscription introuvable.' });
+    if (!inscription || STATUTS_NON_PAYES.includes(inscription.statut)) {
+      return res.status(404).json({ erreur: 'Inscription introuvable.' });
+    }
+    const fraisPayes = (await paiementModel.trouverPourInscription(inscription.id))?.statut === 'valide';
 
     // Contexte : documents déjà soumis → repérer les manquants pour un complément
     const documents = await listerParInscription(inscription.id);
@@ -259,7 +291,10 @@ export async function messageParentIA(req, res, next) {
         {
           role: 'user',
           content: `Rédige un message pour ${DECISIONS_IA[decision]}.\n\nContexte :\n${contexte}\n\n`
-            + (decision === 'accepte' ? "Annonce l'acceptation et invite le parent à finaliser l'inscription (paiement)."
+            + (decision === 'accepte'
+              ? (fraisPayes
+                ? "Annonce l'acceptation : les frais d'inscription sont déjà payés, l'inscription est donc confirmée. Ne demande aucun paiement."
+                : "Annonce l'acceptation et invite le parent à finaliser l'inscription (paiement).")
               : decision === 'complement_demande' ? 'Demande poliment de fournir les documents ou informations manquants.'
               : 'Annonce le refus avec tact et respect, en restant bref.'),
         },
@@ -273,6 +308,27 @@ export async function messageParentIA(req, res, next) {
     if (err && (err.status === 401 || err.status === 403)) {
       return res.status(503).json({ erreur: 'Clé Groq invalide ou sans accès. Vérifiez GROQ_API_KEY.' });
     }
+    next(err);
+  }
+}
+
+// POST /api/inscriptions/:id/annuler (parent propriétaire — dossier impayé seulement)
+export async function annuler(req, res, next) {
+  try {
+    const inscription = await trouverAvecProprietaire(Number(req.params.id));
+    if (!inscription) return res.status(404).json({ erreur: 'Inscription introuvable.' });
+    if (inscription.id_utilisateur !== req.session.userId) {
+      return res.status(403).json({ erreur: 'Accès refusé.' });
+    }
+    if (!(await annulerSiNonPayee(inscription.id))) {
+      return res.status(409).json({ erreur: 'Seul un dossier en attente de paiement peut être annulé.' });
+    }
+    await journaliser({
+      entite: 'inscription', idEntite: inscription.id, ancienStatut: 'attente_paiement',
+      nouveauStatut: 'annulee', commentaire: 'Annulé par le parent', idAuteur: req.session.userId,
+    });
+    return res.json({ message: 'Dossier annulé.', statut: 'annulee' });
+  } catch (err) {
     next(err);
   }
 }

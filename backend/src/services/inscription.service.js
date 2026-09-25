@@ -1,5 +1,6 @@
 // Service Inscription — logique métier des changements de statut + notification courriel
-import { trouverAvecProprietaire, mettreAJourStatut } from '../models/inscription.model.js';
+import { trouverAvecProprietaire, mettreAJourStatut, STATUTS_NON_PAYES } from '../models/inscription.model.js';
+import { trouverPourInscription } from '../models/paiement.model.js';
 import { journaliser } from '../models/historique.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
@@ -19,7 +20,9 @@ const LIBELLES = {
 // Résultat : { ok: true, previewUrl } | { ok: false, code, erreur }
 export async function changerStatut({ idInscription, nouveauStatut, commentaire, idAuteur }) {
   const inscription = await trouverAvecProprietaire(idInscription);
-  if (!inscription) return { ok: false, code: 404, erreur: 'Inscription introuvable.' };
+  if (!inscription || STATUTS_NON_PAYES.includes(inscription.statut)) {
+    return { ok: false, code: 404, erreur: 'Inscription introuvable.' };
+  }
 
   // Règle : « confirmee » est réservé au module Paiement
   if (nouveauStatut === 'confirmee') {
@@ -31,6 +34,14 @@ export async function changerStatut({ idInscription, nouveauStatut, commentaire,
   }
   if (!STATUTS_ADMIN.includes(nouveauStatut)) {
     return { ok: false, code: 400, erreur: 'Statut invalide.' };
+  }
+
+  // Frais déjà payés à la soumission du dossier : l'accepter le confirme
+  // directement (l'ancien parcours « accepté puis payé » reste valable pour
+  // les dossiers antérieurs, encore impayés).
+  if (nouveauStatut === 'accepte') {
+    const paiement = await trouverPourInscription(idInscription);
+    if (paiement?.statut === 'valide') nouveauStatut = 'confirmee';
   }
 
   const ancienStatut = inscription.statut;

@@ -90,6 +90,9 @@ export default function DetailPaiement() {
   if (!paiement) return <Chargement />;
 
   const enAttente = paiement.statut === 'en_attente';
+  // Frais d'un dossier d'inscription pas encore transmis : en ligne uniquement
+  const fraisDossier = ['attente_paiement', 'annulee'].includes(paiement.inscription_statut);
+  const dossierAnnule = paiement.inscription_statut === 'annulee';
 
   return (
     <div style={{ maxWidth: 640 }}>
@@ -115,7 +118,15 @@ export default function DetailPaiement() {
           </ul>
         </Carte>
 
-        {enAttente && coord && (
+        {enAttente && dossierAnnule && (
+          <Alerte type="erreur">
+            Le dossier d'inscription a été annulé : les frais n'ont pas été payés à temps.
+            Si vous avez déjà payé, vérifiez le paiement ci-dessous — le dossier sera réactivé.
+            Sinon, <Link to="/inscriptions/nouvelle">soumettez un nouveau dossier</Link>.
+          </Alerte>
+        )}
+
+        {enAttente && coord && !fraisDossier && (
           <Carte titre="Coordonnées de paiement">
             <p className="texte-gris" style={{ marginBottom: '.5rem' }}>
               Effectuez le dépôt puis téléversez la preuve ci-dessous.
@@ -128,11 +139,12 @@ export default function DetailPaiement() {
           </Carte>
         )}
 
-        {enAttente && paiement.devise === 'HTG' && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
+        {enAttente && !dossierAnnule && paiement.devise === 'HTG' && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
           <Carte titre="Payer en ligne">
             <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
-              Payez directement par mobile ou par carte Visa/Mastercard — le paiement est confirmé automatiquement,
-              sans preuve à téléverser.
+              {fraisDossier
+                ? "Payez les frais d'inscription pour transmettre votre dossier au secrétariat. Sans paiement dans les 2 minutes, le dossier est annulé."
+                : 'Payez directement par mobile ou par carte Visa/Mastercard — le paiement est confirmé automatiquement, sans preuve à téléverser.'}
             </p>
             <div className="rangee" style={{ flexWrap: 'wrap' }}>
               {Object.entries(LIBELLE_METHODE).map(([m, libelle]) => (
@@ -156,14 +168,16 @@ export default function DetailPaiement() {
               <Bouton type="button" variante="secondaire" onClick={verifierMobile} enCours={verifEnCours}>
                 Vérifier le paiement
               </Bouton>
-              <Bouton type="button" variante="fantome" onClick={() => payerMobile(paiement.methode_paiement)} enCours={methodeEnCours === paiement.methode_paiement}>
-                Réessayer avec {LIBELLE_METHODE[paiement.methode_paiement] || paiement.methode_paiement}
-              </Bouton>
+              {!dossierAnnule && (
+                <Bouton type="button" variante="fantome" onClick={() => payerMobile(paiement.methode_paiement)} enCours={methodeEnCours === paiement.methode_paiement}>
+                  Réessayer avec {LIBELLE_METHODE[paiement.methode_paiement] || paiement.methode_paiement}
+                </Bouton>
+              )}
             </div>
           </Carte>
         )}
 
-        {enAttente && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && (
+        {enAttente && paiement.methode_paiement === 'manuel' && !paiement.preuve_url && !fraisDossier && (
           <Carte titre="Téléverser la preuve de paiement">
             <form onSubmit={televerser}>
               <Champ label="Fichier (PDF, JPG, PNG — 5 Mo)" type="file"
@@ -179,7 +193,11 @@ export default function DetailPaiement() {
         )}
 
         {paiement.statut === 'valide' && paiement.type_frais === 'inscription' && (
-          <Alerte type="info">Paiement validé — l'inscription est confirmée.</Alerte>
+          <Alerte type="info">
+            {paiement.inscription_statut === 'confirmee'
+              ? "Paiement validé — l'inscription est confirmée."
+              : 'Paiement validé — votre dossier est transmis au secrétariat, qui vous informera de sa décision.'}
+          </Alerte>
         )}
 
         {paiement.statut === 'valide' && paiement.type_frais !== 'inscription' && (

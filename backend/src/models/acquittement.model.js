@@ -1,6 +1,7 @@
 // Modèle Acquittement scolarité — un élève « à jour » (économat) pour un trimestre.
 // Présence d'une ligne = à jour ; absence = non payé.
 import { pool } from '../config/db.js';
+import { eleveVisible } from './eleve.model.js';
 
 // acquittePar : id utilisateurs (compte école) — jamais un id economat_admins
 // (clé étrangère incompatible, voir migration 031). acquitteParNote : identité
@@ -56,7 +57,7 @@ export async function listerParNiveau({ niveau, anneeScolaire, trimestre }) {
                WHERE a.id_eleve = e.id AND a.annee_scolaire = ? AND a.trimestre = ?
             ) AS acquitte
        FROM eleves e
-      WHERE e.niveau = ?
+      WHERE e.niveau = ? AND ${eleveVisible('e')}
       ORDER BY e.nom, e.prenom`,
     [anneeScolaire, trimestre, niveau]
   );

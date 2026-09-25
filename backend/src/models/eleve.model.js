@@ -2,6 +2,15 @@
 import crypto from 'crypto';
 import { pool } from '../config/db.js';
 
+// Condition SQL : l'élève n'a pas de dossier d'inscription impayé/annulé.
+// Un élève est créé à la soumission du dossier, avant le paiement des frais :
+// tant qu'il n'est pas payé, il ne doit apparaître dans aucune liste de
+// l'école (codes, badges, notes, bulletins…). alias = alias SQL de « eleves ».
+export function eleveVisible(alias = 'eleves') {
+  return `NOT EXISTS (SELECT 1 FROM inscriptions ix WHERE ix.id_eleve = ${alias}.id
+                        AND ix.statut IN ('attente_paiement','annulee'))`;
+}
+
 // Génère un code d'accès et l'enregistre : 3 lettres consécutives issues du nom
 // de l'élève (majuscules, sans accents) suivies de 5 chiffres. Ex. « JEA48213 ».
 export async function genererCodeAcces(idEleve) {
@@ -137,24 +146,26 @@ export async function listerTous({ niveau } = {}) {
   const nomComplet = "TRIM(CONCAT(COALESCE(prenom,''),' ',nom)) AS nom";
   if (niveau) {
     const [rows] = await pool.query(
-      `SELECT id, ${nomComplet}, niveau FROM eleves WHERE niveau = ? ORDER BY nom`, [niveau]
+      `SELECT id, ${nomComplet}, niveau FROM eleves WHERE niveau = ? AND ${eleveVisible()} ORDER BY nom`, [niveau]
     );
     return rows;
   }
-  const [rows] = await pool.query(`SELECT id, ${nomComplet}, niveau FROM eleves ORDER BY niveau, nom`);
+  const [rows] = await pool.query(
+    `SELECT id, ${nomComplet}, niveau FROM eleves WHERE ${eleveVisible()} ORDER BY niveau, nom`
+  );
   return rows;
 }
 
 // Tous les élèves avec leur code d'accès + parent (vue secrétariat, filtrable)
 export async function listerAvecCode({ recherche } = {}) {
-  const conditions = [];
+  const conditions = [eleveVisible('e')];
   const params = [];
   if (recherche) {
     conditions.push('(e.nom LIKE ? OR e.niveau LIKE ? OR u.nom LIKE ? OR e.code_acces LIKE ?)');
     const motif = `%${recherche}%`;
     params.push(motif, motif, motif, motif);
   }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = `WHERE ${conditions.join(' AND ')}`;
   const [rows] = await pool.query(
     `SELECT e.id, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS nom, e.niveau, e.code_acces,
             (e.photo_url IS NOT NULL) AS a_photo,
@@ -218,7 +229,7 @@ export async function listerAnciens({ recherche } = {}) {
 export async function listerNiveauxConnus() {
   const [rows] = await pool.query(
     `SELECT niveau FROM matieres WHERE niveau IS NOT NULL
-     UNION SELECT niveau FROM eleves WHERE niveau IS NOT NULL
+     UNION SELECT niveau FROM eleves WHERE niveau IS NOT NULL AND ${eleveVisible()}
      ORDER BY niveau`
   );
   return rows.map((r) => r.niveau);
@@ -240,7 +251,7 @@ export async function listerParNiveau(niveau) {
        LEFT JOIN inscriptions insc ON insc.id = (
          SELECT id FROM inscriptions WHERE id_eleve = e.id ORDER BY id DESC LIMIT 1
        )
-      WHERE e.niveau = ?
+      WHERE e.niveau = ? AND ${eleveVisible('e')}
       ORDER BY e.nom`,
     [niveau]
   );

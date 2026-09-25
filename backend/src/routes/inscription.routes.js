@@ -11,6 +11,7 @@ import {
   listerAdmin,
   changerStatutCtrl,
   messageParentIA,
+  annuler,
 } from '../controllers/inscription.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { uploadDocument, verifierContenuDocument } from '../config/upload.js';
@@ -38,6 +39,7 @@ function televerserFichier(req, res, next) {
 router.post('/inscriptions', requireRole('parent'), creer);
 router.get('/inscriptions', requireRole('parent'), listerMiennes);
 router.post('/inscriptions/:id/documents', requireRole('parent'), uploadLimiter, televerserFichier, televerserDocument);
+router.post('/inscriptions/:id/annuler', requireRole('parent'), annuler);
 
 // Propriétaire ou admin/direction
 router.get('/inscriptions/:id', requireAuth, detail);

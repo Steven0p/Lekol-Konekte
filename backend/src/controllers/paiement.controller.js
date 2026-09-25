@@ -8,6 +8,14 @@ import {
 import { tarifCourant } from '../models/tarif.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { trouverParId as trouverEconomatAdminParId } from '../models/economatAdmin.model.js';
+import { trouverAvecProprietaire as trouverInscription, STATUTS_NON_PAYES }
+  from '../models/inscription.model.js';
+
+// Statut du dossier d'inscription lié à des frais d'inscription (sinon null)
+async function statutInscriptionDe(paiement) {
+  if (paiement.type_frais !== 'inscription') return null;
+  return (await trouverInscription(paiement.id_reference))?.statut || null;
+}
 
 // Types de frais à tarif fixe (voir services/paiement.service.js) — le montant
 // saisi par le parent est le montant réellement déposé (peut différer du tarif
@@ -45,6 +53,10 @@ export async function televerserPreuve(req, res, next) {
     if (idProprietaire !== req.session.userId) return res.status(403).json({ erreur: 'Accès refusé.' });
 
     if (!req.file) return res.status(400).json({ erreur: 'Preuve requise (PDF/JPG/PNG, max 5 Mo).' });
+    // Frais payés à la soumission du dossier : en ligne uniquement
+    if (STATUTS_NON_PAYES.includes(await statutInscriptionDe(paiement))) {
+      return res.status(409).json({ erreur: "Les frais d'inscription se paient en ligne uniquement." });
+    }
 
     await paiementModel.definirPreuve(paiement.id, `preuves/${req.file.filename}`);
     return res.status(201).json({ message: 'Preuve téléversée.' });
@@ -165,7 +177,7 @@ export async function detail(req, res, next) {
   try {
     const paiement = await chargerAutorise(req, res);
     if (!paiement) return;
-    return res.json({ paiement });
+    return res.json({ paiement: { ...paiement, inscription_statut: await statutInscriptionDe(paiement) } });
   } catch (err) {
     next(err);
   }

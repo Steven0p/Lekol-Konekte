@@ -54,6 +54,7 @@ export const inscriptionsApi = {
     fd.append('fichier', fichier);
     return request(`/inscriptions/${id}/documents`, { method: 'POST', body: fd });
   },
+  annuler: (id) => request(`/inscriptions/${id}/annuler`, { method: 'POST' }),
 };
 
 export const notesApi = {

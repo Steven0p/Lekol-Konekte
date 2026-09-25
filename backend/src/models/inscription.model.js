@@ -1,7 +1,15 @@
 // Modèle Inscription — dossiers scolaires
 import { pool } from '../config/db.js';
 
-// Crée l'élève (rattaché au parent) + l'inscription (en_attente), en transaction.
+// Dossiers dont les frais d'inscription ne sont pas encore payés (ou annulés
+// faute de paiement à temps) : ils n'existent que côté parent, jamais pour le
+// secrétariat ni pour les listes d'élèves.
+export const STATUTS_NON_PAYES = ['attente_paiement', 'annulee'];
+
+// Délai laissé au parent pour payer après la soumission du dossier.
+export const DELAI_PAIEMENT_MINUTES = 2;
+
+// Crée l'élève (rattaché au parent) + l'inscription (attente_paiement), en transaction.
 export async function creerInscription({
   idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
   nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
@@ -20,7 +28,7 @@ export async function creerInscription({
       `INSERT INTO inscriptions
         (id_eleve, annee_scolaire, nom_parent, profession_parent, telephone_parent, courriel_parent,
          ancienne_ecole, ancienne_classe, raison_choix, statut)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'en_attente')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'attente_paiement')`,
       [idEleve, anneeScolaire, nomParent || null, professionParent || null, telephoneParent || null,
         courrielParent || null, ancienneEcole || null, ancienneClasse || null, raisonChoix || null]
     );
@@ -69,13 +77,13 @@ export async function trouverAvecProprietaire(idInscription) {
   return rows[0] || null;
 }
 
-// Liste admin, filtrable par statut / niveau
+// Liste admin, filtrable par statut / niveau (dossiers non payés exclus)
 export async function listerTout({ statut, niveau }) {
-  const conditions = [];
-  const params = [];
+  const conditions = ['i.statut NOT IN (?)'];
+  const params = [STATUTS_NON_PAYES];
   if (statut) { conditions.push('i.statut = ?'); params.push(statut); }
   if (niveau) { conditions.push('e.niveau = ?'); params.push(niveau); }
-  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const where = `WHERE ${conditions.join(' AND ')}`;
   const [rows] = await pool.query(
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
             TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, u.courriel AS parent_courriel
@@ -92,4 +100,35 @@ export async function listerTout({ statut, niveau }) {
 
 export async function mettreAJourStatut(idInscription, statut) {
   await pool.query('UPDATE inscriptions SET statut = ? WHERE id = ?', [statut, idInscription]);
+}
+
+// Paiement des frais confirmé : le dossier non payé (ou annulé entre-temps —
+// un paiement MonCash peut aboutir après le délai) passe au secrétariat.
+// Retourne true si CET appel a fait la transition.
+export async function transmettreApresPaiement(idInscription) {
+  const [res] = await pool.query(
+    "UPDATE inscriptions SET statut = 'en_attente' WHERE id = ? AND statut IN (?)",
+    [idInscription, STATUTS_NON_PAYES]
+  );
+  return res.affectedRows > 0;
+}
+
+// Annule un dossier resté impayé. Retourne true si CET appel l'a annulé.
+export async function annulerSiNonPayee(idInscription) {
+  const [res] = await pool.query(
+    "UPDATE inscriptions SET statut = 'annulee' WHERE id = ? AND statut = 'attente_paiement'",
+    [idInscription]
+  );
+  return res.affectedRows > 0;
+}
+
+// Dossiers impayés dont le délai de paiement est dépassé
+export async function listerNonPayeesExpirees() {
+  const [rows] = await pool.query(
+    `SELECT id FROM inscriptions
+      WHERE statut = 'attente_paiement'
+        AND date_soumission < (NOW() - INTERVAL ? MINUTE)`,
+    [DELAI_PAIEMENT_MINUTES]
+  );
+  return rows.map((r) => r.id);
 }

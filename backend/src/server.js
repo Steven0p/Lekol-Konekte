@@ -6,7 +6,7 @@ import { verifierSms } from './config/sms.js';
 import { verifierPlopplop, plopplopConfigure } from './config/plopplop.js';
 import { verifierGoogleConfigure } from './config/googleAuth.js';
 import { purgerAnciennesPresences } from './services/presence.service.js';
-import { reconcilierPaiementsMobilesEnAttente } from './services/paiement.service.js';
+import { reconcilierPaiementsMobilesEnAttente, annulerInscriptionsNonPayees } from './services/paiement.service.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -14,6 +14,7 @@ dotenv.config();
 const PORT = process.env.PORT || 4000;
 const UN_JOUR_MS = 24 * 60 * 60 * 1000;
 const DEUX_MIN_MS = 2 * 60 * 1000;
+const TRENTE_S_MS = 30 * 1000;
 
 async function demarrer() {
   try {
@@ -38,6 +39,12 @@ async function demarrer() {
     // détecte un paiement resté « en_attente » alors qu'il a fini par
     // aboutir côté MonCash/NatCash/KashPay sans que le parent ne revienne
     // sur le site. Toutes les ~2 minutes, comme recommandé pour ce fournisseur.
+    // Dossiers d'inscription dont les frais n'ont pas été payés dans le délai
+    // (DELAI_PAIEMENT_MINUTES) : annulés, ils n'atteignent jamais le secrétariat.
+    setInterval(() => {
+      annulerInscriptionsNonPayees().catch((err) => console.error('Annulation inscriptions impayées échouée :', err.message));
+    }, TRENTE_S_MS);
+
     if (plopplopConfigure()) {
       setInterval(() => {
         reconcilierPaiementsMobilesEnAttente().catch((err) => console.error('Reconciliation paiements mobiles échouée :', err.message));

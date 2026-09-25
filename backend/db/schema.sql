@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS inscriptions (
   ancienne_ecole    VARCHAR(160),
   ancienne_classe   VARCHAR(60),
   raison_choix      VARCHAR(500),
-  statut            ENUM('en_attente','complement_demande','accepte','refuse','confirmee')
+  statut            ENUM('attente_paiement','annulee','en_attente','complement_demande','accepte','refuse','confirmee')
                     NOT NULL DEFAULT 'en_attente',
   date_soumission   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE

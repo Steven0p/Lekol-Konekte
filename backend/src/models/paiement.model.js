@@ -82,16 +82,31 @@ export async function listerParParent(idParent) {
   return rows;
 }
 
-// File de validation (admin), filtrable par statut
+// File de validation (admin), filtrable par statut. Les frais d'un dossier
+// d'inscription encore impayé (ou annulé faute de paiement) n'y figurent pas :
+// il n'y a rien à vérifier tant qu'aucune transaction n'a abouti.
+const HORS_DOSSIERS_NON_PAYES = `NOT (type_frais = 'inscription' AND transaction_externe_id IS NULL
+  AND id_reference IN (SELECT id FROM inscriptions WHERE statut IN ('attente_paiement','annulee')))`;
+
 export async function listerAdmin(statut) {
   if (statut) {
     const [rows] = await pool.query(
-      'SELECT * FROM paiements WHERE statut = ? ORDER BY id DESC', [statut]
+      `SELECT * FROM paiements WHERE statut = ? AND ${HORS_DOSSIERS_NON_PAYES} ORDER BY id DESC`, [statut]
     );
     return rows;
   }
-  const [rows] = await pool.query('SELECT * FROM paiements ORDER BY id DESC');
+  const [rows] = await pool.query(`SELECT * FROM paiements WHERE ${HORS_DOSSIERS_NON_PAYES} ORDER BY id DESC`);
   return rows;
+}
+
+// Frais d'une inscription : le paiement validé s'il existe, sinon le plus récent.
+export async function trouverPourInscription(idInscription) {
+  const [rows] = await pool.query(
+    `SELECT * FROM paiements WHERE type_frais = 'inscription' AND id_reference = ?
+      ORDER BY (statut = 'valide') DESC, id DESC LIMIT 1`,
+    [idInscription]
+  );
+  return rows[0] || null;
 }
 
 // Paiements mobiles (moncash/natcash/kashpaw) encore en attente, démarrés

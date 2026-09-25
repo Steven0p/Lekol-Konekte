@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { inscriptionsApi, urlDocumentSoumis } from '../../services/api.js';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -18,13 +18,29 @@ const libelleType = (t) => TYPES_DOC.find((x) => x.valeur === t)?.libelle || t;
 const libelleStatutHist = (s) => ({
   en_attente: 'En attente', accepte: 'Accepté', refuse: 'Refusé',
   complement_demande: 'Complément demandé', confirmee: 'Confirmée',
+  attente_paiement: 'En attente de paiement', annulee: 'Annulée',
 }[s] || s);
+
+// Temps restant avant l'annulation automatique d'un dossier impayé
+function useSecondesRestantes(echeance) {
+  const [maintenant, setMaintenant] = useState(Date.now());
+  useEffect(() => {
+    if (!echeance) return undefined;
+    const t = setInterval(() => setMaintenant(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, [echeance]);
+  if (!echeance) return null;
+  return Math.max(0, Math.round((new Date(echeance).getTime() - maintenant) / 1000));
+}
 const dateFr = (s) => (s ? new Date(s).toLocaleString('fr-FR') : '');
 
 export default function DetailInscription() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState('');
+  const [annulation, setAnnulation] = useState(false);
+  const secondesRestantes = useSecondesRestantes(data?.echeancePaiement);
 
   // Formulaire de téléversement
   const [type, setType] = useState('acte_naissance');
@@ -58,10 +74,24 @@ export default function DetailInscription() {
     }
   };
 
+  const annuler = async () => {
+    if (!window.confirm('Annuler ce dossier ? Il ne sera pas transmis au secrétariat.')) return;
+    setAnnulation(true);
+    try {
+      await inscriptionsApi.annuler(id);
+      charger();
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setAnnulation(false);
+    }
+  };
+
   if (erreur) return <Alerte type="erreur">{erreur}</Alerte>;
   if (!data) return <Chargement />;
 
-  const { inscription, documents, historique } = data;
+  const { inscription, documents, historique, paiement } = data;
+  const minSec = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
     <div>
@@ -72,6 +102,34 @@ export default function DetailInscription() {
           <Badge statut={inscription.statut} />
         </div>
       </div>
+
+      {inscription.statut === 'attente_paiement' && (
+        <div style={{ marginBottom: '1rem' }}>
+          <Carte titre="Paiement des frais d'inscription">
+            <p className="texte-gris" style={{ marginBottom: '.75rem' }}>
+              Votre dossier ne sera transmis au secrétariat qu'après le paiement des frais
+              {paiement ? ` (${Number(paiement.montant).toLocaleString('fr-FR')} ${paiement.devise})` : ''}.
+              {secondesRestantes > 0
+                ? ` Temps restant avant l'annulation : ${minSec(secondesRestantes)}.`
+                : ' Le délai est dépassé : le dossier va être annulé.'}
+            </p>
+            <div className="rangee" style={{ flexWrap: 'wrap' }}>
+              {paiement && (
+                <Bouton type="button" onClick={() => navigate(`/paiements/${paiement.id}`)}>Payer maintenant</Bouton>
+              )}
+              <Bouton type="button" variante="fantome" onClick={annuler} enCours={annulation}>Annuler le dossier</Bouton>
+            </div>
+          </Carte>
+        </div>
+      )}
+
+      {inscription.statut === 'annulee' && (
+        <Alerte type="erreur">
+          Ce dossier a été annulé : les frais d'inscription n'ont pas été payés à temps.
+          Si vous avez payé, il sera réactivé automatiquement dès la confirmation du paiement.
+          Sinon, <Link to="/inscriptions/nouvelle">soumettez un nouveau dossier</Link>.
+        </Alerte>
+      )}
 
       <div className="grille grille-2" style={{ alignItems: 'start' }}>
         <Carte titre="Informations">

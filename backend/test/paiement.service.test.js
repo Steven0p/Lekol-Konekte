@@ -18,6 +18,9 @@ function reinitialiser() {
   appels.courriels = [];
   appels.sms = [];
   appels.trouverParId = 0;
+  appels.transmises = [];
+  appels.annulees = [];
+  appels.codesGeneres = [];
 
   faux.inscription = null;      // ligne renvoyée par inscription.trouverAvecProprietaire
   faux.eleve = null;            // ligne renvoyée par eleve.trouverAvecProprietaire
@@ -28,6 +31,9 @@ function reinitialiser() {
   faux.erreurSms = null;        // si défini, envoyerSms lève cette erreur
   faux.priseEnCompte = true;    // mettreAJourValidation : false simule une prise concurrente
   faux.paiementApresConcurrence = null;
+  faux.transmission = true;     // transmettreApresPaiement : false simule une transmission concurrente
+  faux.expirees = [];           // ids renvoyés par listerNonPayeesExpirees
+  faux.annulation = true;       // annulerSiNonPayee : false simule un paiement arrivé entre-temps
 }
 reinitialiser();
 
@@ -57,10 +63,17 @@ mock.module('../src/models/inscription.model.js', {
   exports: {
     trouverAvecProprietaire: async () => faux.inscription,
     mettreAJourStatut: async (id, statut) => { appels.statutInscription.push({ id, statut }); },
+    transmettreApresPaiement: async (id) => { appels.transmises.push(id); return faux.transmission; },
+    annulerSiNonPayee: async (id) => { appels.annulees.push(id); return faux.annulation; },
+    listerNonPayeesExpirees: async () => faux.expirees,
+    STATUTS_NON_PAYES: ['attente_paiement', 'annulee'],
   },
 });
 mock.module('../src/models/eleve.model.js', {
-  exports: { trouverAvecProprietaire: async () => faux.eleve },
+  exports: {
+    trouverAvecProprietaire: async () => faux.eleve,
+    genererCodeAcces: async (id) => { appels.codesGeneres.push(id); return 'JEA12345'; },
+  },
 });
 mock.module('../src/models/note.model.js', {
   exports: { notesValideesToutes: async () => [] },
@@ -109,7 +122,7 @@ mock.module('../src/config/ia.js', {
 });
 
 // Import APRÈS l'enregistrement des doublures
-const { creerDemande, traiterValidation, proprietaireDe } =
+const { creerDemande, traiterValidation, proprietaireDe, annulerInscriptionsNonPayees } =
   await import('../src/services/paiement.service.js');
 
 // ---------- Jeux de données ----------
@@ -318,6 +331,41 @@ describe('traiterValidation', () => {
     assert.equal(journalPaiement.idAuteur, 1);
   });
 
+  test('frais payés à la soumission : le dossier est transmis au secrétariat, pas confirmé', async () => {
+    faux.paiement = { ...paiementEnAttente('inscription'), methode_paiement: 'moncash', preuve_url: null };
+    faux.inscription = inscriptionAcceptee('attente_paiement');
+    const r = await traiterValidation({ idPaiement: 77, statut: 'valide', idAdmin: null });
+
+    assert.equal(r.ok, true);
+    assert.deepEqual(appels.transmises, [9]);
+    assert.deepEqual(appels.statutInscription, [], 'jamais « confirmee » avant la décision du secrétariat');
+    assert.deepEqual(appels.codesGeneres, [3], 'code élève généré au paiement');
+    const journalInscription = appels.journal.find((j) => j.entite === 'inscription');
+    assert.equal(journalInscription.ancienStatut, 'attente_paiement');
+    assert.equal(journalInscription.nouveauStatut, 'en_attente');
+    assert.match(appels.courriels[0].text, /transmis au secrétariat/);
+  });
+
+  test('un paiement arrivé après l’annulation réactive le dossier', async () => {
+    faux.paiement = { ...paiementEnAttente('inscription'), methode_paiement: 'natcash', preuve_url: null };
+    faux.inscription = inscriptionAcceptee('annulee');
+    const r = await traiterValidation({ idPaiement: 77, statut: 'valide', idAdmin: null });
+
+    assert.equal(r.ok, true);
+    assert.deepEqual(appels.transmises, [9]);
+    assert.equal(appels.journal.find((j) => j.entite === 'inscription').ancienStatut, 'annulee');
+  });
+
+  test('transmission concurrente : pas de double journal ni de second code', async () => {
+    faux.paiement = { ...paiementEnAttente('inscription'), methode_paiement: 'moncash', preuve_url: null };
+    faux.inscription = inscriptionAcceptee('attente_paiement');
+    faux.transmission = false;
+    await traiterValidation({ idPaiement: 77, statut: 'valide', idAdmin: null });
+
+    assert.equal(appels.journal.filter((j) => j.entite === 'inscription').length, 0);
+    assert.deepEqual(appels.codesGeneres, []);
+  });
+
   test('valider un relevé génère et archive le document', async () => {
     faux.paiement = paiementEnAttente('releve');
     faux.eleve = eleveDe();
@@ -386,5 +434,26 @@ describe('proprietaireDe', () => {
   test('renvoie null si la référence n’existe plus', async () => {
     faux.eleve = null;
     assert.equal(await proprietaireDe({ type_frais: 'releve', id_reference: 3 }), null);
+  });
+});
+
+// ============================================================
+describe('annulerInscriptionsNonPayees', () => {
+  test('annule et journalise les dossiers impayés expirés', async () => {
+    faux.expirees = [5, 6];
+    const r = await annulerInscriptionsNonPayees();
+
+    assert.equal(r.annulees, 2);
+    assert.deepEqual(appels.annulees, [5, 6]);
+    assert.deepEqual(appels.journal.map((j) => [j.idEntite, j.nouveauStatut]), [[5, 'annulee'], [6, 'annulee']]);
+  });
+
+  test('ne journalise pas un dossier payé entre-temps', async () => {
+    faux.expirees = [5];
+    faux.annulation = false;
+    const r = await annulerInscriptionsNonPayees();
+
+    assert.equal(r.annulees, 0);
+    assert.equal(appels.journal.length, 0);
   });
 });

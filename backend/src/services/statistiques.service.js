@@ -1,12 +1,16 @@
 // Statistiques d'évolution du site — pour le tableau de bord direction.
 import { pool } from '../config/db.js';
+import { eleveVisible } from '../models/eleve.model.js';
 
 export async function compteurs() {
   const [[{ n: totalUtilisateurs }]] = await pool.query('SELECT COUNT(*) n FROM utilisateurs');
   const [parRole] = await pool.query('SELECT role, COUNT(*) n FROM utilisateurs GROUP BY role');
-  const [parInscriptionStatut] = await pool.query('SELECT statut, COUNT(*) n FROM inscriptions GROUP BY statut');
+  // Dossiers impayés/annulés exclus : ils n'ont jamais atteint l'école.
+  const [parInscriptionStatut] = await pool.query(
+    "SELECT statut, COUNT(*) n FROM inscriptions WHERE statut NOT IN ('attente_paiement','annulee') GROUP BY statut"
+  );
   const [parPaiementStatut] = await pool.query('SELECT statut, COUNT(*) n FROM paiements GROUP BY statut');
-  const [[{ n: totalEleves }]] = await pool.query('SELECT COUNT(*) n FROM eleves');
+  const [[{ n: totalEleves }]] = await pool.query(`SELECT COUNT(*) n FROM eleves WHERE ${eleveVisible()}`);
 
   return { totalUtilisateurs, totalEleves, parRole, parInscriptionStatut, parPaiementStatut };
 }
@@ -32,7 +36,9 @@ export async function croissanceHebdo(semaines = 8) {
     [semaines]
   );
   const [lignesInscriptions] = await pool.query(
-    'SELECT date_soumission AS date_ligne FROM inscriptions WHERE date_soumission >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)',
+    `SELECT date_soumission AS date_ligne FROM inscriptions
+      WHERE date_soumission >= DATE_SUB(CURDATE(), INTERVAL ? WEEK)
+        AND statut NOT IN ('attente_paiement','annulee')`,
     [semaines]
   );
 

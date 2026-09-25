@@ -22,7 +22,7 @@ export async function listerParInscription(idInscription) {
 export async function trouverAvecProprietaire(idDocument) {
   const [rows] = await pool.query(
     `SELECT d.id, d.type, d.url_fichier, d.id_inscription,
-            u.id AS id_utilisateur
+            i.statut AS inscription_statut, u.id AS id_utilisateur
        FROM documents_soumis d
        JOIN inscriptions i ON i.id = d.id_inscription
        JOIN eleves e ON e.id = i.id_eleve

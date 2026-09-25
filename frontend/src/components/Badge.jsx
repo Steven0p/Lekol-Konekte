@@ -4,6 +4,7 @@ const STATUTS = {
   en_attente: { texte: 'En attente', classe: 'badge-neutre' },
   saisie: { texte: 'Saisie', classe: 'badge-neutre' },
   complement_demande: { texte: 'Complément demandé', classe: 'badge-contour' },
+  attente_paiement: { texte: 'En attente de paiement', classe: 'badge-contour' },
   // positifs (bleu)
   accepte: { texte: 'Accepté', classe: 'badge-bleu' },
   valide: { texte: 'Validé', classe: 'badge-bleu' },
@@ -13,6 +14,7 @@ const STATUTS = {
   // négatifs (contour gris — pas de rouge décoratif)
   refuse: { texte: 'Refusé', classe: 'badge-contour' },
   rejete: { texte: 'Rejeté', classe: 'badge-contour' },
+  annulee: { texte: 'Annulée', classe: 'badge-contour' },
 };
 
 export default function Badge({ statut, children }) {
