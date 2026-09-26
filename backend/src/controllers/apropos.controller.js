@@ -1,5 +1,6 @@
 // Contrôleur « À propos » — sections publiques + gestion par l'admin dédié (système indépendant)
 import bcrypt from 'bcrypt';
+import { comparerMotDePasse } from '../utils/motDePasse.js';
 import * as sectionModel from '../models/apropos.model.js';
 import * as adminModel from '../models/aproposAdmin.model.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
@@ -17,10 +18,9 @@ export async function adminLogin(req, res, next) {
     }
 
     const admin = await adminModel.trouverParIdentifiant(identifiant);
-    if (!admin) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
-    const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
-    if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    const ok = await comparerMotDePasse(motDePasse, admin?.mot_de_passe_hash);
+    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
     await regenererSession(req);
     req.session.aproposAdminId = admin.id;

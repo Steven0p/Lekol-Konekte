@@ -32,6 +32,12 @@ const protectionCodeEleve = creerProtection({ seuil: 20 });
 // rien à contourner par rotation de proxy.
 const protectionLogin = creerProtection({ seuil: 10 });
 import { regenererSession } from '../middleware/auth.js';
+import { comparerMotDePasse } from '../utils/motDePasse.js';
+
+// Même réponse pour tout échec d'identification (compte inexistant, sans mot
+// de passe, mot de passe faux) : elle ne doit pas révéler qui a un compte.
+const ECHEC_CONNEXION = 'Identifiants invalides. Si vous vous êtes inscrit avec Google, '
+  + 'utilisez « Se connecter avec Google » (ou « Mot de passe oublié » pour créer un mot de passe).';
 
 const TYPE_RESET = 'reinitialisation_mdp';
 const TYPE_2FA = 'connexion_2fa';
@@ -60,7 +66,11 @@ export async function register(req, res, next) {
 
     const existant = await findByCourriel(courriel);
     if (existant) {
-      return res.status(409).json({ erreur: 'Ce courriel est déjà utilisé.' });
+      // Formulation neutre : n'affirme pas qu'un compte existe pour ce courriel.
+      return res.status(409).json({
+        erreur: 'Impossible de créer un compte avec ce courriel. Si vous avez déjà un compte, '
+          + 'connectez-vous ou utilisez « Mot de passe oublié ».',
+      });
     }
 
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
@@ -239,29 +249,20 @@ export async function login(req, res, next) {
     }
 
     const utilisateur = await findByCourriel(courriel);
-    // Message générique pour ne pas révéler si le courriel existe
-    if (!utilisateur) {
+    // Compte inexistant, sans mot de passe (compte Google, ou professeur qui
+    // n'a pas encore créé le sien) ou mot de passe faux : même réponse et même
+    // durée (comparaison bcrypt dans tous les cas) — ne révèle pas qui a un compte.
+    const ok = await comparerMotDePasse(motDePasse, utilisateur?.mot_de_passe_hash);
+    if (!utilisateur || !ok) {
       protectionLogin.enregistrerEchec(courriel);
-      return res.status(401).json({ erreur: 'Identifiants invalides.' });
+      return res.status(401).json({ erreur: ECHEC_CONNEXION });
     }
+    protectionLogin.reinitialiser(courriel);
+    // Statut vérifié seulement APRÈS le mot de passe : un inconnu ne peut pas
+    // apprendre qu'un compte existe (même désactivé).
     if (utilisateur.statut !== 'actif') {
       return res.status(403).json({ erreur: 'Compte inactif.' });
     }
-    // Pas de mot de passe : compte Google, ou compte professeur créé par la
-    // direction qui n'a pas encore suivi le lien de création reçu par courriel.
-    if (!utilisateur.mot_de_passe_hash) {
-      return res.status(400).json({
-        erreur: 'Aucun mot de passe défini pour ce compte. Utilisez « Se connecter avec Google » '
-          + 'ou « Mot de passe oublié » pour en créer un.',
-      });
-    }
-
-    const ok = await bcrypt.compare(motDePasse, utilisateur.mot_de_passe_hash);
-    if (!ok) {
-      protectionLogin.enregistrerEchec(courriel);
-      return res.status(401).json({ erreur: 'Identifiants invalides.' });
-    }
-    protectionLogin.reinitialiser(courriel);
 
     // Double authentification (2FA) : les comptes 'parent' reçoivent un code par
     // courriel avant l'ouverture de la session. Les rôles admin/direction gardent

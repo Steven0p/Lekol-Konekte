@@ -1,5 +1,6 @@
 // Contrôleur Vlog — publications publiques + gestion par l'admin du vlog (système indépendant)
 import bcrypt from 'bcrypt';
+import { comparerMotDePasse } from '../utils/motDePasse.js';
 import path from 'path';
 import * as vlogModel from '../models/vlog.model.js';
 import * as adminModel from '../models/vlogAdmin.model.js';
@@ -22,10 +23,9 @@ export async function adminLogin(req, res, next) {
     }
 
     const admin = await adminModel.trouverParIdentifiant(identifiant);
-    if (!admin) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
-    const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
-    if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    const ok = await comparerMotDePasse(motDePasse, admin?.mot_de_passe_hash);
+    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
 
     await regenererSession(req);
     req.session.vlogAdminId = admin.id;

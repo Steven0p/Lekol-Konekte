@@ -7,6 +7,7 @@ import {
   trouverAvecProprietaire,
   listerTout,
   annulerSiNonPayee,
+  trouverDoublonNonPaye,
   STATUTS_NON_PAYES,
   DELAI_PAIEMENT_MINUTES,
 } from '../models/inscription.model.js';
@@ -100,6 +101,20 @@ export async function creer(req, res, next) {
       return res.status(503).json({
         erreur: "Les inscriptions en ligne sont momentanément indisponibles (paiement des frais non configuré). Contactez l'école.",
       });
+    }
+
+    // Double-clic / renvoi du formulaire : réutilise le dossier impayé identique
+    const doublon = await trouverDoublonNonPaye({ idParent, eleveNom, elevePrenom, dateNaissance });
+    if (doublon) {
+      const p = await paiementModel.trouverPourInscription(doublon.id);
+      if (p && p.statut === 'en_attente') {
+        return res.status(200).json({
+          message: 'Dossier déjà soumis — en attente du paiement des frais.',
+          inscription: { id: doublon.id, idEleve: doublon.id_eleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau },
+          paiement: { id: p.id, montant: p.montant, devise: p.devise },
+          delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
+        });
+      }
     }
 
     const { idInscription, idEleve } = await creerInscription({

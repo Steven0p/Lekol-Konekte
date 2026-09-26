@@ -1,5 +1,6 @@
 // Contrôleur « Examens passés » — galerie publique + gestion par l'admin dédié (système indépendant)
 import bcrypt from 'bcrypt';
+import { comparerMotDePasse } from '../utils/motDePasse.js';
 import path from 'path';
 import * as examenModel from '../models/examens.model.js';
 import * as adminModel from '../models/examensAdmin.model.js';
@@ -18,9 +19,8 @@ export async function adminLogin(req, res, next) {
       return res.status(400).json({ erreur: 'Identifiant et mot de passe requis.' });
     }
     const admin = await adminModel.trouverParIdentifiant(identifiant);
-    if (!admin) return res.status(401).json({ erreur: 'Identifiants invalides.' });
-    const ok = await bcrypt.compare(motDePasse, admin.mot_de_passe_hash);
-    if (!ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    const ok = await comparerMotDePasse(motDePasse, admin?.mot_de_passe_hash);
+    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
     await regenererSession(req);
     req.session.examensAdminId = admin.id;
     return res.json({ admin: { id: admin.id, identifiant: admin.identifiant } });

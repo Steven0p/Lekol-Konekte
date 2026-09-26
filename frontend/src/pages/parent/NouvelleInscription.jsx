@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { inscriptionsApi, paiementsApi } from '../../services/api.js';
 import { anneeScolaireCourante, NIVEAUX_GROUPES, tarifCourant, montantFr } from '../../utils/libelles.js';
@@ -19,6 +19,7 @@ export default function NouvelleInscription() {
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [tarif, setTarif] = useState(null);
+  const envoiEnCours = useRef(false); // double-clic : bloqué avant même le re-rendu
 
   useEffect(() => {
     paiementsApi.tarifs().then((t) => setTarif(tarifCourant(t.tarifs, 'inscription'))).catch(() => {});
@@ -28,6 +29,8 @@ export default function NouvelleInscription() {
 
   const soumettre = async (e) => {
     e.preventDefault();
+    if (envoiEnCours.current) return;
+    envoiEnCours.current = true;
     setErreur('');
     setEnCours(true);
     try {
@@ -37,6 +40,7 @@ export default function NouvelleInscription() {
     } catch (err) {
       setErreur(err.message);
     } finally {
+      envoiEnCours.current = false;
       setEnCours(false);
     }
   };

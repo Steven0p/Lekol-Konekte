@@ -48,6 +48,17 @@ export const iaLimiter = rateLimit({
   message: { erreur: "Trop de questions à l'assistant. Réessayez plus tard." },
 });
 
+// Assistants IA du personnel (rédaction, messages) : 40 demandes / 15 min par
+// IP — même sans public, une session volée ou un script ne doit pas pouvoir
+// épuiser le quota de l'API IA.
+export const iaPersonnelLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { erreur: "Trop de demandes à l'assistant IA. Réessayez plus tard." },
+});
+
 // Création/démarrage/confirmation de paiement : 20 requêtes / 15 min par IP —
 // bucket dédié (distinct d'authLimiter) pour qu'un usage automatisé sur les
 // paiements (tentative d'exploitation en série) ne partage pas son quota avec

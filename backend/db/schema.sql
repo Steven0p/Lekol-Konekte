@@ -208,6 +208,7 @@ CREATE TABLE IF NOT EXISTS paiements (
   devise                 ENUM('HTG','USD') NOT NULL DEFAULT 'HTG',
   preuve_url             VARCHAR(500),
   reference_externe      VARCHAR(64),
+  reference_demarree_le  DATETIME NULL,
   transaction_externe_id VARCHAR(64) UNIQUE,
   statut                 ENUM('en_attente','valide','rejete') NOT NULL DEFAULT 'en_attente',
   cree_le                DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

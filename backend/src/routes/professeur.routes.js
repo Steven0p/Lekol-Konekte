@@ -3,7 +3,7 @@ import { Router } from 'express';
 import * as prof from '../controllers/professeur.controller.js';
 import { requireProfsAdmin } from '../middleware/auth.js';
 import { uploadProf, verifierContenuImage } from '../config/upload.js';
-import { authLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, iaPersonnelLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.get('/professeurs/admin/me', prof.adminMe);
 router.patch('/professeurs/admin/compte', requireProfsAdmin, authLimiter, prof.modifierCompte);
 
 // Assistant IA — rédige le parcours (biographie) d'un professeur
-router.post('/professeurs/redaction-ia', requireProfsAdmin, prof.redactionIA);
+router.post('/professeurs/redaction-ia', requireProfsAdmin, iaPersonnelLimiter, prof.redactionIA);
 
 // Fiches
 router.get('/professeurs', prof.lister);                                         // public

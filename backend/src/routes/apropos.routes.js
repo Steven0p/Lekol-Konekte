@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as apropos from '../controllers/apropos.controller.js';
 import { requireAproposAdmin } from '../middleware/auth.js';
-import { authLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, iaPersonnelLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ router.get('/apropos/admin/me', apropos.adminMe);
 router.patch('/apropos/admin/compte', requireAproposAdmin, authLimiter, apropos.modifierCompte);
 
 // Assistant IA (rédaction) — admin À propos uniquement
-router.post('/apropos/redaction-ia', requireAproposAdmin, apropos.redactionIA);
+router.post('/apropos/redaction-ia', requireAproposAdmin, iaPersonnelLimiter, apropos.redactionIA);
 
 // Sections
 router.get('/apropos', apropos.lister);                                  // public

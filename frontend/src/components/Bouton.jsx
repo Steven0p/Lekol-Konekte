@@ -8,7 +8,9 @@ export default function Bouton({ variante = 'primaire', bloc, sm, enCours, child
   ].filter(Boolean).join(' ');
 
   return (
-    <button className={classes} disabled={enCours || props.disabled} {...props}>
+    // disabled APRÈS {...props} : un disabled={false} explicite ne doit jamais
+    // réactiver un bouton en cours d'envoi (double-clic).
+    <button className={classes} {...props} disabled={enCours || props.disabled}>
       {enCours && <span className="spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />}
       {children}
     </button>

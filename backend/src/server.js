@@ -24,9 +24,14 @@ async function demarrer() {
     verifierSms();
     verifierPlopplop();
     verifierGoogleConfigure();
-    app.listen(PORT, () => {
+    const serveur = app.listen(PORT, () => {
       console.log(`✔ Serveur Lekol Konekte démarré sur http://localhost:${PORT}`);
     });
+    // Requêtes lentes coupées : 60 s max par requête (téléversements de 5 Mo
+    // compris), en-têtes en 20 s — une connexion qui traîne (volontairement
+    // ou non) ne doit pas occuper le serveur indéfiniment.
+    serveur.requestTimeout = 60_000;
+    serveur.headersTimeout = 20_000;
 
     // Purge des vieux pointages de présence : au démarrage, puis une fois par jour.
     purgerAnciennesPresences().catch((err) => console.error('Purge présences échouée :', err.message));

@@ -314,11 +314,19 @@ export async function demarrerPaiementMobile(paiement, methode) {
     return { ok: false, code: 400, erreur: 'Le montant minimum pour un paiement mobile est de 20 HTG.' };
   }
 
+  // Double-clic / deux onglets : un seul démarrage à la fois. Sans ce verrou,
+  // deux transactions seraient créées et seule la dernière référence gardée —
+  // un parent qui paierait la première ne serait jamais confirmé.
+  if (!(await paiementModel.reserverDemarrage(paiement.id))) {
+    return { ok: false, code: 409, erreur: 'Un paiement est déjà en cours de démarrage. Patientez quelques secondes.' };
+  }
+
   const referenceId = `lk-${paiement.id}-${crypto.randomBytes(4).toString('hex')}`;
   let creation;
   try {
     creation = await creerPaiementPlopplop({ referenceId, montant: montantEnvoye, methode });
   } catch (err) {
+    await paiementModel.libererDemarrage(paiement.id);
     return { ok: false, code: 502, erreur: `Paiement mobile indisponible : ${err.message}` };
   }
 

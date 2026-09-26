@@ -46,12 +46,21 @@ export function verifierGoogleConfigure() {
 // connexion). Retourne { googleId, courriel, courrielVerifie, nom } si valide,
 // lève une erreur explicite sinon (signature invalide, audience différente,
 // jeton expiré...).
+const DELAI_MS = 10_000;
+
 export async function verifierIdTokenGoogle(idToken) {
   const id = clientId();
   if (!id) {
     throw new Error('Connexion Google non configurée : renseignez GOOGLE_CLIENT_ID dans backend/.env.');
   }
-  const ticket = await clientOAuth().verifyIdToken({ idToken, audience: id });
+  // Délai borné : la vérification télécharge les certificats Google — une
+  // lenteur réseau ne doit pas bloquer la requête indéfiniment.
+  let minuteur;
+  const delai = new Promise((_, rejeter) => {
+    minuteur = setTimeout(() => rejeter(new Error('Délai dépassé pour la vérification Google.')), DELAI_MS);
+  });
+  const ticket = await Promise.race([clientOAuth().verifyIdToken({ idToken, audience: id }), delai])
+    .finally(() => clearTimeout(minuteur));
   const payload = ticket.getPayload();
   if (!payload || !payload.sub || !payload.email) {
     throw new Error('Jeton Google invalide.');

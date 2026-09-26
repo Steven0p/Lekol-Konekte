@@ -20,6 +20,24 @@ function methodePlopplop(methode) {
   return methode;
 }
 
+// Domaines vers lesquels le parent peut être redirigé pour payer. L'URL de
+// paiement vient de la réponse de plopplop : on ne redirige jamais le
+// navigateur vers un domaine inattendu (redirection libre). Surchargeable via
+// PLOPPLOP_DOMAINES_REDIRECTION (liste séparée par des virgules).
+function domainesAutorises() {
+  const liste = (process.env.PLOPPLOP_DOMAINES_REDIRECTION || 'solutionip.app')
+    .split(',').map((d) => d.trim().toLowerCase()).filter(Boolean);
+  return liste;
+}
+
+export function urlRedirectionAutorisee(url) {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== 'https:' || u.username || u.password) return false;
+  const hote = u.hostname.toLowerCase();
+  return domainesAutorises().some((d) => hote === d || hote.endsWith(`.${d}`));
+}
+
 function clientId() {
   return (process.env.PLOPPLOP_CLIENT_ID || '').trim();
 }
@@ -72,6 +90,12 @@ export async function creerPaiementPlopplop({ referenceId, montant, methode }) {
     payment_method: methodePlopplop(methode),
   });
   if (!donnees.url) throw new Error("plopplop n'a renvoyé aucune URL de paiement.");
+  if (!urlRedirectionAutorisee(donnees.url)) {
+    let hote = '?';
+    try { hote = new URL(donnees.url).hostname; } catch { /* URL illisible */ }
+    console.error(`URL de paiement plopplop refusée (domaine non autorisé : ${hote}).`);
+    throw new Error('URL de paiement non autorisée.');
+  }
   return { url: donnees.url, transactionId: donnees.transaction_id };
 }
 

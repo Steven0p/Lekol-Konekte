@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import * as academie from '../controllers/academie.controller.js';
 import { requireAcademieAdmin } from '../middleware/auth.js';
-import { authLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, iaPersonnelLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -13,7 +13,7 @@ router.get('/academie/admin/me', academie.adminMe);
 router.patch('/academie/admin/compte', requireAcademieAdmin, authLimiter, academie.modifierCompte);
 
 // Assistant IA (rédaction) — admin Académie uniquement
-router.post('/academie/redaction-ia', requireAcademieAdmin, academie.redactionIA);
+router.post('/academie/redaction-ia', requireAcademieAdmin, iaPersonnelLimiter, academie.redactionIA);
 
 // Sections
 router.get('/academie', academie.lister);                                  // public

@@ -3,7 +3,7 @@ import { Router } from 'express';
 import * as vlog from '../controllers/vlog.controller.js';
 import { requireVlogAdmin } from '../middleware/auth.js';
 import { uploadVlog, verifierContenuImage } from '../config/upload.js';
-import { authLimiter } from '../middleware/rateLimit.js';
+import { authLimiter, iaPersonnelLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -26,7 +26,7 @@ router.get('/vlog/admin/me', vlog.adminMe);
 router.patch('/vlog/admin/compte', requireVlogAdmin, authLimiter, vlog.modifierCompte);
 
 // Assistant IA (rédaction) — admin vlog uniquement
-router.post('/vlog/redaction-ia', requireVlogAdmin, vlog.redactionIA);
+router.post('/vlog/redaction-ia', requireVlogAdmin, iaPersonnelLimiter, vlog.redactionIA);
 
 // Publications
 router.get('/vlog', vlog.lister);                                   // public

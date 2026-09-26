@@ -132,3 +132,19 @@ export async function listerNonPayeesExpirees() {
   );
   return rows.map((r) => r.id);
 }
+
+// Dossier impayé identique déjà soumis par ce parent dans le délai de
+// paiement (double-clic, formulaire renvoyé) : on le réutilise au lieu d'en
+// créer un second.
+export async function trouverDoublonNonPaye({ idParent, eleveNom, elevePrenom, dateNaissance }) {
+  const [rows] = await pool.query(
+    `SELECT i.id, i.id_eleve FROM inscriptions i
+       JOIN eleves e ON e.id = i.id_eleve
+      WHERE e.id_parent = ? AND i.statut = 'attente_paiement'
+        AND e.nom = ? AND COALESCE(e.prenom, '') = ? AND e.date_naissance = ?
+        AND i.date_soumission >= (NOW() - INTERVAL ? MINUTE)
+      ORDER BY i.id DESC LIMIT 1`,
+    [idParent, eleveNom, elevePrenom || '', dateNaissance, DELAI_PAIEMENT_MINUTES]
+  );
+  return rows[0] || null;
+}

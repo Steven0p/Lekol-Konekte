@@ -7,6 +7,7 @@ import * as acquittement from '../controllers/acquittement.controller.js';
 import { requireAuth, requireRole, requireEleve, requirePermission, requireEconomatAdmin } from '../middleware/auth.js';
 import { CLES } from '../services/permissions.service.js';
 import { uploadPhoto, verifierContenuImage } from '../config/upload.js';
+import { iaLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -50,7 +51,7 @@ router.post('/eleves/:id/code-acces', requireRole('parent'), note.genererCodeAcc
 router.get('/eleve/mes-notes', requireEleve, note.listerMesNotesEleve);
 router.get('/eleve/mes-bulletins', requireEleve, publication.listerMesBulletinsEleve);
 // Appréciation IA d'un trimestre (critique du bulletin/résultats)
-router.post('/eleve/appreciation-ia', requireEleve, note.appreciationIaEleve);
+router.post('/eleve/appreciation-ia', requireEleve, iaLimiter, note.appreciationIaEleve);
 
 // Espace élève — badge & photo
 router.get('/eleve/badge', requireEleve, note.badgeEleve);

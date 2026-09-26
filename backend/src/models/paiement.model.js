@@ -29,6 +29,24 @@ export async function definirMethodeMobile(id, methode, referenceExterne) {
   );
 }
 
+// Verrou anti double-clic : réserve le démarrage d'un paiement en ligne pour
+// 30 s. Retourne false si un autre démarrage est déjà en cours pour ce
+// paiement (deux clics rapprochés, deux onglets).
+export async function reserverDemarrage(id) {
+  const [res] = await pool.query(
+    `UPDATE paiements SET reference_demarree_le = NOW()
+      WHERE id = ? AND statut = 'en_attente'
+        AND (reference_demarree_le IS NULL OR reference_demarree_le < NOW() - INTERVAL 30 SECOND)`,
+    [id]
+  );
+  return res.affectedRows > 0;
+}
+
+// Libère le verrou si la création de la transaction a échoué (réessai immédiat possible).
+export async function libererDemarrage(id) {
+  await pool.query('UPDATE paiements SET reference_demarree_le = NULL WHERE id = ?', [id]);
+}
+
 export async function definirTransactionExterne(id, transactionId) {
   await pool.query('UPDATE paiements SET transaction_externe_id = ? WHERE id = ?', [transactionId, id]);
 }

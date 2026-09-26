@@ -26,4 +26,6 @@ ENV NODE_ENV=production
 ENV PORT=4000
 EXPOSE 4000
 
-CMD ["node", "src/server.js"]
+# Droits réduits : voir docker-entrypoint.sh (le serveur tourne sous « node »)
+RUN chmod +x docker-entrypoint.sh
+ENTRYPOINT ["./docker-entrypoint.sh"]

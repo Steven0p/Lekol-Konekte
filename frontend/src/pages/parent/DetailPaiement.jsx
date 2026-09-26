@@ -62,9 +62,13 @@ export default function DetailPaiement() {
   };
 
   const payerMobile = async (methode) => {
+    if (methodeEnCours) return; // double-clic : un seul démarrage à la fois
     setErreur(''); setMethodeEnCours(methode);
     try {
       const d = await paiementsApi.demarrerPaiementMobile(id, methode);
+      // Défense en profondeur (le serveur filtre déjà les domaines) : jamais
+      // de redirection hors HTTPS.
+      if (!/^https:\/\//i.test(d.urlRedirection || '')) throw new Error('URL de paiement invalide.');
       localStorage.setItem('paiement_mobile_id', id);
       window.location.href = d.urlRedirection;
     } catch (err) {
@@ -149,6 +153,7 @@ export default function DetailPaiement() {
             <div className="rangee" style={{ flexWrap: 'wrap' }}>
               {Object.entries(LIBELLE_METHODE).map(([m, libelle]) => (
                 <Bouton key={m} type="button" onClick={() => payerMobile(m)} enCours={methodeEnCours === m}
+                  disabled={!!methodeEnCours}
                   style={{ padding: 0, background: 'transparent', border: 'none', overflow: 'hidden', borderRadius: 'var(--rayon-sm)' }}>
                   <img src={LOGO_METHODE[m]} alt={`Payer avec ${libelle}`} style={{ height: 46, display: 'block' }} />
                 </Bouton>
