@@ -1,6 +1,7 @@
 // Contrôleur — authentification admin Économat (système indépendant)
 import bcrypt from 'bcrypt';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
+import { adminBloque, adminEchec, adminSucces } from '../services/securite.service.js';
 import * as adminModel from '../models/economatAdmin.model.js';
 import { regenererSession } from '../middleware/auth.js';
 
@@ -18,10 +19,17 @@ export async function adminLogin(req, res, next) {
       return res.status(400).json({ erreur: 'Courriel invalide.' });
     }
 
+    if (adminBloque('economat', email, req)) {
+      return res.status(429).json({ erreur: 'Trop de tentatives pour ce compte. Réessayez plus tard.' });
+    }
     const admin = await adminModel.trouverParEmail(email);
 
     const ok = await comparerMotDePasse(motDePasse, admin?.mot_de_passe_hash);
-    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    if (!admin || !ok) {
+      adminEchec('economat', email, req);
+      return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    }
+    adminSucces('economat', email, req);
 
     await regenererSession(req);
     req.session.economatAdminId = admin.id;

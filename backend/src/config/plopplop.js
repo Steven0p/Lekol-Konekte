@@ -3,6 +3,7 @@
 // mailer.js/sms.js : pas de SDK, échec explicite si mal configuré plutôt
 // qu'un faux succès silencieux.
 import dotenv from 'dotenv';
+import { alerter } from '../services/securite.service.js';
 
 dotenv.config();
 
@@ -94,6 +95,7 @@ export async function creerPaiementPlopplop({ referenceId, montant, methode }) {
     let hote = '?';
     try { hote = new URL(donnees.url).hostname; } catch { /* URL illisible */ }
     console.error(`URL de paiement plopplop refusée (domaine non autorisé : ${hote}).`);
+    alerter('redirection_paiement_refusee', `URL de paiement plopplop refusée : domaine non autorisé (${hote})`);
     throw new Error('URL de paiement non autorisée.');
   }
   return { url: donnees.url, transactionId: donnees.transaction_id };

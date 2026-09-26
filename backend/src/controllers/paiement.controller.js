@@ -11,6 +11,17 @@ import { trouverParId as trouverEconomatAdminParId } from '../models/economatAdm
 import { trouverAvecProprietaire as trouverInscription, STATUTS_NON_PAYES }
   from '../models/inscription.model.js';
 
+// Vue d'un paiement pour le parent : uniquement les champs utiles à l'écran —
+// jamais les références techniques (transaction plopplop, référence externe,
+// verrou de démarrage) ni l'identifiant de la personne qui a validé.
+const CHAMPS_PARENT = [
+  'id', 'type_frais', 'id_reference', 'montant', 'devise', 'statut', 'methode_paiement',
+  'preuve_url', 'cree_le', 'valide_le', 'inscription_statut',
+];
+function vueParent(p) {
+  return Object.fromEntries(CHAMPS_PARENT.filter((c) => c in p).map((c) => [c, p[c]]));
+}
+
 // Statut du dossier d'inscription lié à des frais d'inscription (sinon null)
 async function statutInscriptionDe(paiement) {
   if (paiement.type_frais !== 'inscription') return null;
@@ -155,7 +166,7 @@ export async function listerMiens(req, res, next) {
   try {
     const idParent = await findParentIdByUserId(req.session.userId);
     if (!idParent) return res.status(403).json({ erreur: 'Compte parent requis.' });
-    return res.json({ paiements: await paiementModel.listerParParent(idParent) });
+    return res.json({ paiements: (await paiementModel.listerParParent(idParent)).map(vueParent) });
   } catch (err) {
     next(err);
   }
@@ -177,7 +188,8 @@ export async function detail(req, res, next) {
   try {
     const paiement = await chargerAutorise(req, res);
     if (!paiement) return;
-    return res.json({ paiement: { ...paiement, inscription_statut: await statutInscriptionDe(paiement) } });
+    const complet = { ...paiement, inscription_statut: await statutInscriptionDe(paiement) };
+    return res.json({ paiement: estAdminEconomat(req) ? complet : vueParent(complet) });
   } catch (err) {
     next(err);
   }

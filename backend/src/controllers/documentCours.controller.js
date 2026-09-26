@@ -82,6 +82,19 @@ export async function servirFichier(req, res, next) {
   try {
     const doc = await documentCoursModel.trouverParId(Number(req.params.id));
     if (!doc) return res.status(404).json({ erreur: 'Document introuvable.' });
+    // Isolation : l'élève ne voit que les documents de son niveau, le
+    // professeur que les siens ; la direction/l'administration voient tout.
+    // Un parent ou un autre professeur n'y a pas accès (404, sans confirmer
+    // que le document existe).
+    let autorise = false;
+    if (req.session.eleveId && req.session.role === 'eleve') {
+      const eleve = await trouverEleveParId(req.session.eleveId);
+      autorise = !!eleve && !!eleve.niveau && eleve.niveau === doc.niveau;
+    } else if (req.session.userId) {
+      autorise = doc.id_enseignant === req.session.userId
+        || ['admin', 'direction', 'proprietaire'].includes(req.session.role);
+    }
+    if (!autorise) return res.status(404).json({ erreur: 'Document introuvable.' });
     const chemin = path.resolve(UPLOAD_ROOT, doc.url_fichier);
     if (!chemin.startsWith(path.resolve(UPLOAD_ROOT))) {
       return res.status(400).json({ erreur: 'Chemin invalide.' });

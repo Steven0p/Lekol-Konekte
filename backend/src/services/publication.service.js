@@ -11,7 +11,9 @@ import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
-import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import {
+  clientIA, iaConfiguree, MODELE_IA, MARQUEUR_ELEVE, MARQUEUR_PARENT, CONSIGNE_MARQUEURS, restaurerMarqueurs,
+} from '../config/ia.js';
 import { echapperHtml } from '../utils/html.js';
 import fs from 'fs/promises';
 import path from 'path';
@@ -48,11 +50,11 @@ async function genererAppreciation({
       messages: [
         {
           role: 'system',
-          content: "Tu es un conseiller pédagogique bienveillant de l'école « Lekòl Konekte ». Tu rédiges, à l'intention des parents, une appréciation du bulletin de leur enfant, en français, dans un paragraphe fluide d'environ 10 phrases, sans titre ni liste. Si la moyenne est au-dessus du seuil de réussite, la tonalité est largement positive et félicite l'élève tout en donnant des pistes pour progresser encore. Si elle est en-dessous, reste honnête sur la situation mais constructif et encourageant, avec des conseils concrets d'amélioration. Base-toi UNIQUEMENT sur les données fournies, n'invente aucun chiffre ni matière. N'utilise pas d'emojis.",
+          content: "Tu es un conseiller pédagogique bienveillant de l'école « Lekòl Konekte ». Tu rédiges, à l'intention des parents, une appréciation du bulletin de leur enfant, en français, dans un paragraphe fluide d'environ 10 phrases, sans titre ni liste. Si la moyenne est au-dessus du seuil de réussite, la tonalité est largement positive et félicite l'élève tout en donnant des pistes pour progresser encore. Si elle est en-dessous, reste honnête sur la situation mais constructif et encourageant, avec des conseils concrets d'amélioration. Base-toi UNIQUEMENT sur les données fournies, n'invente aucun chiffre ni matière. N'utilise pas d'emojis. " + CONSIGNE_MARQUEURS,
         },
         {
           role: 'user',
-          content: `Élève : ${eleveNom} (${niveau}).\n`
+          content: `Élève : ${MARQUEUR_ELEVE} (${niveau}).\n`
             + `${LIBELLE_TRIMESTRE[trimestre] || trimestre}, année ${anneeScolaire}.\n`
             + `Moyenne pondérée du trimestre : ${moyenneCourante.toFixed(2)}/100.\n`
             + `Seuil de réussite de l'école : ${seuilReussite}/100.\n`
@@ -62,7 +64,7 @@ async function genererAppreciation({
         },
       ],
     });
-    const texte = (completion.choices?.[0]?.message?.content || '').trim();
+    const texte = restaurerMarqueurs((completion.choices?.[0]?.message?.content || '').trim(), { eleve: eleveNom });
     return texte || fallback;
   } catch (err) {
     console.error('Appréciation IA échouée :', err.message);

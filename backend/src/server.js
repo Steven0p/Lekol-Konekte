@@ -6,6 +6,7 @@ import { verifierSms } from './config/sms.js';
 import { verifierPlopplop, plopplopConfigure } from './config/plopplop.js';
 import { verifierGoogleConfigure } from './config/googleAuth.js';
 import { purgerAnciennesPresences } from './services/presence.service.js';
+import { purgerJournal } from './services/securite.service.js';
 import { reconcilierPaiementsMobilesEnAttente, annulerInscriptionsNonPayees } from './services/paiement.service.js';
 import dotenv from 'dotenv';
 
@@ -37,6 +38,7 @@ async function demarrer() {
     purgerAnciennesPresences().catch((err) => console.error('Purge présences échouée :', err.message));
     setInterval(() => {
       purgerAnciennesPresences().catch((err) => console.error('Purge présences échouée :', err.message));
+      purgerJournal().catch((err) => console.error('Purge journal de sécurité échouée :', err.message));
     }, UN_JOUR_MS);
 
     // Reconciliation des paiements mobiles en attente : plopplop n'a pas de

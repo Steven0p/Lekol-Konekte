@@ -10,6 +10,7 @@
 // - consignes de sécurité ajoutées en tête de chaque conversation ;
 // - réponse vérifiée avant d'être utilisée (voir verifierReponseIA).
 import OpenAI from 'openai';
+import { tracer } from '../services/securite.service.js';
 
 // L'assistant est actif uniquement si une clé Groq est configurée.
 export const iaConfiguree = () => !!process.env.GROQ_API_KEY;
@@ -51,6 +52,7 @@ export function verifierReponseIA(texte, { maxCaracteres = MAX_CARACTERES } = {}
   if (!propre) return '';
   if (MOTIFS_INTERDITS.some((m) => m.test(propre))) {
     console.error('Réponse IA rejetée : contenu interdit détecté.');
+    tracer('reponse_ia_rejetee', { details: 'contenu interdit détecté (clé, HTML ou script)' });
     return '';
   }
   return propre.length > maxCaracteres ? `${propre.slice(0, maxCaracteres).trimEnd()}…` : propre;
@@ -96,4 +98,21 @@ const client = { chat: { completions: { create: creerCompletion } } };
 export function clientIA() {
   if (!process.env.GROQ_API_KEY) return null;
   return client;
+}
+
+// ---------- Minimisation des données envoyées à l'IA ----------
+// Les noms (élève, parent) ne sont jamais transmis au fournisseur d'IA : le
+// prompt utilise des marqueurs, remplacés par les vrais noms dans la réponse,
+// côté serveur uniquement.
+export const MARQUEUR_ELEVE = '[ÉLÈVE]';
+export const MARQUEUR_PARENT = '[PARENT]';
+export const CONSIGNE_MARQUEURS = `Pour protéger la vie privée, l'élève est désigné par le marqueur ${MARQUEUR_ELEVE}`
+  + ` et le parent par ${MARQUEUR_PARENT} : réutilise ces marqueurs exactement tels quels quand tu les`
+  + ' nommes, sans les modifier, les traduire ni inventer de nom.';
+
+export function restaurerMarqueurs(texte, { eleve, parent } = {}) {
+  if (!texte) return texte;
+  return texte
+    .split(MARQUEUR_ELEVE).join(eleve || "l'élève")
+    .split(MARQUEUR_PARENT).join(parent || 'le parent');
 }

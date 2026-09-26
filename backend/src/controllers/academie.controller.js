@@ -1,6 +1,7 @@
 // Contrôleur « Académie » — sections publiques par niveau + gestion par l'admin dédié (système indépendant)
 import bcrypt from 'bcrypt';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
+import { adminBloque, adminEchec, adminSucces } from '../services/securite.service.js';
 import * as sectionModel from '../models/academie.model.js';
 import * as adminModel from '../models/academieAdmin.model.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
@@ -20,10 +21,17 @@ export async function adminLogin(req, res, next) {
       return res.status(400).json({ erreur: 'Identifiant et mot de passe requis.' });
     }
 
+    if (adminBloque('academie', identifiant, req)) {
+      return res.status(429).json({ erreur: 'Trop de tentatives pour ce compte. Réessayez plus tard.' });
+    }
     const admin = await adminModel.trouverParIdentifiant(identifiant);
 
     const ok = await comparerMotDePasse(motDePasse, admin?.mot_de_passe_hash);
-    if (!admin || !ok) return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    if (!admin || !ok) {
+      adminEchec('academie', identifiant, req);
+      return res.status(401).json({ erreur: 'Identifiants invalides.' });
+    }
+    adminSucces('academie', identifiant, req);
 
     await regenererSession(req);
     req.session.academieAdminId = admin.id;

@@ -7,7 +7,9 @@ import {
 } from '../models/presence.model.js';
 import { trouverParCode, trouverAvecProprietaire } from '../models/eleve.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
-import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import {
+  clientIA, iaConfiguree, MODELE_IA, MARQUEUR_ELEVE, MARQUEUR_PARENT, CONSIGNE_MARQUEURS, restaurerMarqueurs,
+} from '../config/ia.js';
 import { echapperHtml } from '../utils/html.js';
 
 const FUSEAU = 'America/Port-au-Prince';
@@ -41,15 +43,15 @@ async function genererMessagePresence({ type, eleveNom, heure }) {
       messages: [
         {
           role: 'system',
-          content: "Tu rédiges, au nom de l'école « Lekòl Konekte », un message direct de CINQ PHRASES COURTES (ni plus, ni moins) pour informer un parent par courriel. Pas de salutation, pas de signature — juste l'information, phrase par phrase : l'élève est arrivé(e) à l'école OU en est reparti(e) à l'heure donnée, que l'événement a été enregistré par le système, une note pertinente au contexte (rappel du prochain message pour une arrivée, rappel de sécurité du trajet du retour pour un départ), une invitation à contacter le secrétariat en cas d'erreur, et une formule de clôture brève. Ton chaleureux mais direct, sans superflu. N'invente aucune information (pas de nom de personnel, pas de numéro de téléphone). Pas d'emojis, pas de liste à puces — cinq phrases en un seul paragraphe.",
+          content: "Tu rédiges, au nom de l'école « Lekòl Konekte », un message direct de CINQ PHRASES COURTES (ni plus, ni moins) pour informer un parent par courriel. Pas de salutation, pas de signature — juste l'information, phrase par phrase : l'élève est arrivé(e) à l'école OU en est reparti(e) à l'heure donnée, que l'événement a été enregistré par le système, une note pertinente au contexte (rappel du prochain message pour une arrivée, rappel de sécurité du trajet du retour pour un départ), une invitation à contacter le secrétariat en cas d'erreur, et une formule de clôture brève. Ton chaleureux mais direct, sans superflu. N'invente aucune information (pas de nom de personnel, pas de numéro de téléphone). Pas d'emojis, pas de liste à puces — cinq phrases en un seul paragraphe. " + CONSIGNE_MARQUEURS,
         },
         {
           role: 'user',
-          content: `Élève : ${eleveNom}.\nÉvénement : ${type === 'entree' ? "arrivée à l'école" : "départ de l'école"}.\nHeure : ${heure}.\nRédige les cinq phrases.`,
+          content: `Élève : ${MARQUEUR_ELEVE}.\nÉvénement : ${type === 'entree' ? "arrivée à l'école" : "départ de l'école"}.\nHeure : ${heure}.\nRédige les cinq phrases.`,
         },
       ],
     });
-    const texte = (completion.choices?.[0]?.message?.content || '').trim();
+    const texte = restaurerMarqueurs((completion.choices?.[0]?.message?.content || '').trim(), { eleve: eleveNom });
     return texte || fallback;
   } catch (err) {
     console.error('Message présence IA échoué :', err.message);

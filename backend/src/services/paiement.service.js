@@ -13,10 +13,13 @@ import { journaliser } from '../models/historique.model.js';
 import { grouperTranscript, genererReleve } from './releve.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { envoyerSms } from '../config/sms.js';
-import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import {
+  clientIA, iaConfiguree, MODELE_IA, MARQUEUR_ELEVE, MARQUEUR_PARENT, CONSIGNE_MARQUEURS, restaurerMarqueurs,
+} from '../config/ia.js';
 import {
   plopplopConfigure, creerPaiementPlopplop, verifierPaiementPlopplop, METHODES_VALIDES,
 } from '../config/plopplop.js';
+import { alerter } from './securite.service.js';
 import crypto from 'crypto';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
@@ -57,11 +60,11 @@ async function genererMessagePaiement({
       messages: [
         {
           role: 'system',
-          content: "Tu rédiges, au nom de l'économat de l'école « Lekòl Konekte », le corps d'un courriel court (3 à 5 phrases, sans salutation ni signature — elles sont ajoutées séparément) informant un parent de l'issue du traitement d'un paiement. Sois clair, professionnel et bienveillant. Si le paiement est rejeté, explique le motif donné sans le déformer et indique clairement l'action attendue (soumettre une nouvelle preuve). Si le paiement est validé, confirme ce que cela débloque concrètement. N'invente STRICTEMENT AUCUN détail (montant, date, lieu, procédure de retrait, moyen de contact) qui n'est pas fourni explicitement dans le message de l'utilisateur — base-toi UNIQUEMENT sur le contexte « Ce que cela débloque » donné ci-dessous, ne décris pas d'autre démarche. Pas d'emojis, pas de titre.",
+          content: "Tu rédiges, au nom de l'économat de l'école « Lekòl Konekte », le corps d'un courriel court (3 à 5 phrases, sans salutation ni signature — elles sont ajoutées séparément) informant un parent de l'issue du traitement d'un paiement. Sois clair, professionnel et bienveillant. Si le paiement est rejeté, explique le motif donné sans le déformer et indique clairement l'action attendue (soumettre une nouvelle preuve). Si le paiement est validé, confirme ce que cela débloque concrètement. N'invente STRICTEMENT AUCUN détail (montant, date, lieu, procédure de retrait, moyen de contact) qui n'est pas fourni explicitement dans le message de l'utilisateur — base-toi UNIQUEMENT sur le contexte « Ce que cela débloque » donné ci-dessous, ne décris pas d'autre démarche. Pas d'emojis, pas de titre. " + CONSIGNE_MARQUEURS,
         },
         {
           role: 'user',
-          content: `Élève concerné : ${eleveNom || 'N/A'}.\n`
+          content: `Élève concerné : ${MARQUEUR_ELEVE}.\n`
             + `Type de frais : ${LIBELLE_TYPE[typeFrais] || typeFrais}.\n`
             + `Montant : ${montant != null ? `${Number(montant).toFixed(2)} ${devise}` : 'non précisé'}.\n`
             + `Décision : ${statut === 'rejete' ? 'rejeté' : 'validé'}.\n`
@@ -69,16 +72,16 @@ async function genererMessagePaiement({
               ? `Motif du rejet : ${commentaire || 'non précisé'}.\n`
               : `Ce que cela débloque (ne décris rien d'autre) : ${
                 typeFrais === 'inscription' && dossierTransmis
-                  ? `le dossier d'inscription de ${eleveNom || "l'élève"} est transmis au secrétariat, qui l'examinera et informera le parent de sa décision (l'inscription n'est PAS encore acceptée).`
+                  ? `le dossier d'inscription de ${MARQUEUR_ELEVE} est transmis au secrétariat, qui l'examinera et informera le parent de sa décision (l'inscription n'est PAS encore acceptée).`
                   : typeFrais === 'inscription'
-                  ? `l'inscription de ${eleveNom || "l'élève"} est confirmée dans le système.`
+                  ? `l'inscription de ${MARQUEUR_ELEVE} est confirmée dans le système.`
                   : `le document (${LIBELLE_TYPE[typeFrais] || typeFrais}) est téléchargeable en ligne, dans l'espace parent du site — aucun retrait physique n'est nécessaire.`
               }\n`)
             + 'Rédige le corps du courriel pour ce parent.',
         },
       ],
     });
-    const texte = (completion.choices?.[0]?.message?.content || '').trim();
+    const texte = restaurerMarqueurs((completion.choices?.[0]?.message?.content || '').trim(), { eleve: eleveNom });
     return texte ? `${salutation}${texte}` : fallback;
   } catch (err) {
     console.error('Message paiement IA échoué :', err.message);
@@ -382,6 +385,9 @@ export async function confirmerPaiementMobile({ paiement }) {
   // connaît que des gourdes entières, la comparaison doit se faire sur la même base.
   const montantDu = Math.ceil(Number(paiement.montant));
   if (montantConfirme !== montantDu) {
+    alerter('paiement_montant_incoherent',
+      `Montant confirmé par plopplop (${montantConfirme}) différent du montant dû (${montantDu})`,
+      { sujet: `paiement #${paiement.id}` });
     return { ok: false, code: 409, erreur: 'Le montant confirmé ne correspond pas au paiement.' };
   }
 
@@ -390,6 +396,8 @@ export async function confirmerPaiementMobile({ paiement }) {
   // l'écriture ci-dessous si c'est le cas — voir migration 030.)
   const dejaUtilise = await paiementModel.trouverParTransactionExterne(detail.transactionId);
   if (dejaUtilise && dejaUtilise.id !== paiement.id) {
+    alerter('paiement_rejeu', `Transaction ${detail.transactionId} déjà utilisée pour le paiement #${dejaUtilise.id}`,
+      { sujet: `paiement #${paiement.id}` });
     return { ok: false, code: 409, erreur: 'Cette transaction a déjà été utilisée pour un autre paiement.' };
   }
 

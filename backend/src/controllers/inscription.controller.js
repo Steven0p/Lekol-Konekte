@@ -22,7 +22,9 @@ import {
 import { listerPourEntite, journaliser } from '../models/historique.model.js';
 import { changerStatut } from '../services/inscription.service.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
-import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
+import {
+  clientIA, iaConfiguree, MODELE_IA, MARQUEUR_ELEVE, MARQUEUR_PARENT, CONSIGNE_MARQUEURS, restaurerMarqueurs,
+} from '../config/ia.js';
 import { anneeScolaireCourante } from '../utils/dates.js';
 
 const TYPES_DOCUMENT = ['acte_naissance', 'bulletin', 'photo', 'autre'];
@@ -78,6 +80,31 @@ export async function creer(req, res, next) {
     }
 
     const t = (v) => (v ? String(v).trim() : null);
+    // Longueurs maximales = tailles des colonnes (schema.sql) : un texte trop
+    // long est refusé proprement au lieu de provoquer une erreur 500 en base.
+    const LIMITES = {
+      eleveNom: 120, elevePrenom: 120, nomParent: 120, professionParent: 120, telephoneParent: 40,
+      courrielParent: 150, ancienneEcole: 160, ancienneClasse: 60, raisonChoix: 500,
+    };
+    for (const [champ, max] of Object.entries(LIMITES)) {
+      if (req.body[champ] != null && typeof req.body[champ] !== 'string') {
+        return res.status(400).json({ erreur: 'Données du formulaire invalides.' });
+      }
+      if ((req.body[champ] || '').trim().length > max) {
+        return res.status(400).json({ erreur: `Champ trop long (${champ}, ${max} caractères max).` });
+      }
+    }
+    // Date de naissance réelle (pas de 2026-02-31), dans le passé, âge plausible
+    const naissance = new Date(`${dateNaissance}T00:00:00Z`);
+    const age = (Date.now() - naissance.getTime()) / (365.25 * 24 * 3600 * 1000);
+    if (Number.isNaN(naissance.getTime()) || naissance.toISOString().slice(0, 10) !== dateNaissance
+        || age < 2 || age > 40) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
+    const telephone = (req.body.telephoneParent || '').trim();
+    if (telephone && !/^\+?[0-9 ()-]{8,20}$/.test(telephone)) {
+      return res.status(400).json({ erreur: 'Numéro de téléphone invalide.' });
+    }
     const nomParent = t(req.body.nomParent);
     const professionParent = t(req.body.professionParent);
     const telephoneParent = t(req.body.telephoneParent);
@@ -285,10 +312,10 @@ export async function messageParentIA(req, res, next) {
       .map(([, libelle]) => libelle);
 
     const contexte = [
-      `Élève : ${inscription.eleve_nom || 'l\'élève'}`,
+      `Élève : ${MARQUEUR_ELEVE}`,
       inscription.niveau ? `Niveau demandé : ${inscription.niveau}` : null,
       inscription.annee_scolaire ? `Année scolaire : ${inscription.annee_scolaire}` : null,
-      inscription.parent_nom ? `Parent : ${inscription.parent_nom}` : null,
+      `Parent : ${MARQUEUR_PARENT}`,
       decision === 'complement_demande' && manquants.length ? `Documents manquants : ${manquants.join(', ')}` : null,
       precision ? `Précisions du secrétariat : ${precision}` : null,
     ].filter(Boolean).join('\n');
@@ -301,7 +328,7 @@ export async function messageParentIA(req, res, next) {
       messages: [
         {
           role: 'system',
-          content: "Tu es la secrétaire de l'école « Lekòl Konekte ». Tu rédiges un message court, poli et professionnel adressé au parent d'un élève, en français, au sujet du dossier d'inscription. Style courtois et bienveillant. Commence par « Bonjour, » et termine par « L'administration de Lekòl Konekte ». N'utilise pas d'emojis. N'invente aucune date, montant ni information absente du contexte fourni. Réponds uniquement avec le texte du message, sans objet ni en-tête.",
+          content: "Tu es la secrétaire de l'école « Lekòl Konekte ». Tu rédiges un message court, poli et professionnel adressé au parent d'un élève, en français, au sujet du dossier d'inscription. Style courtois et bienveillant. Commence par « Bonjour, » et termine par « L'administration de Lekòl Konekte ». N'utilise pas d'emojis. N'invente aucune date, montant ni information absente du contexte fourni. Réponds uniquement avec le texte du message, sans objet ni en-tête. " + CONSIGNE_MARQUEURS,
         },
         {
           role: 'user',
@@ -316,7 +343,9 @@ export async function messageParentIA(req, res, next) {
       ],
     });
 
-    const message = (completion.choices?.[0]?.message?.content || '').trim();
+    const message = restaurerMarqueurs((completion.choices?.[0]?.message?.content || '').trim(), {
+      eleve: inscription.eleve_nom, parent: inscription.parent_nom,
+    });
     if (!message) return res.status(502).json({ erreur: "L'assistant IA n'a pas pu générer de message." });
     return res.json({ message });
   } catch (err) {

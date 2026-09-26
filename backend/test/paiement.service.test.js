@@ -111,6 +111,11 @@ mock.module('../src/config/sms.js', {
     },
   },
 });
+mock.module('../src/services/securite.service.js', {
+  exports: {
+    tracer: () => {}, alerter: () => {}, compter: () => {}, echecConnexion: () => {},
+  },
+});
 // iaConfiguree() renvoie false : le message de repli (déterministe) est
 // utilisé, sans appel réseau réel à Groq — voir genererMessagePaiement.
 mock.module('../src/config/ia.js', {
@@ -118,6 +123,10 @@ mock.module('../src/config/ia.js', {
     iaConfiguree: () => false,
     clientIA: () => { throw new Error('IA non configurée (test)'); },
     MODELE_IA: 'test-modele',
+    MARQUEUR_ELEVE: '[ÉLÈVE]',
+    MARQUEUR_PARENT: '[PARENT]',
+    CONSIGNE_MARQUEURS: '',
+    restaurerMarqueurs: (t) => t,
   },
 });
 

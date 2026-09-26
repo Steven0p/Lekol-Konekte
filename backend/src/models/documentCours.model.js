@@ -10,7 +10,12 @@ export async function creer({ idMatiere, idEnseignant, titre, urlFichier }) {
 }
 
 export async function trouverParId(id) {
-  const [rows] = await pool.query('SELECT * FROM documents_cours WHERE id = ? LIMIT 1', [id]);
+  const [rows] = await pool.query(
+    `SELECT dc.*, m.niveau FROM documents_cours dc
+       JOIN matieres m ON m.id = dc.id_matiere
+      WHERE dc.id = ? LIMIT 1`,
+    [id]
+  );
   return rows[0] || null;
 }
 

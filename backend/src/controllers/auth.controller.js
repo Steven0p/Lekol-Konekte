@@ -33,6 +33,7 @@ const protectionCodeEleve = creerProtection({ seuil: 20 });
 const protectionLogin = creerProtection({ seuil: 10 });
 import { regenererSession } from '../middleware/auth.js';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
+import { tracer, alerter, echecConnexion } from '../services/securite.service.js';
 
 // Même réponse pour tout échec d'identification (compte inexistant, sans mot
 // de passe, mot de passe faux) : elle ne doit pas révéler qui a un compte.
@@ -115,6 +116,7 @@ export async function googleAuth(req, res, next) {
     try {
       infosGoogle = await verifierIdTokenGoogle(credential);
     } catch (err) {
+      echecConnexion('google', { req, sujet: 'jeton invalide' });
       return res.status(401).json({ erreur: 'Connexion Google invalide ou expirée.' });
     }
     if (!infosGoogle.courrielVerifie) {
@@ -127,6 +129,7 @@ export async function googleAuth(req, res, next) {
       if (existant) {
         await lierGoogleId(existant.id, infosGoogle.googleId);
         utilisateur = existant;
+        tracer('compte_lie_google', { req, sujet: existant.courriel, details: existant.role });
       } else {
         utilisateur = await createParentGoogle({
           nom: infosGoogle.nom, courriel: infosGoogle.courriel, googleId: infosGoogle.googleId,
@@ -141,6 +144,7 @@ export async function googleAuth(req, res, next) {
     await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
+    tracer('connexion_google', { req, sujet: utilisateur.courriel, details: utilisateur.role });
 
     return res.json({
       utilisateur: {
@@ -227,6 +231,7 @@ export async function reinitialiserMotDePasse(req, res, next) {
 
     const motDePasseHash = await bcrypt.hash(nouveauMotDePasse, SALT_ROUNDS);
     await mettreAJourMotDePasse(utilisateur.id, motDePasseHash);
+    tracer('mot_de_passe_reinitialise', { req, sujet: utilisateur.courriel });
 
     return res.json({ message: 'Mot de passe réinitialisé. Vous pouvez vous connecter.' });
   } catch (err) {
@@ -245,6 +250,7 @@ export async function login(req, res, next) {
     }
 
     if (protectionLogin.bloque(courriel)) {
+      alerter('compte_verrouille', 'Compte verrouillé après trop d\'échecs de connexion', { req, sujet: courriel });
       return res.status(429).json({ erreur: 'Trop de tentatives pour ce compte. Réessayez plus tard.' });
     }
 
@@ -255,6 +261,7 @@ export async function login(req, res, next) {
     const ok = await comparerMotDePasse(motDePasse, utilisateur?.mot_de_passe_hash);
     if (!utilisateur || !ok) {
       protectionLogin.enregistrerEchec(courriel);
+      echecConnexion('ecole', { req, sujet: courriel });
       return res.status(401).json({ erreur: ECHEC_CONNEXION });
     }
     protectionLogin.reinitialiser(courriel);
@@ -299,6 +306,7 @@ export async function login(req, res, next) {
     await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
+    tracer('connexion_reussie', { req, sujet: utilisateur.courriel, details: utilisateur.role });
 
     return res.json({
       utilisateur: {
@@ -338,6 +346,7 @@ export async function verifierConnexion(req, res, next) {
       const status = resultat === 'invalide' ? 400 : 410;
       // Un code épuisé/expiré interrompt la tentative : on efface l'attente.
       if (resultat !== 'invalide') delete req.session.pending2fa;
+      echecConnexion('code_2fa', { req, sujet: `utilisateur #${idUtilisateur}` });
       return res.status(status).json({ erreur: messages[resultat] || 'Code invalide.' });
     }
 
@@ -352,6 +361,7 @@ export async function verifierConnexion(req, res, next) {
     await regenererSession(req);
     req.session.userId = utilisateur.id;
     req.session.role = utilisateur.role;
+    tracer('connexion_reussie', { req, sujet: utilisateur.courriel, details: `${utilisateur.role} (2FA)` });
 
     return res.json({
       utilisateur: {
@@ -414,12 +424,14 @@ export async function eleveConnexion(req, res, next) {
 
     const prefixe = code.slice(0, 3);
     if (protectionCodeEleve.bloque(prefixe)) {
+      alerter('code_eleve_verrouille', 'Codes élève verrouillés après trop d\'échecs', { req, sujet: `${prefixe}…` });
       return res.status(429).json({ erreur: 'Trop de tentatives pour ce code. Réessayez plus tard.' });
     }
 
     const eleve = await trouverEleveParCode(code);
     if (!eleve) {
       protectionCodeEleve.enregistrerEchec(prefixe);
+      echecConnexion('eleve', { req, sujet: `${prefixe}…` });
       return res.status(401).json({ erreur: 'Code d\'accès invalide.' });
     }
     protectionCodeEleve.reinitialiser(prefixe);

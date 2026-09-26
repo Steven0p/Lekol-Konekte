@@ -5,6 +5,7 @@ import * as tarifModel from '../models/tarif.model.js';
 import * as ecoleModel from '../models/ecole.model.js';
 import * as eleveModel from '../models/eleve.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
+import { tracer } from '../services/securite.service.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
@@ -89,6 +90,10 @@ export async function supprimerTarif(req, res, next) {
     const existant = await tarifModel.trouverParId(Number(req.params.id));
     if (!existant) return res.status(404).json({ erreur: 'Tarif introuvable.' });
     await tarifModel.supprimer(existant.id);
+    tracer('tarif_supprime', {
+      req, sujet: existant.type_frais,
+      details: `${existant.montant} ${existant.devise} (économat #${req.session.economatAdminId})`,
+    });
     return res.json({ message: 'Tarif supprimé.' });
   } catch (err) {
     next(err);

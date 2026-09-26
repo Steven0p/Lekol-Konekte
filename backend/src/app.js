@@ -27,11 +27,28 @@ import annonceRoutes from './routes/annonce.routes.js';
 import enseignantRoutes from './routes/enseignant.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
+import { compter } from './services/securite.service.js';
 import { PAGES_SEO } from './config/seoPages.js';
 import { lister as listerVlog } from './models/vlog.model.js';
 import fs from 'fs';
 
 dotenv.config();
+
+// Identifiants d'URL (:id, :idMatiere) : entier positif uniquement — une
+// valeur comme « abc », « 1.5 » ou « 1 OR 1=1 » est refusée avant d'atteindre
+// un contrôleur (qui ferait sinon Number('abc') → NaN → requête incohérente).
+function validerIdentifiant(req, res, next, valeur) {
+  if (/^[1-9]\d{0,9}$/.test(valeur) && Number(valeur) <= 2147483647) return next();
+  return res.status(400).json({ erreur: 'Identifiant invalide.' });
+}
+for (const routeur of [
+  authRoutes, inscriptionRoutes, notesRoutes, paiementRoutes, vlogRoutes, professeurRoutes,
+  aproposRoutes, academieRoutes, examensRoutes, direstatsRoutes, permissionsRoutes,
+  contactMessageRoutes, presenceRoutes, ancienEleveRoutes, annonceRoutes, enseignantRoutes,
+]) {
+  routeur.param('id', validerIdentifiant);
+  routeur.param('idMatiere', validerIdentifiant);
+}
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
@@ -76,7 +93,17 @@ app.use(helmet({
   crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
 }));
 
-app.use(express.json());
+// Fonctions du navigateur : caméra réservée au site lui-même (scan des badges
+// QR), tout le reste coupé — un script injecté ne pourrait pas y accéder.
+app.use((req, res, next) => {
+  res.setHeader('Permissions-Policy',
+    'camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()');
+  next();
+});
+
+// Corps JSON limité (aucun formulaire n'envoie plus de quelques Ko ; les
+// fichiers passent par multer, avec sa propre limite de 5 Mo).
+app.use(express.json({ limit: '100kb', strict: true }));
 app.use(cookieParser());
 app.use(
   cors({
@@ -134,6 +161,9 @@ const sessionStore = new MySQLStore({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'lekol_konekte',
+  // Table créée par schema.sql / migration 037 : le compte MySQL de
+  // l'application n'a pas le droit CREATE (droits réduits au strict CRUD).
+  createDatabaseTable: false,
 });
 
 app.use(
@@ -262,8 +292,19 @@ app.get(/^\/(?!api\/).*/, async (req, res, next) => {
 // Gestion des erreurs
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
+  // Erreurs de requête (JSON malformé, corps trop volumineux…) : faute du
+  // client, pas du serveur — réponse 4xx sans détail interne ni alerte.
+  if (err && err.status >= 400 && err.status < 500) {
+    return res.status(err.status).json({
+      erreur: err.status === 413 ? 'Requête trop volumineuse.' : 'Requête invalide.',
+    });
+  }
   console.error(err);
   enregistrerErreur(err);
+  compter('erreurs_serveur', {
+    seuil: 15, fenetreMs: 5 * 60 * 1000, type: 'rafale_erreurs_serveur',
+    message: `Nombre anormal d'erreurs serveur (dernière : ${req.method} ${req.path} — ${err.message})`, req,
+  });
   res.status(500).json({ erreur: 'Erreur interne du serveur.' });
 });
 

@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 import { listerPermissions, definirPermission } from '../services/permissions.service.js';
 import { findByIdAvecHash, findByCourriel, mettreAJourCourriel, mettreAJourMotDePasse } from '../models/user.model.js';
+import { tracer } from '../services/securite.service.js';
 
 const COURRIEL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -23,6 +24,7 @@ export async function basculer(req, res, next) {
     const autorise = Boolean(req.body.autorise);
     const r = await definirPermission(req.params.cle, autorise, req.session.userId);
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
+    tracer('permission_modifiee', { req, sujet: req.params.cle, details: `autorise=${autorise} par utilisateur #${req.session.userId}` });
     return res.json({ message: 'Permission mise à jour.' });
   } catch (err) {
     next(err);
@@ -58,10 +60,12 @@ export async function modifierCompte(req, res, next) {
       const existant = await findByCourriel(nouveauCourriel);
       if (existant) return res.status(409).json({ erreur: 'Ce courriel est déjà utilisé par un autre compte.' });
       await mettreAJourCourriel(utilisateur.id, nouveauCourriel);
+      tracer('courriel_modifie', { req, sujet: utilisateur.courriel, details: `nouveau : ${nouveauCourriel}` });
     }
     if (nouveauMotDePasse) {
       const hash = await bcrypt.hash(nouveauMotDePasse, 12);
       await mettreAJourMotDePasse(utilisateur.id, hash);
+      tracer('mot_de_passe_modifie', { req, sujet: utilisateur.courriel });
     }
 
     return res.json({ message: 'Compte mis à jour.' });
