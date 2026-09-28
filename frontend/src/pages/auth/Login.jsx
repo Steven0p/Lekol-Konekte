@@ -16,6 +16,8 @@ export default function Login() {
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
+  // Animation de vérification du code : null | 'verification' | 'succes'
+  const [etatVerif, setEtatVerif] = useState(null);
   // ?session=expiree : renvoi automatique depuis api.js (401 « Authentification
   // requise » en cours d'usage) — une navigation plein-page, sans location.state.
   const info = location.state?.info
@@ -50,12 +52,16 @@ export default function Login() {
     e.preventDefault();
     setErreur('');
     setEnCours(true);
+    setEtatVerif('verification');
     try {
       await verifierConnexion(code.trim());
-      navigate('/tableau-de-bord');
+      // Le code est validé : on montre le succès (coche verte) un court instant
+      // avant de basculer sur le tableau de bord.
+      setEtatVerif('succes');
+      setTimeout(() => navigate('/tableau-de-bord'), 900);
     } catch (err) {
       setErreur(err.message);
-    } finally {
+      setEtatVerif(null);
       setEnCours(false);
     }
   };
@@ -148,7 +154,27 @@ export default function Login() {
             </div>
           </form>
         ) : (
-          <form className="auth-form" onSubmit={soumettreCode}>
+          <form className="auth-form" onSubmit={soumettreCode} style={{ position: 'relative' }}>
+            {etatVerif && (
+              <div className="otp-overlay" role="status" aria-live="polite">
+                {etatVerif === 'verification' ? (
+                  <>
+                    <div className="otp-anneau" aria-hidden="true" />
+                    <p className="otp-texte">Vérification du code…</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="otp-coche" aria-hidden="true">
+                      <svg viewBox="0 0 52 52">
+                        <circle className="otp-coche-cercle" cx="26" cy="26" r="24" fill="none" />
+                        <path className="otp-coche-trait" fill="none" d="M14 27l8 8 16-16" />
+                      </svg>
+                    </div>
+                    <p className="otp-texte">Code validé ! Connexion…</p>
+                  </>
+                )}
+              </div>
+            )}
             <button type="button" className="auth-retour" onClick={retourIdentifiants}
               style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
               ← Retour

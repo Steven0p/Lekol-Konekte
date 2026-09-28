@@ -133,6 +133,43 @@ a:hover { text-decoration: underline; }
 }
 .auth-note svg { width: 15px; height: 15px; color: var(--a-or); flex-shrink: 0; }
 
+/* ---------- Animation de vérification du code (OTP) ---------- */
+/* Voile posé sur le formulaire du code pendant la vérification, puis coche de
+   succès juste avant la redirection vers le tableau de bord. */
+.otp-overlay {
+  position: absolute; inset: 0; z-index: 5;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
+  background: rgba(255, 255, 255, .93); border-radius: 16px;
+  animation: otp-fondu .18s ease-out;
+}
+@keyframes otp-fondu { from { opacity: 0; } to { opacity: 1; } }
+.otp-texte { color: var(--a-navy); font-weight: 700; font-size: 1rem; margin: 0; }
+/* Anneau qui tourne pendant la vérification */
+.otp-anneau {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 4px solid var(--a-bord); border-top-color: var(--a-navy);
+  animation: tourner .8s linear infinite;
+}
+/* Coche de succès : le cercle se dessine, puis le trait, avec un léger rebond */
+.otp-coche { width: 62px; height: 62px; animation: otp-pop .35s ease-out; }
+.otp-coche svg { width: 100%; height: 100%; }
+.otp-coche-cercle {
+  stroke: var(--a-navy); stroke-width: 3; stroke-dasharray: 151; stroke-dashoffset: 151;
+  animation: otp-trace .45s ease-out forwards;
+}
+.otp-coche-trait {
+  stroke: #15803d; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 40; stroke-dashoffset: 40;
+  animation: otp-trace .3s .4s ease-out forwards;
+}
+@keyframes otp-trace { to { stroke-dashoffset: 0; } }
+@keyframes otp-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .otp-anneau { animation-duration: 1.4s; }
+  .otp-overlay, .otp-coche, .otp-coche-cercle, .otp-coche-trait { animation: none; }
+  .otp-coche-cercle, .otp-coche-trait { stroke-dashoffset: 0; }
+}
+
 /* Pied de page du formulaire */
 .auth-pied {
   margin-top: 1.75rem; padding-top: 1.25rem; border-top: 1px solid var(--a-bord);
