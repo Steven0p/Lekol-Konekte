@@ -47,7 +47,7 @@ export default function Login() {
         // Compte parent : animation « envoi du courriel » (avion) puis saisie du code.
         setInfoCode(`Un code de connexion a été envoyé à ${resultat.courriel}.`);
         setEnvoiCode(true);
-        await new Promise((r) => setTimeout(r, 1700));
+        await new Promise((r) => setTimeout(r, 5000));
         setEnvoiCode(false);
         setEtape('code');
         setEnCours(false);
@@ -70,7 +70,7 @@ export default function Login() {
       // Le code est validé : on montre le succès (coche verte) un court instant
       // avant de basculer sur le tableau de bord.
       setEtatVerif('succes');
-      setTimeout(() => navigate('/tableau-de-bord'), 1600);
+      setTimeout(() => navigate('/tableau-de-bord'), 5000);
     } catch (err) {
       setErreur(err.message);
       setEtatVerif(null);
