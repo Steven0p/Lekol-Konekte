@@ -106,10 +106,14 @@ export default function Login() {
 
   const connecterAvecBiometrie = async () => {
     if (biometrieEnCours) return;
+    if (!courriel.trim()) {
+      setErreur('Entrez votre courriel, puis utilisez Face ID / empreinte.');
+      return;
+    }
     setErreur('');
     setBiometrieEnCours(true);
     try {
-      const data = await connexionBiometrie();
+      const data = await connexionBiometrie(courriel.trim().toLowerCase());
       connexionBiometrieOuvre(data);
       navigate('/tableau-de-bord');
     } catch (err) {
@@ -169,7 +173,7 @@ export default function Login() {
                   Se connecter avec Face ID / empreinte
                 </Bouton>
                 <p className="texte-gris" style={{ textAlign: 'center', margin: '0 0 .6rem', fontSize: '.78rem' }}>
-                  À activer d'abord depuis « Mon compte » sur cet appareil.
+                  Entrez votre courriel, puis Face ID. (À activer d'abord depuis « Mon compte ».)
                 </p>
               </>
             )}

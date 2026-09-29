@@ -13,7 +13,7 @@ import {
 } from '@simplewebauthn/server';
 import { RP_ID, RP_NAME, ORIGINS, versB64url, depuisB64url } from '../config/webauthn.js';
 import * as credModel from '../models/webauthnCredential.model.js';
-import { findById } from '../models/user.model.js';
+import { findById, findByCourriel } from '../models/user.model.js';
 import { regenererSession } from '../middleware/auth.js';
 import { tracer } from '../services/securite.service.js';
 
@@ -99,14 +99,28 @@ export async function verifierEnregistrement(req, res, next) {
 // ---------- Authentification par passkey (visiteur non connecté) ----------
 
 // POST /api/auth/webauthn/connexion/options
+// Avec un courriel : on renvoie la liste des passkeys de ce compte
+// (allowCredentials) — l'appareil utilise alors DIRECTEMENT Face ID / l'empreinte
+// local, sans proposer le QR « autre appareil ». Sans courriel : passkeys
+// découvrables (liste vide). Un courriel inconnu renvoie une liste vide (même
+// forme de réponse) pour ne pas révéler qui a un compte.
 export async function optionsConnexion(req, res, next) {
   try {
-    // Passkeys découvrables : pas de liste de credentials -> l'appareil propose
-    // les passkeys qu'il connaît pour ce site, sans que le serveur révèle qui
-    // a un compte.
+    let allowCredentials = [];
+    const courriel = (req.body.courriel || '').trim().toLowerCase();
+    if (courriel) {
+      const utilisateur = await findByCourriel(courriel);
+      if (utilisateur) {
+        const creds = await credModel.listerParUtilisateur(utilisateur.id);
+        allowCredentials = creds.map((c) => ({
+          id: c.credential_id,
+          transports: c.transports ? JSON.parse(c.transports) : undefined,
+        }));
+      }
+    }
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
-      allowCredentials: [],
+      allowCredentials,
       userVerification: 'preferred',
     });
     req.session.webauthnChallenge = options.challenge;

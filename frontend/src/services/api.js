@@ -55,7 +55,7 @@ export const authApi = {
   // Connexion biométrique (WebAuthn / passkeys : Face ID, Touch ID, etc.)
   webauthnOptionsEnregistrement: () => request('/auth/webauthn/enregistrement/options', { method: 'POST' }),
   webauthnVerifierEnregistrement: (payload) => request('/auth/webauthn/enregistrement/verifier', { method: 'POST', body: json(payload) }),
-  webauthnOptionsConnexion: () => request('/auth/webauthn/connexion/options', { method: 'POST' }),
+  webauthnOptionsConnexion: (courriel) => request('/auth/webauthn/connexion/options', { method: 'POST', body: json({ courriel }) }),
   webauthnVerifierConnexion: (reponse) => request('/auth/webauthn/connexion/verifier', { method: 'POST', body: json({ reponse }) }),
   webauthnAppareils: () => request('/auth/webauthn/appareils'),
   webauthnSupprimerAppareil: (id) => request(`/auth/webauthn/appareils/${id}`, { method: 'DELETE' }),

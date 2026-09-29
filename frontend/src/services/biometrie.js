@@ -40,10 +40,11 @@ export async function activerBiometrie() {
   return authApi.webauthnVerifierEnregistrement({ reponse, appareil: nomAppareil() });
 }
 
-// Connexion via un passkey déjà enregistré sur cet appareil. Retourne
+// Connexion via un passkey. Avec un courriel, l'appareil utilise directement
+// Face ID / l'empreinte local (pas de QR « autre appareil »). Retourne
 // { utilisateur } en cas de succès.
-export async function connexionBiometrie() {
-  const options = await authApi.webauthnOptionsConnexion();
+export async function connexionBiometrie(courriel) {
+  const options = await authApi.webauthnOptionsConnexion(courriel);
   let reponse;
   try {
     reponse = await startAuthentication({ optionsJSON: options });
