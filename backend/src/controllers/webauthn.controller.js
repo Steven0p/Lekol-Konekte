@@ -110,13 +110,20 @@ export async function optionsConnexion(req, res, next) {
     const courriel = (req.body.courriel || '').trim().toLowerCase();
     if (courriel) {
       const utilisateur = await findByCourriel(courriel);
-      if (utilisateur) {
-        const creds = await credModel.listerParUtilisateur(utilisateur.id);
-        allowCredentials = creds.map((c) => ({
-          id: c.credential_id,
-          transports: c.transports ? JSON.parse(c.transports) : undefined,
-        }));
+      const creds = utilisateur ? await credModel.listerParUtilisateur(utilisateur.id) : [];
+      // Aucun passkey pour ce compte (ou courriel inconnu) : message clair et
+      // identique dans les deux cas (ne révèle pas l'existence du compte), au
+      // lieu de déclencher le QR « autre appareil » qui prête à confusion.
+      if (creds.length === 0) {
+        return res.status(404).json({
+          erreur: "Aucune connexion Face ID n'est activée pour ce compte sur un appareil. "
+            + 'Connectez-vous avec votre mot de passe puis activez-la dans « Mon compte ».',
+        });
       }
+      allowCredentials = creds.map((c) => ({
+        id: c.credential_id,
+        transports: c.transports ? JSON.parse(c.transports) : undefined,
+      }));
     }
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
