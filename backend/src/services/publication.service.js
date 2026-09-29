@@ -73,10 +73,10 @@ async function genererAppreciation({
 }
 
 async function infosEcole() {
-  const [rows] = await pool.query('SELECT nom, seuil_reussite FROM ecole ORDER BY id LIMIT 1');
+  const [rows] = await pool.query('SELECT nom, seuil_reussite, logo_url FROM ecole ORDER BY id LIMIT 1');
   return rows[0]
-    ? { nom: rows[0].nom, seuilReussite: Number(rows[0].seuil_reussite) }
-    : { nom: 'Lekòl Konekte', seuilReussite: 60 };
+    ? { nom: rows[0].nom, seuilReussite: Number(rows[0].seuil_reussite), logoUrl: rows[0].logo_url || null }
+    : { nom: 'Lekòl Konekte', seuilReussite: 60, logoUrl: null };
 }
 
 // Publie (niveau, année, trimestre) : marque publié et génère un bulletin par élève
@@ -96,7 +96,8 @@ export async function publier({
     await creerPublication({ niveau, anneeScolaire, trimestre, publiePar: idDirection });
   }
 
-  const { nom: ecoleNom, seuilReussite } = await infosEcole();
+  const { nom: ecoleNom, seuilReussite, logoUrl } = await infosEcole();
+  const logoPath = logoUrl ? path.resolve(UPLOAD_ROOT, logoUrl) : null;
   const eleves = await listerParNiveau(niveau);
   const matieres = (await listerMatieres(niveau)).filter((m) => m.actif !== 0);
 
@@ -171,7 +172,7 @@ export async function publier({
     }
 
     const { urlPdf, identifiantUnique } = await genererBulletinPDF({
-      eleve, niveau, trimestre, anneeScolaire, ecoleNom,
+      eleve, niveau, trimestre, anneeScolaire, ecoleNom, logoPath,
       matieres, notesParTrim, moyennesParTrim, placesParTrim, trimestresAffiches, moyenneAnnuelle,
       seuilReussite,
     });

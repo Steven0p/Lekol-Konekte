@@ -209,6 +209,7 @@ export async function genererBulletinCtrl(req, res, next) {
     const { urlPdf, identifiantUnique } = await genererBulletinPDF({
       eleve: { nom_famille: eleve.nom, nom: eleve.nom, prenom: eleve.prenom },
       niveau, trimestre, anneeScolaire, ecoleNom: ecole?.nom || 'Lekòl Konekte',
+      logoPath: ecole?.logo_url ? path.resolve(UPLOAD_ROOT, ecole.logo_url) : null,
       matieres, notesParTrim, moyennesParTrim, placesParTrim, trimestresAffiches, moyenneAnnuelle,
       seuilReussite: ecole ? Number(ecole.seuil_reussite) : 60,
     });

@@ -52,12 +52,32 @@ const pourcentage = (n) => {
 //  moyenneAnnuelle : number|null                            (renseigné au 3e trimestre)
 //  seuilReussite : number                                   (note de passage /100, défaut 60)
 export async function genererBulletinPDF({
-  eleve, niveau, trimestre, anneeScolaire, ecoleNom,
+  eleve, niveau, trimestre, anneeScolaire, ecoleNom, logoPath = null,
   matieres = [], notesParTrim = {}, moyennesParTrim = {}, placesParTrim = {},
   trimestresAffiches = [], moyenneAnnuelle = null, seuilReussite = 60,
 }) {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([842, 595]); // A4 paysage
+
+  // Logo de l'école (facultatif) : lu sur le disque et intégré en haut à
+  // gauche, à côté du nom. Un logo absent ou illisible n'empêche jamais la
+  // génération du bulletin.
+  let logoImg = null;
+  let logoDims = null;
+  if (logoPath) {
+    try {
+      const octetsLogo = await fs.readFile(logoPath);
+      logoImg = (octetsLogo[0] === 0x89 && octetsLogo[1] === 0x50)
+        ? await pdf.embedPng(octetsLogo)
+        : await pdf.embedJpg(octetsLogo);
+      let h = 28;
+      let w = (logoImg.width / logoImg.height) * h;
+      if (w > 46) { w = 46; h = (logoImg.height / logoImg.width) * w; }
+      logoDims = { w, h };
+    } catch {
+      logoImg = null; // logo illisible : on continue sans
+    }
+  }
   const police = await pdf.embedFont(StandardFonts.Helvetica);
   const gras = await pdf.embedFont(StandardFonts.HelveticaBold);
   const noir = rgb(0.1, 0.1, 0.1);
@@ -76,6 +96,14 @@ export async function genererBulletinPDF({
   const tronque = (s, max) => (s && s.length > max ? `${s.slice(0, max - 1)}…` : (s || ''));
 
   const M = 28;
+
+  // ---------- Logo (coin haut droit) ----------
+  // Placé dans le coin supérieur droit (zone libre, au-dessus du champ
+  // « Année ») : n'entre en collision avec rien et laisse le nom de l'école à
+  // gauche, comme un en-tête à en-tête classique.
+  if (logoImg) {
+    page.drawImage(logoImg, { x: 814 - logoDims.w, y: 593 - logoDims.h, width: logoDims.w, height: logoDims.h });
+  }
 
   // ---------- En-tête (Nom / Prénom / Classe / Année) ----------
   let y = 567;
