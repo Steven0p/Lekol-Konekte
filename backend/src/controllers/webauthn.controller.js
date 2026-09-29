@@ -13,9 +13,9 @@ import {
 } from '@simplewebauthn/server';
 import { RP_ID, RP_NAME, ORIGINS, versB64url, depuisB64url } from '../config/webauthn.js';
 import * as credModel from '../models/webauthnCredential.model.js';
-import { findById, findByCourriel } from '../models/user.model.js';
+import { findById } from '../models/user.model.js';
 import { regenererSession } from '../middleware/auth.js';
-import { tracer } from '../services/securite.service.js';
+import { tracer, echecConnexion } from '../services/securite.service.js';
 
 // ---------- Enregistrement d'un passkey (utilisateur connecté) ----------
 
@@ -40,7 +40,7 @@ export async function optionsEnregistrement(req, res, next) {
       })),
       authenticatorSelection: {
         residentKey: 'preferred',       // passkey « découvrable » -> connexion sans saisir le courriel
-        userVerification: 'preferred',  // biométrie / code de l'appareil
+        userVerification: 'required',   // biométrie / code de l'appareil OBLIGATOIRE
       },
     });
 
@@ -67,7 +67,7 @@ export async function verifierEnregistrement(req, res, next) {
         expectedChallenge: attendu,
         expectedOrigin: ORIGINS,
         expectedRPID: RP_ID,
-        requireUserVerification: false,
+        requireUserVerification: true,
       });
     } catch (err) {
       return res.status(400).json({ erreur: `Enregistrement refusé : ${err.message}` });
@@ -99,36 +99,16 @@ export async function verifierEnregistrement(req, res, next) {
 // ---------- Authentification par passkey (visiteur non connecté) ----------
 
 // POST /api/auth/webauthn/connexion/options
-// Avec un courriel : on renvoie la liste des passkeys de ce compte
-// (allowCredentials) — l'appareil utilise alors DIRECTEMENT Face ID / l'empreinte
-// local, sans proposer le QR « autre appareil ». Sans courriel : passkeys
-// découvrables (liste vide). Un courriel inconnu renvoie une liste vide (même
-// forme de réponse) pour ne pas révéler qui a un compte.
+// Passkeys découvrables : on ne demande AUCUN courriel et on ne renvoie aucune
+// liste de credentials — l'appareil propose de lui-même les passkeys qu'il a
+// enregistrés pour ce site. Aucune énumération de comptes possible, et pas de
+// QR tant qu'un passkey local existe.
 export async function optionsConnexion(req, res, next) {
   try {
-    let allowCredentials = [];
-    const courriel = (req.body.courriel || '').trim().toLowerCase();
-    if (courriel) {
-      const utilisateur = await findByCourriel(courriel);
-      const creds = utilisateur ? await credModel.listerParUtilisateur(utilisateur.id) : [];
-      // Aucun passkey pour ce compte (ou courriel inconnu) : message clair et
-      // identique dans les deux cas (ne révèle pas l'existence du compte), au
-      // lieu de déclencher le QR « autre appareil » qui prête à confusion.
-      if (creds.length === 0) {
-        return res.status(404).json({
-          erreur: "Aucune connexion Face ID n'est activée pour ce compte sur un appareil. "
-            + 'Connectez-vous avec votre mot de passe puis activez-la dans « Mon compte ».',
-        });
-      }
-      allowCredentials = creds.map((c) => ({
-        id: c.credential_id,
-        transports: c.transports ? JSON.parse(c.transports) : undefined,
-      }));
-    }
     const options = await generateAuthenticationOptions({
       rpID: RP_ID,
-      allowCredentials,
-      userVerification: 'preferred',
+      allowCredentials: [],
+      userVerification: 'required', // biométrie OBLIGATOIRE
     });
     req.session.webauthnChallenge = options.challenge;
     return res.json(options);
@@ -157,7 +137,7 @@ export async function verifierConnexionPasskey(req, res, next) {
         expectedChallenge: attendu,
         expectedOrigin: ORIGINS,
         expectedRPID: RP_ID,
-        requireUserVerification: false,
+        requireUserVerification: true,
         credential: {
           id: cred.credential_id,
           publicKey: depuisB64url(cred.cle_publique),
@@ -166,12 +146,16 @@ export async function verifierConnexionPasskey(req, res, next) {
         },
       });
     } catch (err) {
+      echecConnexion('passkey', { req, sujet: cred.courriel });
       return res.status(401).json({ erreur: 'Connexion biométrique impossible.' });
     } finally {
       delete req.session.webauthnChallenge;
     }
 
-    if (!verif.verified) return res.status(401).json({ erreur: 'Connexion biométrique impossible.' });
+    if (!verif.verified) {
+      echecConnexion('passkey', { req, sujet: cred.courriel });
+      return res.status(401).json({ erreur: 'Connexion biométrique impossible.' });
+    }
     if (cred.statut !== 'actif') return res.status(403).json({ erreur: 'Compte inactif.' });
 
     await credModel.majCompteur(cred.id, verif.authenticationInfo.newCounter);
