@@ -32,6 +32,13 @@ export function AuthProvider({ children }) {
 
   const renvoyerCodeConnexion = () => authApi.renvoyerCodeConnexion();
 
+  // Connexion biométrique (Face ID / Touch ID / Windows Hello) : ouvre la session
+  // après vérification du passkey. `data` vient de connexionBiometrie().
+  const connexionBiometrieOuvre = (data) => {
+    if (data?.utilisateur) setUtilisateur(data.utilisateur);
+    return data?.utilisateur;
+  };
+
   // Connexion espace élève par code d'accès (sans courriel ni mot de passe)
   const eleveConnexion = async (code) => {
     const data = await authApi.eleveConnexion(code);
@@ -67,7 +74,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, eleveConnexion, register, googleLogin, logout, rafraichir }}>
+    <AuthContext.Provider value={{ utilisateur, chargement, login, verifierConnexion, renvoyerCodeConnexion, connexionBiometrieOuvre, eleveConnexion, register, googleLogin, logout, rafraichir }}>
       {children}
     </AuthContext.Provider>
   );

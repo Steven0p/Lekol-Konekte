@@ -52,6 +52,13 @@ export const authApi = {
   me: () => request('/auth/me'),
   googleClientId: () => request('/auth/google/client-id'),
   google: (credential) => request('/auth/google', { method: 'POST', body: json({ credential }) }),
+  // Connexion biométrique (WebAuthn / passkeys : Face ID, Touch ID, etc.)
+  webauthnOptionsEnregistrement: () => request('/auth/webauthn/enregistrement/options', { method: 'POST' }),
+  webauthnVerifierEnregistrement: (payload) => request('/auth/webauthn/enregistrement/verifier', { method: 'POST', body: json(payload) }),
+  webauthnOptionsConnexion: () => request('/auth/webauthn/connexion/options', { method: 'POST' }),
+  webauthnVerifierConnexion: (reponse) => request('/auth/webauthn/connexion/verifier', { method: 'POST', body: json({ reponse }) }),
+  webauthnAppareils: () => request('/auth/webauthn/appareils'),
+  webauthnSupprimerAppareil: (id) => request(`/auth/webauthn/appareils/${id}`, { method: 'DELETE' }),
 };
 
 export const inscriptionsApi = {

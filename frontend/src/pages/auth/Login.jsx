@@ -6,9 +6,11 @@ import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import BoutonGoogle from '../../components/BoutonGoogle.jsx';
+import { biometrieDisponible, connexionBiometrie } from '../../services/biometrie.js';
 
 export default function Login() {
-  const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin } = useAuth();
+  const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin, connexionBiometrieOuvre } = useAuth();
+  const [biometrieEnCours, setBiometrieEnCours] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -102,6 +104,21 @@ export default function Login() {
     }
   };
 
+  const connecterAvecBiometrie = async () => {
+    if (biometrieEnCours) return;
+    setErreur('');
+    setBiometrieEnCours(true);
+    try {
+      const data = await connexionBiometrie();
+      connexionBiometrieOuvre(data);
+      navigate('/tableau-de-bord');
+    } catch (err) {
+      setErreur(err.message);
+    } finally {
+      setBiometrieEnCours(false);
+    }
+  };
+
   const retourIdentifiants = () => {
     setEtape('identifiants');
     setCode('');
@@ -144,6 +161,13 @@ export default function Login() {
             <Bouton type="submit" bloc enCours={enCours}>Se connecter</Bouton>
 
             <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
+            {biometrieDisponible() && (
+              <Bouton type="button" variante="secondaire" bloc enCours={biometrieEnCours}
+                onClick={connecterAvecBiometrie} style={{ marginBottom: '.6rem' }}>
+                <span aria-hidden="true" style={{ marginRight: 8 }}>🔒</span>
+                Se connecter avec Face ID / empreinte
+              </Bouton>
+            )}
             <BoutonGoogle onCredential={connecterAvecGoogle} texte="signin_with" />
 
             <p className="auth-lien">
