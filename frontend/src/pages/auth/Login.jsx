@@ -167,9 +167,22 @@ export default function Login() {
             <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
             {biometrieDisponible() && (
               <>
-                <Bouton type="button" variante="secondaire" bloc enCours={biometrieEnCours}
+                <Bouton type="button" variante="secondaire" bloc disabled={biometrieEnCours}
                   onClick={connecterAvecBiometrie} style={{ marginBottom: '.35rem' }}>
-                  Se connecter avec Face ID / empreinte
+                  <span className={`faceid${biometrieEnCours ? ' faceid-scan' : ''}`} aria-hidden="true">
+                    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="3"
+                      strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M16 6 H10 a4 4 0 0 0-4 4 V16" />
+                      <path d="M32 6 H38 a4 4 0 0 1 4 4 V16" />
+                      <path d="M6 32 V38 a4 4 0 0 0 4 4 H16" />
+                      <path d="M42 32 V38 a4 4 0 0 1-4 4 H32" />
+                      <path d="M18 19 V23" /><path d="M30 19 V23" />
+                      <path d="M24 18 V27 h-3" />
+                      <path d="M17 32 q7 5 14 0" />
+                    </svg>
+                    <span className="faceid-ligne" />
+                  </span>
+                  {biometrieEnCours ? 'Vérification du visage…' : 'Se connecter avec Face ID / empreinte'}
                 </Bouton>
                 <p className="texte-gris" style={{ textAlign: 'center', margin: '0 0 .6rem', fontSize: '.78rem' }}>
                   Entrez votre courriel, puis Face ID. (À activer d'abord depuis « Mon compte ».)

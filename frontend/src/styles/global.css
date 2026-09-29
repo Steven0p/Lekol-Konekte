@@ -162,6 +162,27 @@ a:hover { text-decoration: underline; }
   60% { transform: scale(1.15) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
 @keyframes otp-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 
+/* Icône Face ID dans le bouton de connexion biométrique, avec une ligne de
+   balayage animée pendant la vérification (effet « scan du visage »). */
+.faceid {
+  position: relative; display: inline-block; width: 22px; height: 22px;
+  vertical-align: middle; margin-right: 8px; overflow: hidden;
+}
+.faceid svg { width: 100%; height: 100%; display: block; }
+.faceid-ligne {
+  position: absolute; left: 2px; right: 2px; top: 3px; height: 2px;
+  border-radius: 2px; background: currentColor; opacity: 0;
+  box-shadow: 0 0 6px currentColor;
+}
+.faceid-scan .faceid-ligne { opacity: .9; animation: faceid-balaye 1.15s ease-in-out infinite; }
+.faceid-scan svg { animation: faceid-pulse 1.15s ease-in-out infinite; }
+@keyframes faceid-balaye { 0% { transform: translateY(0); } 50% { transform: translateY(15px); } 100% { transform: translateY(0); } }
+@keyframes faceid-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) {
+  .faceid-scan .faceid-ligne { animation: none; opacity: .6; }
+  .faceid-scan svg { animation: none; }
+}
+
 /* Envoi du code : l'avion en papier décolle et file en haut à droite, en
    boucle, avec une traînée */
 .send-scene { position: relative; width: 120px; height: 90px; }
