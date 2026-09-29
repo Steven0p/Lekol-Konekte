@@ -6,7 +6,7 @@ import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import BoutonGoogle from '../../components/BoutonGoogle.jsx';
-import { biometrieDisponible, connexionBiometrie } from '../../services/biometrie.js';
+import { biometrieDisponible, autofillDisponible, connexionBiometrie, connexionBiometrieAutofill } from '../../services/biometrie.js';
 
 export default function Login() {
   const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin, connexionBiometrieOuvre } = useAuth();
@@ -106,14 +106,10 @@ export default function Login() {
 
   const connecterAvecBiometrie = async () => {
     if (biometrieEnCours) return;
-    if (!courriel.trim()) {
-      setErreur('Entrez votre courriel, puis utilisez Face ID / empreinte.');
-      return;
-    }
     setErreur('');
     setBiometrieEnCours(true);
     try {
-      const data = await connexionBiometrie(courriel.trim().toLowerCase());
+      const data = await connexionBiometrie();
       connexionBiometrieOuvre(data);
       navigate('/tableau-de-bord');
     } catch (err) {
@@ -122,6 +118,22 @@ export default function Login() {
       setBiometrieEnCours(false);
     }
   };
+
+  // Connexion automatique par autofill : si l'appareil a un passkey, le
+  // navigateur le propose dès qu'on touche le champ courriel — sans saisie.
+  useEffect(() => {
+    if (etape !== 'identifiants' || !autofillDisponible()) return undefined;
+    let monte = true;
+    connexionBiometrieAutofill()
+      .then((data) => {
+        if (!monte) return;
+        connexionBiometrieOuvre(data);
+        navigate('/tableau-de-bord');
+      })
+      .catch(() => { /* autofill ignoré/annulé : connexion classique disponible */ });
+    return () => { monte = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etape]);
 
   const retourIdentifiants = () => {
     setEtape('identifiants');
@@ -154,7 +166,7 @@ export default function Login() {
             <Alerte type="erreur">{erreur}</Alerte>
 
             <Champ label="Courriel" type="email" value={courriel}
-              onChange={(e) => setCourriel(e.target.value)} required autoComplete="email" />
+              onChange={(e) => setCourriel(e.target.value)} required autoComplete="email webauthn" />
             <Champ label="Mot de passe" type="password" value={motDePasse}
               onChange={(e) => setMotDePasse(e.target.value)} required autoComplete="current-password" />
 
@@ -185,7 +197,7 @@ export default function Login() {
                   {biometrieEnCours ? 'Vérification du visage…' : 'Se connecter avec Face ID / empreinte'}
                 </Bouton>
                 <p className="texte-gris" style={{ textAlign: 'center', margin: '0 0 .6rem', fontSize: '.78rem' }}>
-                  Entrez votre courriel, puis Face ID. (À activer d'abord depuis « Mon compte ».)
+                  À activer d'abord une fois depuis « Mon compte » sur cet appareil.
                 </p>
               </>
             )}
