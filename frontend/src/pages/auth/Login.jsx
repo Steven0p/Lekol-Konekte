@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
@@ -20,6 +20,13 @@ export default function Login() {
   const [etatVerif, setEtatVerif] = useState(null);
   // Animation « envoi du code par courriel » (avion) avant l'écran du code
   const [envoiCode, setEnvoiCode] = useState(false);
+
+  // Précharge les visuels des animations : sans ça, la coche de validation
+  // (affichée ~1,6 s) peut ne pas avoir le temps de se télécharger avant la
+  // redirection, et l'utilisateur ne la verrait jamais.
+  useEffect(() => {
+    ['/auth/validation.png', '/auth/send.png'].forEach((src) => { new Image().src = src; });
+  }, []);
   // ?session=expiree : renvoi automatique depuis api.js (401 « Authentification
   // requise » en cours d'usage) — une navigation plein-page, sans location.state.
   const info = location.state?.info
@@ -63,7 +70,7 @@ export default function Login() {
       // Le code est validé : on montre le succès (coche verte) un court instant
       // avant de basculer sur le tableau de bord.
       setEtatVerif('succes');
-      setTimeout(() => navigate('/tableau-de-bord'), 900);
+      setTimeout(() => navigate('/tableau-de-bord'), 1600);
     } catch (err) {
       setErreur(err.message);
       setEtatVerif(null);
