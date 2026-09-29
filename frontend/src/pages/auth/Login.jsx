@@ -162,11 +162,16 @@ export default function Login() {
 
             <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
             {biometrieDisponible() && (
-              <Bouton type="button" variante="secondaire" bloc enCours={biometrieEnCours}
-                onClick={connecterAvecBiometrie} style={{ marginBottom: '.6rem' }}>
-                <span aria-hidden="true" style={{ marginRight: 8 }}>🔒</span>
-                Se connecter avec Face ID / empreinte
-              </Bouton>
+              <>
+                <Bouton type="button" variante="secondaire" bloc enCours={biometrieEnCours}
+                  onClick={connecterAvecBiometrie} style={{ marginBottom: '.35rem' }}>
+                  <span aria-hidden="true" style={{ marginRight: 8 }}>🔒</span>
+                  Se connecter avec Face ID / empreinte
+                </Bouton>
+                <p className="texte-gris" style={{ textAlign: 'center', margin: '0 0 .6rem', fontSize: '.78rem' }}>
+                  À activer d'abord depuis « Mon compte » sur cet appareil.
+                </p>
+              </>
             )}
             <BoutonGoogle onCredential={connecterAvecGoogle} texte="signin_with" />
 
