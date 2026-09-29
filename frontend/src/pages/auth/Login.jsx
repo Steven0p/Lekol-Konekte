@@ -18,6 +18,8 @@ export default function Login() {
   const [enCours, setEnCours] = useState(false);
   // Animation de vérification du code : null | 'verification' | 'succes'
   const [etatVerif, setEtatVerif] = useState(null);
+  // Animation « envoi du code par courriel » (avion) avant l'écran du code
+  const [envoiCode, setEnvoiCode] = useState(false);
   // ?session=expiree : renvoi automatique depuis api.js (401 « Authentification
   // requise » en cours d'usage) — une navigation plein-page, sans location.state.
   const info = location.state?.info
@@ -35,15 +37,18 @@ export default function Login() {
     try {
       const resultat = await login({ courriel, motDePasse });
       if (resultat?.etape === '2fa_requis') {
-        // Compte parent : passer à la saisie du code reçu par courriel.
-        setEtape('code');
+        // Compte parent : animation « envoi du courriel » (avion) puis saisie du code.
         setInfoCode(`Un code de connexion a été envoyé à ${resultat.courriel}.`);
+        setEnvoiCode(true);
+        await new Promise((r) => setTimeout(r, 1700));
+        setEnvoiCode(false);
+        setEtape('code');
+        setEnCours(false);
       } else {
         navigate('/tableau-de-bord');
       }
     } catch (err) {
       setErreur(err.message);
-    } finally {
       setEnCours(false);
     }
   };
@@ -103,7 +108,16 @@ export default function Login() {
       <PanneauMarque />
       <div className="auth-panneau">
         {etape === 'identifiants' ? (
-          <form className="auth-form" onSubmit={soumettre}>
+          <form className="auth-form" onSubmit={soumettre} style={{ position: 'relative' }}>
+            {envoiCode && (
+              <div className="otp-overlay" role="status" aria-live="polite">
+                <div className="send-scene" aria-hidden="true">
+                  <img className="send-avion" src="/auth/send.png" alt="" />
+                  <span className="send-trainee" />
+                </div>
+                <p className="otp-texte">Envoi du code par courriel…</p>
+              </div>
+            )}
             <Link to="/" className="auth-retour">← Retour à l'accueil</Link>
             <h2>Connexion</h2>
             <p className="sous-titre">Accédez à votre espace Lekòl Konekte.</p>
@@ -164,11 +178,8 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    <div className="otp-coche" aria-hidden="true">
-                      <svg viewBox="0 0 52 52">
-                        <circle className="otp-coche-cercle" cx="26" cy="26" r="24" fill="none" />
-                        <path className="otp-coche-trait" fill="none" d="M14 27l8 8 16-16" />
-                      </svg>
+                    <div className="otp-valide" aria-hidden="true">
+                      <img src="/auth/validation.png" alt="" />
                     </div>
                     <p className="otp-texte">Code validé ! Connexion…</p>
                   </>

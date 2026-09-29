@@ -150,24 +150,48 @@ a:hover { text-decoration: underline; }
   border: 4px solid var(--a-bord); border-top-color: var(--a-navy);
   animation: tourner .8s linear infinite;
 }
-/* Coche de succès : le cercle se dessine, puis le trait, avec un léger rebond */
-.otp-coche { width: 62px; height: 62px; animation: otp-pop .35s ease-out; }
-.otp-coche svg { width: 100%; height: 100%; }
-.otp-coche-cercle {
-  stroke: var(--a-navy); stroke-width: 3; stroke-dasharray: 151; stroke-dashoffset: 151;
-  animation: otp-trace .45s ease-out forwards;
+/* Coche de succès (image validation.png) : apparaît avec un rebond, puis
+   pulse légèrement */
+.otp-valide { width: 96px; height: 96px; animation: otp-pop .5s cubic-bezier(.2,1.4,.4,1); }
+.otp-valide img {
+  width: 100%; height: 100%; object-fit: contain;
+  filter: drop-shadow(0 6px 14px rgba(21,128,61,.35));
+  animation: otp-pulse 1.4s ease-in-out .5s infinite;
 }
-.otp-coche-trait {
-  stroke: #15803d; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round;
-  stroke-dasharray: 40; stroke-dashoffset: 40;
-  animation: otp-trace .3s .4s ease-out forwards;
+@keyframes otp-pop { 0% { transform: scale(0) rotate(-25deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(4deg); opacity: 1; } 100% { transform: scale(1) rotate(0); } }
+@keyframes otp-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* Envoi du code : l'avion en papier décolle et file en haut à droite, en
+   boucle, avec une traînée */
+.send-scene { position: relative; width: 120px; height: 90px; }
+.send-avion {
+  position: absolute; left: 8px; bottom: 8px; width: 46px; height: 46px;
+  object-fit: contain; animation: send-vol 1.7s ease-in infinite;
 }
-@keyframes otp-trace { to { stroke-dashoffset: 0; } }
-@keyframes otp-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.send-trainee {
+  position: absolute; left: 20px; bottom: 26px; width: 0; height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, transparent, var(--a-navy));
+  animation: send-trace 1.7s ease-in infinite;
+}
+@keyframes send-vol {
+  0%   { transform: translate(0,0) rotate(0); opacity: 0; }
+  15%  { opacity: 1; }
+  70%  { transform: translate(60px,-56px) rotate(8deg); opacity: 1; }
+  100% { transform: translate(96px,-84px) rotate(12deg); opacity: 0; }
+}
+@keyframes send-trace {
+  0%   { width: 0; opacity: 0; }
+  30%  { width: 44px; opacity: .8; }
+  70%  { width: 10px; opacity: .5; transform: translate(56px,-52px); }
+  100% { width: 0; opacity: 0; transform: translate(80px,-74px); }
+}
 @media (prefers-reduced-motion: reduce) {
   .otp-anneau { animation-duration: 1.4s; }
-  .otp-overlay, .otp-coche, .otp-coche-cercle, .otp-coche-trait { animation: none; }
-  .otp-coche-cercle, .otp-coche-trait { stroke-dashoffset: 0; }
+  .otp-overlay, .otp-valide, .otp-valide img { animation: none; }
+  .send-avion, .send-trainee { animation: none; }
+  .send-avion { opacity: 1; }
+  .send-trainee { display: none; }
 }
 
 /* Pied de page du formulaire */
