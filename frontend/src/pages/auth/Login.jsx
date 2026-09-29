@@ -169,7 +169,6 @@ export default function Login() {
               <>
                 <Bouton type="button" variante="secondaire" bloc enCours={biometrieEnCours}
                   onClick={connecterAvecBiometrie} style={{ marginBottom: '.35rem' }}>
-                  <span aria-hidden="true" style={{ marginRight: 8 }}>🔒</span>
                   Se connecter avec Face ID / empreinte
                 </Bouton>
                 <p className="texte-gris" style={{ textAlign: 'center', margin: '0 0 .6rem', fontSize: '.78rem' }}>
