@@ -8,6 +8,7 @@ import { verifierGoogleConfigure } from './config/googleAuth.js';
 import { purgerAnciennesPresences } from './services/presence.service.js';
 import { purgerJournal } from './services/securite.service.js';
 import { reconcilierPaiementsMobilesEnAttente, annulerInscriptionsNonPayees } from './services/paiement.service.js';
+import { migrerLogoEtBulletins } from './migrations/logoBulletins.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -33,6 +34,10 @@ async function demarrer() {
     // ou non) ne doit pas occuper le serveur indéfiniment.
     serveur.requestTimeout = 60_000;
     serveur.headersTimeout = 20_000;
+
+    // Migration ponctuelle (logo + régénération des bulletins) : ne fait rien
+    // sauf si MIGRATION_LOGO_BULLETINS=run, et au plus une fois (marqueur en base).
+    migrerLogoEtBulletins().catch((err) => console.error('Migration logo/bulletins échouée :', err.message));
 
     // Purge des vieux pointages de présence : au démarrage, puis une fois par jour.
     purgerAnciennesPresences().catch((err) => console.error('Purge présences échouée :', err.message));
