@@ -118,7 +118,7 @@ export default function PublicLayout() {
             <Link to="/a-propos">À propos</Link>
             <Link to="/contact">Contact</Link>
           </nav>
-          <span className="texte-gris">Plateforme de gestion scolaire</span>
+          <span className="texte-gris">Plateforme de gestion scolaire · Créé par Plaisival Steven</span>
         </div>
       </footer>
     </div>
