@@ -45,6 +45,10 @@ export default function APropos() {
         </div>
       )}
 
+      <p className="texte-gris" style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '.9rem' }}>
+        Plateforme <strong>Lekòl Konekte</strong> conçue et développée par <strong>Plaisival Steven</strong>.
+      </p>
+
       <p className="apropos-admin-lien">
         <Link to="/a-propos/admin" className="texte-gris"><Icone nom="lock" /> Espace administrateur</Link>
       </p>
