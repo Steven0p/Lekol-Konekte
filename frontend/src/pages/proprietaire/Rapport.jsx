@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { directionApi, urlRapportExport } from '../../services/api.js';
+import { directionApi, urlRapportExport, urlLogoEcole } from '../../services/api.js';
 import { dateHeureFr } from '../../utils/libelles.js';
 import Carte from '../../components/Carte.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 import Chargement from '../../components/Chargement.jsx';
+import Icone from '../../components/Icone.jsx';
 
 const LIBELLE_ENTITE = { inscription: 'Inscription', paiement: 'Paiement', document_soumis: 'Document' };
 const LIBELLE_ROLE = { admin: 'Secrétariat', direction: 'Direction', proprietaire: 'Propriétaire' };
@@ -27,9 +28,13 @@ export default function Rapport() {
 
   return (
     <div style={{ maxWidth: 860 }}>
-      <div className="page-entete">
-        <h1>Rapport mensuel</h1>
-        <p>Activité de la direction et du secrétariat, mois par mois. Exportable en Excel/CSV.</p>
+      <div className="page-entete rangee" style={{ gap: '1rem', alignItems: 'center' }}>
+        <img src={urlLogoEcole()} alt="" style={{ height: 52, width: 52, objectFit: 'contain', flexShrink: 0 }}
+          onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        <div>
+          <h1 style={{ margin: 0 }}>Rapport mensuel</h1>
+          <p style={{ margin: '.25rem 0 0' }}>Activité de la direction et du secrétariat, mois par mois. Exportable en Excel/CSV.</p>
+        </div>
       </div>
 
       <Carte>
@@ -40,7 +45,7 @@ export default function Rapport() {
               onChange={(e) => setMois(e.target.value || moisCourant())} />
           </div>
           <a href={urlRapportExport(mois)} download>
-            <Bouton type="button">⬇ Exporter en Excel / CSV</Bouton>
+            <Bouton type="button"><Icone nom="download" /> Exporter en Excel / CSV</Bouton>
           </a>
         </div>
       </Carte>
