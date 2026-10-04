@@ -10,6 +10,7 @@ const DESCRIPTION = {
   matieres_gestion: "Direction ne peut plus créer, modifier ni supprimer de matière ou coefficient tant que c'est désactivé (la consultation reste possible).",
   notes_saisie: "Le secrétariat ne peut plus saisir, modifier, supprimer ni valider de notes tant que c'est désactivé.",
   notes_publication: "Direction ne peut plus publier ni retirer de bulletins tant que c'est désactivé.",
+  paiement_inscription: "Autorisé : les frais d'inscription doivent être payés en ligne (MonCash, NatCash, carte…) avant que le dossier n'arrive au secrétariat. Désactivé : les familles peuvent s'inscrire sans payer, le dossier est transmis directement au secrétariat.",
 };
 
 export default function Permissions() {

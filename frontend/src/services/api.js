@@ -63,6 +63,7 @@ export const authApi = {
 
 export const inscriptionsApi = {
   lister: () => request('/inscriptions'),
+  config: () => request('/inscriptions/config'),
   creer: (payload) => request('/inscriptions', { method: 'POST', body: json(payload) }),
   detail: (id) => request(`/inscriptions/${id}`),
   listerDocuments: (id) => request(`/inscriptions/${id}/documents`),

@@ -12,6 +12,7 @@ import {
   changerStatutCtrl,
   messageParentIA,
   annuler,
+  configInscription,
 } from '../controllers/inscription.controller.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { uploadDocument, verifierContenuDocument } from '../config/upload.js';
@@ -38,6 +39,7 @@ function televerserFichier(req, res, next) {
 // Parent
 router.post('/inscriptions', requireRole('parent'), creer);
 router.get('/inscriptions', requireRole('parent'), listerMiennes);
+router.get('/inscriptions/config', requireRole('parent'), configInscription);
 router.post('/inscriptions/:id/documents', requireRole('parent'), uploadLimiter, televerserFichier, televerserDocument);
 router.post('/inscriptions/:id/annuler', requireRole('parent'), annuler);
 

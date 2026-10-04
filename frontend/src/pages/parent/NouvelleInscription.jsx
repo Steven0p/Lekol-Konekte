@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { inscriptionsApi, paiementsApi } from '../../services/api.js';
-import { anneeScolaireCourante, NIVEAUX_GROUPES, tarifCourant, montantFr } from '../../utils/libelles.js';
+import { inscriptionsApi } from '../../services/api.js';
+import { anneeScolaireCourante, NIVEAUX_GROUPES, montantFr } from '../../utils/libelles.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -19,10 +19,14 @@ export default function NouvelleInscription() {
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
   const [tarif, setTarif] = useState(null);
+  // Le paiement à l'inscription peut être désactivé par le propriétaire.
+  const [paiementRequis, setPaiementRequis] = useState(true);
   const envoiEnCours = useRef(false); // double-clic : bloqué avant même le re-rendu
 
   useEffect(() => {
-    paiementsApi.tarifs().then((t) => setTarif(tarifCourant(t.tarifs, 'inscription'))).catch(() => {});
+    inscriptionsApi.config()
+      .then((c) => { setPaiementRequis(c.paiementRequis); setTarif(c.tarif); })
+      .catch(() => {});
   }, []);
 
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
@@ -35,8 +39,13 @@ export default function NouvelleInscription() {
     setEnCours(true);
     try {
       const d = await inscriptionsApi.creer(form);
-      // Paiement des frais immédiatement : sans lui, le dossier est annulé
-      navigate(`/paiements/${d.paiement.id}`);
+      if (d.paiement) {
+        // Paiement des frais immédiatement : sans lui, le dossier est annulé
+        navigate(`/paiements/${d.paiement.id}`);
+      } else {
+        // Paiement désactivé : dossier transmis directement au secrétariat
+        navigate(`/inscriptions/${d.inscription.id}`);
+      }
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -110,15 +119,22 @@ export default function NouvelleInscription() {
               placeholder="Pourquoi avez-vous choisi Lekòl Konekte ?" />
           } />
 
-          <Alerte type="info">
-            Les frais d'inscription{tarif ? ` (${montantFr(tarif.montant, tarif.devise)})` : ''} se paient
-            en ligne juste après (MonCash, NatCash, KashPay ou carte Visa/Mastercard). Le dossier n'est
-            transmis au secrétariat qu'une fois le paiement confirmé ; s'il n'est pas payé dans les
-            2 minutes, il est annulé.
-          </Alerte>
+          {paiementRequis ? (
+            <Alerte type="info">
+              Les frais d'inscription{tarif ? ` (${montantFr(tarif.montant, tarif.devise)})` : ''} se paient
+              en ligne juste après (MonCash, NatCash, KashPay ou carte Visa/Mastercard). Le dossier n'est
+              transmis au secrétariat qu'une fois le paiement confirmé ; s'il n'est pas payé dans les
+              2 minutes, il est annulé.
+            </Alerte>
+          ) : (
+            <Alerte type="info">
+              L'inscription est gratuite : votre dossier sera transmis directement au secrétariat, qui
+              vous informera de sa décision.
+            </Alerte>
+          )}
 
           <div className="rangee" style={{ marginTop: '.5rem' }}>
-            <Bouton type="submit" enCours={enCours}>Créer le dossier et payer</Bouton>
+            <Bouton type="submit" enCours={enCours}>{paiementRequis ? 'Créer le dossier et payer' : 'Créer le dossier'}</Bouton>
             <Link to="/inscriptions"><Bouton variante="fantome" type="button">Annuler</Bouton></Link>
           </div>
         </form>

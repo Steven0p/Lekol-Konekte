@@ -8,12 +8,15 @@ import {
   listerTout,
   annulerSiNonPayee,
   trouverDoublonNonPaye,
+  transmettreApresPaiement,
   STATUTS_NON_PAYES,
   DELAI_PAIEMENT_MINUTES,
 } from '../models/inscription.model.js';
 import * as paiementModel from '../models/paiement.model.js';
 import { tarifCourant } from '../models/tarif.model.js';
 import { plopplopConfigure } from '../config/plopplop.js';
+import { genererCodeAcces } from '../models/eleve.model.js';
+import { estAutorise, CLES } from '../services/permissions.service.js';
 import {
   creerDocument,
   listerParInscription,
@@ -120,48 +123,90 @@ export async function creer(req, res, next) {
       return res.status(400).json({ erreur: "Le nom de l'élève est requis." });
     }
 
-    // Les frais d'inscription se paient en ligne dès la soumission : sans
-    // tarif en HTG ou sans paiement en ligne configuré, le dossier ne
-    // pourrait jamais être payé — on refuse avant de créer quoi que ce soit.
-    const tarif = await tarifCourant('inscription');
-    if (!tarif || tarif.devise !== 'HTG' || !plopplopConfigure()) {
-      return res.status(503).json({
-        erreur: "Les inscriptions en ligne sont momentanément indisponibles (paiement des frais non configuré). Contactez l'école.",
+    const donnees = {
+      idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
+      nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
+    };
+
+    // Le paiement des frais à l'inscription peut être désactivé par le
+    // propriétaire (contrôle d'accès). Autorisé (défaut) = paiement obligatoire.
+    const paiementRequis = await estAutorise(CLES.PAIEMENT_INSCRIPTION);
+
+    if (paiementRequis) {
+      // Les frais se paient en ligne dès la soumission : sans tarif en HTG ou
+      // sans paiement en ligne configuré, le dossier ne pourrait jamais être
+      // payé — on refuse avant de créer quoi que ce soit.
+      const tarif = await tarifCourant('inscription');
+      if (!tarif || tarif.devise !== 'HTG' || !plopplopConfigure()) {
+        return res.status(503).json({
+          erreur: "Les inscriptions en ligne sont momentanément indisponibles (paiement des frais non configuré). Contactez l'école.",
+        });
+      }
+
+      // Double-clic / renvoi du formulaire : réutilise le dossier impayé identique
+      const doublon = await trouverDoublonNonPaye({ idParent, eleveNom, elevePrenom, dateNaissance });
+      if (doublon) {
+        const p = await paiementModel.trouverPourInscription(doublon.id);
+        if (p && p.statut === 'en_attente') {
+          return res.status(200).json({
+            message: 'Dossier déjà soumis — en attente du paiement des frais.',
+            inscription: { id: doublon.id, idEleve: doublon.id_eleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau },
+            paiement: { id: p.id, montant: p.montant, devise: p.devise },
+            delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
+          });
+        }
+      }
+
+      const { idInscription, idEleve } = await creerInscription(donnees);
+      // Le code d'accès élève est généré au paiement des frais (voir
+      // traiterValidation), pas ici : un dossier impayé ne donne accès à rien.
+      const idPaiement = await paiementModel.creer({
+        typeFrais: 'inscription', idReference: idInscription, montant: tarif.montant, devise: tarif.devise,
+      });
+
+      return res.status(201).json({
+        message: 'Inscription créée — en attente du paiement des frais.',
+        inscription: { id: idInscription, idEleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau },
+        paiement: { id: idPaiement, montant: tarif.montant, devise: tarif.devise },
+        delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
       });
     }
 
-    // Double-clic / renvoi du formulaire : réutilise le dossier impayé identique
-    const doublon = await trouverDoublonNonPaye({ idParent, eleveNom, elevePrenom, dateNaissance });
-    if (doublon) {
-      const p = await paiementModel.trouverPourInscription(doublon.id);
-      if (p && p.statut === 'en_attente') {
-        return res.status(200).json({
-          message: 'Dossier déjà soumis — en attente du paiement des frais.',
-          inscription: { id: doublon.id, idEleve: doublon.id_eleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau },
-          paiement: { id: p.id, montant: p.montant, devise: p.devise },
-          delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
-        });
-      }
+    // Paiement désactivé par le propriétaire : inscription SANS paiement. Le
+    // dossier (créé « attente_paiement ») est transmis directement au
+    // secrétariat et le code d'accès élève est généré.
+    const { idInscription, idEleve } = await creerInscription(donnees);
+    await transmettreApresPaiement(idInscription); // attente_paiement -> en_attente
+    try {
+      await genererCodeAcces(idEleve);
+    } catch (err) {
+      console.error('Génération du code élève échouée :', err.message);
     }
-
-    const { idInscription, idEleve } = await creerInscription({
-      idParent, eleveNom, elevePrenom, sexe, dateNaissance, niveau, anneeScolaire,
-      nomParent, professionParent, telephoneParent, courrielParent, ancienneEcole, ancienneClasse, raisonChoix,
-    });
-    // Le code d'accès élève est généré au paiement des frais (voir
-    // traiterValidation), pas ici : un dossier impayé ne donne accès à rien.
-    const idPaiement = await paiementModel.creer({
-      typeFrais: 'inscription', idReference: idInscription, montant: tarif.montant, devise: tarif.devise,
+    await journaliser({
+      entite: 'inscription', idEntite: idInscription, ancienStatut: 'attente_paiement',
+      nouveauStatut: 'en_attente', commentaire: 'Inscription sans paiement (désactivé par le propriétaire)', idAuteur: null,
     });
 
     return res.status(201).json({
-      message: 'Inscription créée — en attente du paiement des frais.',
-      inscription: {
-        id: idInscription, idEleve, statut: 'attente_paiement', eleveNom, anneeScolaire, niveau,
-      },
-      paiement: { id: idPaiement, montant: tarif.montant, devise: tarif.devise },
-      delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
+      message: 'Inscription créée.',
+      inscription: { id: idInscription, idEleve, statut: 'en_attente', eleveNom, anneeScolaire, niveau },
     });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/inscriptions/config (parent) — indique au formulaire si le paiement
+// des frais est exigé (contrôlé par le propriétaire) et, le cas échéant, le tarif.
+export async function configInscription(req, res, next) {
+  try {
+    const paiementRequis = await estAutorise(CLES.PAIEMENT_INSCRIPTION);
+    let tarif = null;
+    if (paiementRequis) {
+      const t = await tarifCourant('inscription');
+      if (t) tarif = { montant: t.montant, devise: t.devise };
+    }
+    return res.json({ paiementRequis, tarif, delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES });
   } catch (err) {
     next(err);
   }

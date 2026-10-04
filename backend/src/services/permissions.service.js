@@ -7,12 +7,17 @@ export const CLES = {
   MATIERES: 'matieres_gestion',
   NOTES_SAISIE: 'notes_saisie',
   NOTES_PUBLICATION: 'notes_publication',
+  // Paiement des frais exigé à l'inscription. Autorisé (défaut) = paiement
+  // obligatoire ; désactivé = inscription sans paiement (dossier transmis
+  // directement au secrétariat).
+  PAIEMENT_INSCRIPTION: 'paiement_inscription',
 };
 
 const LIBELLES = {
   [CLES.MATIERES]: 'Matières & coefficients',
   [CLES.NOTES_SAISIE]: 'Saisie des notes',
   [CLES.NOTES_PUBLICATION]: 'Publication des notes',
+  [CLES.PAIEMENT_INSCRIPTION]: "Paiement à l'inscription",
 };
 
 export async function estAutorise(cle) {
