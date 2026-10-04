@@ -19,6 +19,7 @@ export default function Register() {
   // Après création du compte : l'élève enchaîne sur sa propre inscription.
   const apresInscription = estEleve ? '/inscriptions/nouvelle' : '/tableau-de-bord';
   const [nom, setNom] = useState('');
+  const [prenom, setPrenom] = useState('');
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [confirmation, setConfirmation] = useState('');
@@ -34,7 +35,9 @@ export default function Register() {
     }
     setEnCours(true);
     try {
-      await register({ nom, courriel, motDePasse });
+      // Le compte stocke un nom complet unique : « Prénom Nom ».
+      const nomComplet = `${prenom.trim()} ${nom.trim()}`.trim();
+      await register({ nom: nomComplet, courriel, motDePasse });
       // La session est ouverte par register : on enchaîne (inscription pour un
       // élève, tableau de bord sinon).
       navigate(apresInscription);
@@ -85,10 +88,14 @@ export default function Register() {
 
           <Alerte type="erreur">{erreur}</Alerte>
 
-          <Champ label="Nom complet" value={nom}
-            onChange={(e) => setNom(e.target.value)} required autoComplete="name" />
-          <Champ label="Courriel" type="email" value={courriel}
-            onChange={(e) => setCourriel(e.target.value)} required autoComplete="email" />
+          <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <Champ label="NOM" value={nom}
+              onChange={(e) => setNom(e.target.value)} required autoComplete="family-name" placeholder="Nom de famille" />
+            <Champ label="PRÉNOM" value={prenom}
+              onChange={(e) => setPrenom(e.target.value)} required autoComplete="given-name" placeholder="Prénom" />
+          </div>
+          <Champ label="E-MAIL" type="email" value={courriel}
+            onChange={(e) => setCourriel(e.target.value)} required autoComplete="email" placeholder="exemple@email.com" />
           <Champ label="Mot de passe (8 caractères min.)" type="password" value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)} minLength={8} required autoComplete="new-password" />
           <Champ label="Confirmer le mot de passe" type="password" value={confirmation}
