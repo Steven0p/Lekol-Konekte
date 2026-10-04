@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { useMarque } from '../../context/MarqueContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -11,7 +10,6 @@ import { biometrieDisponible, autofillDisponible, connexionBiometrie, connexionB
 
 export default function Login() {
   const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin, connexionBiometrieOuvre } = useAuth();
-  const { inscriptionEleve } = useMarque();
   const [biometrieEnCours, setBiometrieEnCours] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -211,11 +209,6 @@ export default function Login() {
             <p className="auth-lien">
               Élève ? <Link to="/eleve">Accéder avec un code</Link>
             </p>
-            {inscriptionEleve && (
-              <p className="auth-lien">
-                Élève non inscrit ? <Link to="/register?profil=eleve">Créer un compte et s'inscrire</Link>
-              </p>
-            )}
             <p className="auth-lien">
               Ancien élève ? <Link to="/anciens-eleves">Demander l'accès à mes résultats</Link>
             </p>

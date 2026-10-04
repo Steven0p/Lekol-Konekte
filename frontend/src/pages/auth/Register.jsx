@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useMarque } from '../../context/MarqueContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -11,9 +12,10 @@ export default function Register() {
   const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  // Élève qui s'inscrit lui-même (depuis la page de connexion, si le
-  // propriétaire a activé l'auto-inscription des élèves).
-  const estEleve = searchParams.get('profil') === 'eleve';
+  const { inscriptionEleve } = useMarque();
+  // Élève qui s'inscrit lui-même — uniquement si le propriétaire a activé
+  // l'auto-inscription des élèves.
+  const estEleve = inscriptionEleve && searchParams.get('profil') === 'eleve';
   // Après création du compte : l'élève enchaîne sur sa propre inscription.
   const apresInscription = estEleve ? '/inscriptions/nouvelle' : '/tableau-de-bord';
   const [nom, setNom] = useState('');
@@ -61,12 +63,20 @@ export default function Register() {
       <PanneauMarque />
       <div className="auth-panneau">
         <form className="auth-form" onSubmit={soumettre}>
-          <h2>{estEleve ? 'Créer mon compte élève' : 'Créer un compte parent'}</h2>
+          <h2>{estEleve ? 'Créer un compte élève' : 'Créer un compte parent'}</h2>
           <p className="sous-titre">
             {estEleve
               ? 'Créez votre compte, puis remplissez votre inscription.'
               : 'Inscrivez-vous pour suivre la scolarité de votre enfant.'}
           </p>
+
+          {inscriptionEleve && (
+            <p className="auth-lien" style={{ marginTop: 0, marginBottom: '1rem' }}>
+              {estEleve
+                ? <>Vous êtes parent ? <Link to="/register">Créer un compte parent</Link></>
+                : <>Vous êtes élève ? <Link to="/register?profil=eleve">Créer un compte élève</Link></>}
+            </p>
+          )}
 
           <Alerte type="erreur">{erreur}</Alerte>
 
