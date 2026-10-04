@@ -17,6 +17,26 @@ export function moisValide(mois) {
   return new Date().toISOString().slice(0, 7);
 }
 
+// Liste des mois (du plus récent au plus ancien) depuis la création du
+// système (plus ancien compte) jusqu'au mois courant.
+export async function moisDisponibles() {
+  const [[{ premier }]] = await pool.query(
+    "SELECT DATE_FORMAT(MIN(cree_le), '%Y-%m') AS premier FROM utilisateurs"
+  );
+  const courant = new Date().toISOString().slice(0, 7);
+  const debut = premier || courant;
+  const [py, pm] = debut.split('-').map(Number);
+  const mois = [];
+  let [y, m] = courant.split('-').map(Number);
+  while (y > py || (y === py && m >= pm)) {
+    mois.push(`${y}-${String(m).padStart(2, '0')}`);
+    m -= 1;
+    if (m === 0) { m = 12; y -= 1; }
+    if (mois.length > 600) break; // garde-fou
+  }
+  return mois;
+}
+
 export async function rapportMensuel(moisBrut) {
   const mois = moisValide(moisBrut);
   const { debut, fin } = bornesMois(mois);
@@ -61,6 +81,7 @@ export async function rapportMensuel(moisBrut) {
 
   return {
     mois,
+    moisDisponibles: await moisDisponibles(),
     resume: resume.map((r) => ({ ...r, n: Number(r.n) })),
     parAgent: parAgent.map((a) => ({
       nom: a.nom, courriel: a.courriel, role: a.role,

@@ -13,12 +13,15 @@ const moisCourant = () => new Date().toISOString().slice(0, 7);
 
 export default function Rapport() {
   const [mois, setMois] = useState(moisCourant());
+  const [listeMois, setListeMois] = useState([]);
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState('');
 
   useEffect(() => {
     setData(null); setErreur('');
-    directionApi.rapport(mois).then(setData).catch((e) => setErreur(e.message));
+    directionApi.rapport(mois)
+      .then((d) => { setData(d); if (d.moisDisponibles) setListeMois(d.moisDisponibles); })
+      .catch((e) => setErreur(e.message));
   }, [mois]);
 
   const moisLisible = (m) => {
@@ -39,10 +42,13 @@ export default function Rapport() {
 
       <Carte>
         <div className="rangee entre" style={{ flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
-          <div className="champ" style={{ margin: 0 }}>
+          <div className="champ" style={{ margin: 0, minWidth: 220 }}>
             <label htmlFor="rapport-mois">Mois</label>
-            <input id="rapport-mois" type="month" value={mois} max={moisCourant()}
-              onChange={(e) => setMois(e.target.value || moisCourant())} />
+            <select id="rapport-mois" value={mois} onChange={(e) => setMois(e.target.value)}>
+              {(listeMois.length ? listeMois : [mois]).map((m) => (
+                <option key={m} value={m}>{moisLisible(m)}</option>
+              ))}
+            </select>
           </div>
           <a href={urlRapportExport(mois)} download>
             <Bouton type="button"><Icone nom="download" /> Exporter en Excel / CSV</Bouton>
