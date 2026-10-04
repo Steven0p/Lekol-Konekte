@@ -133,9 +133,17 @@ export default function NouvelleInscription() {
           <Alerte type="erreur">{erreur}</Alerte>
 
           <h3 style={{ fontSize: '1rem', marginBottom: '.75rem' }}>Informations sur l'élève</h3>
+          {estCompteEleve && (
+            <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
+              Votre nom et prénom sont repris de votre compte et ne peuvent pas être modifiés ici,
+              pour rester cohérents avec votre connexion.
+            </p>
+          )}
           <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-            <Champ label="Nom de famille" value={form.eleveNom} onChange={maj('eleveNom')} required />
-            <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')} required />
+            <Champ label="Nom de famille" value={form.eleveNom} onChange={maj('eleveNom')}
+              required readOnly={estCompteEleve} />
+            <Champ label="Prénom" value={form.elevePrenom} onChange={maj('elevePrenom')}
+              required readOnly={estCompteEleve} />
             <Champ label="Sexe" id="insc-sexe" enfant={
               <select id="insc-sexe" value={form.sexe} onChange={maj('sexe')} required>
                 <option value="">— Choisir —</option>
