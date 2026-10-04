@@ -11,18 +11,29 @@ export const CLES = {
   // obligatoire ; désactivé = inscription sans paiement (dossier transmis
   // directement au secrétariat).
   PAIEMENT_INSCRIPTION: 'paiement_inscription',
+  // Auto-inscription des élèves. Contrairement aux autres clés, celle-ci est
+  // « opt-in » : désactivée par défaut (voir OPT_IN). Activée = un élève peut
+  // créer son propre compte et s'inscrire lui-même.
+  INSCRIPTION_ELEVE: 'inscription_eleve',
 };
+
+// Clés « opt-in » : désactivées tant que le propriétaire ne les a pas activées
+// (absence de ligne = désactivé). Les autres clés sont « opt-out » (absence =
+// autorisé).
+const OPT_IN = new Set([CLES.INSCRIPTION_ELEVE]);
 
 const LIBELLES = {
   [CLES.MATIERES]: 'Matières & coefficients',
   [CLES.NOTES_SAISIE]: 'Saisie des notes',
   [CLES.NOTES_PUBLICATION]: 'Publication des notes',
   [CLES.PAIEMENT_INSCRIPTION]: "Paiement à l'inscription",
+  [CLES.INSCRIPTION_ELEVE]: "Auto-inscription des élèves",
 };
 
 export async function estAutorise(cle) {
   const [[ligne]] = await pool.query('SELECT autorise FROM permissions WHERE cle = ?', [cle]);
-  return ligne ? Boolean(ligne.autorise) : true;
+  // Absence de ligne : les clés « opt-in » sont désactivées, les autres autorisées.
+  return ligne ? Boolean(ligne.autorise) : !OPT_IN.has(cle);
 }
 
 export async function listerPermissions() {
@@ -31,7 +42,7 @@ export async function listerPermissions() {
   return Object.values(CLES).map((cle) => ({
     cle,
     libelle: LIBELLES[cle],
-    autorise: carte.has(cle) ? Boolean(carte.get(cle).autorise) : true,
+    autorise: carte.has(cle) ? Boolean(carte.get(cle).autorise) : !OPT_IN.has(cle),
     modifieLe: carte.get(cle)?.modifie_le || null,
   }));
 }

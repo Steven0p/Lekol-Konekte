@@ -9,6 +9,7 @@ const MarqueContext = createContext(null);
 export function MarqueProvider({ children }) {
   const [nom, setNom] = useState('Lekòl Konekte');
   const [aLogo, setALogo] = useState(false);
+  const [inscriptionEleve, setInscriptionEleve] = useState(false);
   const [version, setVersion] = useState(0); // pour forcer le rechargement de l'image
 
   const recharger = useCallback(async () => {
@@ -16,6 +17,7 @@ export function MarqueProvider({ children }) {
       const m = await marqueApi.obtenir();
       setNom(m.nom || 'Lekòl Konekte');
       setALogo(!!m.aLogo);
+      setInscriptionEleve(!!m.inscriptionEleve);
       setVersion((v) => v + 1);
     } catch {
       // En cas d'échec, on garde les valeurs par défaut (Lekòl Konekte, sans logo).
@@ -25,7 +27,7 @@ export function MarqueProvider({ children }) {
   useEffect(() => { recharger(); }, [recharger]);
 
   return (
-    <MarqueContext.Provider value={{ nom, aLogo, version, recharger }}>
+    <MarqueContext.Provider value={{ nom, aLogo, inscriptionEleve, version, recharger }}>
       {children}
     </MarqueContext.Provider>
   );

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
@@ -10,6 +10,12 @@ import BoutonGoogle from '../../components/BoutonGoogle.jsx';
 export default function Register() {
   const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Élève qui s'inscrit lui-même (depuis la page de connexion, si le
+  // propriétaire a activé l'auto-inscription des élèves).
+  const estEleve = searchParams.get('profil') === 'eleve';
+  // Après création du compte : l'élève enchaîne sur sa propre inscription.
+  const apresInscription = estEleve ? '/inscriptions/nouvelle' : '/tableau-de-bord';
   const [nom, setNom] = useState('');
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
@@ -27,8 +33,9 @@ export default function Register() {
     setEnCours(true);
     try {
       await register({ nom, courriel, motDePasse });
-      // La session est ouverte par register : on entre directement dans l'espace parent.
-      navigate('/tableau-de-bord');
+      // La session est ouverte par register : on enchaîne (inscription pour un
+      // élève, tableau de bord sinon).
+      navigate(apresInscription);
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -41,7 +48,7 @@ export default function Register() {
     setEnCours(true);
     try {
       await googleLogin(credential);
-      navigate('/tableau-de-bord');
+      navigate(apresInscription);
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -54,8 +61,12 @@ export default function Register() {
       <PanneauMarque />
       <div className="auth-panneau">
         <form className="auth-form" onSubmit={soumettre}>
-          <h2>Créer un compte parent</h2>
-          <p className="sous-titre">Inscrivez-vous pour suivre la scolarité de votre enfant.</p>
+          <h2>{estEleve ? 'Créer mon compte élève' : 'Créer un compte parent'}</h2>
+          <p className="sous-titre">
+            {estEleve
+              ? 'Créez votre compte, puis remplissez votre inscription.'
+              : 'Inscrivez-vous pour suivre la scolarité de votre enfant.'}
+          </p>
 
           <Alerte type="erreur">{erreur}</Alerte>
 

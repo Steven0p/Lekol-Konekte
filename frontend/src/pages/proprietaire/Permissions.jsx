@@ -11,6 +11,7 @@ const DESCRIPTION = {
   notes_saisie: "Le secrétariat ne peut plus saisir, modifier, supprimer ni valider de notes tant que c'est désactivé.",
   notes_publication: "Direction ne peut plus publier ni retirer de bulletins tant que c'est désactivé.",
   paiement_inscription: "Autorisé : les frais d'inscription doivent être payés en ligne (MonCash, NatCash, carte…) avant que le dossier n'arrive au secrétariat. Désactivé : les familles peuvent s'inscrire sans payer, le dossier est transmis directement au secrétariat.",
+  inscription_eleve: "Désactivé par défaut. Autorisé : un élève peut créer lui-même son compte et s'inscrire (même parcours que les parents : il gère ensuite son inscription, ses notes et ses paiements). Désactivé : seuls les parents peuvent créer un compte et inscrire.",
 };
 
 export default function Permissions() {

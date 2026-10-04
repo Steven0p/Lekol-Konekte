@@ -6,6 +6,7 @@ import * as ecoleModel from '../models/ecole.model.js';
 import * as eleveModel from '../models/eleve.model.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import { tracer } from '../services/securite.service.js';
+import { estAutorise, CLES } from '../services/permissions.service.js';
 
 const TYPES = ['inscription', 'releve', 'duplicata'];
 const DEVISES = ['HTG', 'USD'];
@@ -163,6 +164,9 @@ export async function marqueEcole(req, res, next) {
       // Public (pas sensible) : les comptes élève (session par code, sans req.session.userId)
       // n'ont pas accès à /ecole/coordonnees (requireAuth) — c'est ici qu'ils le lisent.
       seuilReussite: ecole ? Number(ecole.seuil_reussite) : 60,
+      // Auto-inscription des élèves autorisée par le propriétaire ? (public : la
+      // page de connexion affiche ou non l'option « élève : créer un compte »)
+      inscriptionEleve: await estAutorise(CLES.INSCRIPTION_ELEVE),
     });
   } catch (err) {
     next(err);
