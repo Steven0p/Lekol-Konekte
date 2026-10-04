@@ -61,7 +61,7 @@ export async function findParentIdByUserId(idUtilisateur) {
 // Retourne l'utilisateur (sans le hash) par id, ou null
 export async function findById(id) {
   const [rows] = await pool.query(
-    `SELECT id, nom, courriel, role, statut, cree_le,
+    `SELECT id, nom, courriel, role, statut, cree_le, compte_eleve AS compteEleve,
             (mot_de_passe_hash IS NOT NULL) AS aMotDePasse
        FROM utilisateurs WHERE id = ? LIMIT 1`,
     [id]
@@ -107,14 +107,14 @@ export async function listerParentsAvecCourriel() {
 // courriel. La colonne courriel_verifie est conservée (mise à 1) pour pouvoir
 // réactiver cette étape plus tard sans migration.
 // Retourne l'utilisateur créé (sans le hash).
-export async function createParent({ nom, courriel, motDePasseHash }) {
+export async function createParent({ nom, courriel, motDePasseHash, compteEleve = false }) {
   const conn = await pool.getConnection();
   try {
     await conn.beginTransaction();
 
     const [res] = await conn.query(
-      'INSERT INTO utilisateurs (nom, courriel, mot_de_passe_hash, role, courriel_verifie) VALUES (?, ?, ?, ?, 1)',
-      [nom, courriel, motDePasseHash, 'parent']
+      'INSERT INTO utilisateurs (nom, courriel, mot_de_passe_hash, role, compte_eleve, courriel_verifie) VALUES (?, ?, ?, ?, ?, 1)',
+      [nom, courriel, motDePasseHash, 'parent', compteEleve ? 1 : 0]
     );
     const idUtilisateur = res.insertId;
 

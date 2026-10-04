@@ -37,7 +37,7 @@ export default function Register() {
     try {
       // Le compte stocke un nom complet unique : « Prénom Nom ».
       const nomComplet = `${prenom.trim()} ${nom.trim()}`.trim();
-      await register({ nom: nomComplet, courriel, motDePasse });
+      await register({ nom: nomComplet, courriel, motDePasse, profilEleve: estEleve });
       // Élève : on garde nom/prénom pour préremplir le formulaire d'inscription.
       if (estEleve) {
         try {

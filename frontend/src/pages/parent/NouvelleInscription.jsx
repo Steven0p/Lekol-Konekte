@@ -36,6 +36,8 @@ const dateMinNaissance = ilYaAnnees(40);
 export default function NouvelleInscription() {
   const navigate = useNavigate();
   const { utilisateur } = useAuth();
+  // Compte créé par un élève lui-même : on adapte les libellés « parent ».
+  const estCompteEleve = !!utilisateur?.compteEleve;
   const [form, setForm] = useState({
     eleveNom: '', elevePrenom: '', sexe: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
     nomParent: utilisateur?.nom || '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
@@ -110,7 +112,10 @@ export default function NouvelleInscription() {
   return (
     <div style={{ maxWidth: 560 }}>
       <div className="page-entete">
-        <h1>Nouvelle inscription</h1>
+        <div className="rangee" style={{ gap: '.6rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <h1 style={{ margin: 0 }}>Nouvelle inscription</h1>
+          {estCompteEleve && <span className="insc-badge insc-badge-ble">Espace élève</span>}
+        </div>
         <p>Renseignez les informations de l'élève. Vous pourrez ensuite téléverser les documents.</p>
       </div>
 
@@ -147,10 +152,12 @@ export default function NouvelleInscription() {
             Toujours l'année scolaire en cours — déterminée automatiquement.
           </p>
 
-          <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Informations sur le parent / tuteur</h3>
-          <Champ label="Nom complet du parent" value={form.nomParent}
+          <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>
+            {estCompteEleve ? 'Informations du responsable (parent / tuteur)' : 'Informations sur le parent / tuteur'}
+          </h3>
+          <Champ label={estCompteEleve ? 'Nom complet du responsable' : 'Nom complet du parent'} value={form.nomParent}
             onChange={maj('nomParent')} />
-          <Champ label="Profession du parent" id="insc-profession" enfant={
+          <Champ label={estCompteEleve ? 'Profession du responsable' : 'Profession du parent'} id="insc-profession" enfant={
             <select id="insc-profession" value={professionChoix} onChange={choisirProfession}>
               <option value="">— Choisir —</option>
               {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
@@ -161,9 +168,9 @@ export default function NouvelleInscription() {
             <Champ label="Précisez la profession" value={form.professionParent}
               onChange={maj('professionParent')} placeholder="Votre profession" autoFocus />
           )}
-          <Champ label="Téléphone du parent" type="tel" value={form.telephoneParent}
+          <Champ label={estCompteEleve ? 'Téléphone du responsable' : 'Téléphone du parent'} type="tel" value={form.telephoneParent}
             onChange={maj('telephoneParent')} placeholder="ex. +509 ..." required />
-          <Champ label="Courriel du parent" type="email" value={form.courrielParent}
+          <Champ label={estCompteEleve ? 'Courriel du responsable' : 'Courriel du parent'} type="email" value={form.courrielParent}
             onChange={maj('courrielParent')} placeholder="ex. parent@exemple.com" required />
           <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
             Les notifications de résultats (à chaque trimestre) seront envoyées à cette adresse.

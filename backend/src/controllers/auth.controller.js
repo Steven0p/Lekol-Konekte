@@ -34,6 +34,7 @@ const protectionLogin = creerProtection({ seuil: 10 });
 import { regenererSession } from '../middleware/auth.js';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
 import { tracer, alerter, echecConnexion } from '../services/securite.service.js';
+import { estAutorise, CLES } from '../services/permissions.service.js';
 
 // Même réponse pour tout échec d'identification (compte inexistant, sans mot
 // de passe, mot de passe faux) : elle ne doit pas révéler qui a un compte.
@@ -74,8 +75,13 @@ export async function register(req, res, next) {
       });
     }
 
+    // Compte élève (auto-inscription) : honoré uniquement si le propriétaire a
+    // activé la fonctionnalité — sinon c'est un compte parent normal.
+    const compteEleve = req.body.profilEleve === true
+      && await estAutorise(CLES.INSCRIPTION_ELEVE);
+
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
-    const utilisateur = await createParent({ nom, courriel, motDePasseHash });
+    const utilisateur = await createParent({ nom, courriel, motDePasseHash, compteEleve });
 
     await regenererSession(req);
     req.session.userId = utilisateur.id;
@@ -88,6 +94,7 @@ export async function register(req, res, next) {
         nom: utilisateur.nom,
         courriel: utilisateur.courriel,
         role: utilisateur.role,
+        compteEleve,
       },
     });
   } catch (err) {

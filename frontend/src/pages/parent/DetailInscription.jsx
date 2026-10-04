@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { inscriptionsApi, urlDocumentSoumis } from '../../services/api.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 import Carte from '../../components/Carte.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
@@ -36,6 +37,9 @@ const dateFr = (s) => (s ? new Date(s).toLocaleString('fr-FR') : '');
 
 export default function DetailInscription() {
   const { id } = useParams();
+  const { utilisateur } = useAuth();
+  const estCompteEleve = !!utilisateur?.compteEleve;
+  const motResponsable = estCompteEleve ? 'responsable' : 'parent';
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [erreur, setErreur] = useState('');
@@ -161,9 +165,9 @@ export default function DetailInscription() {
       <div style={{ marginTop: '1rem' }}>
         <Carte titre="Informations complémentaires">
           <ul className="pile pile-sm" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            <li><span className="texte-gris">Nom du parent : </span>{inscription.nom_parent || '—'}</li>
-            <li><span className="texte-gris">Profession du parent : </span>{inscription.profession_parent || '—'}</li>
-            <li><span className="texte-gris">Téléphone du parent : </span>{inscription.telephone_parent || '—'}</li>
+            <li><span className="texte-gris">Nom du {motResponsable} : </span>{inscription.nom_parent || '—'}</li>
+            <li><span className="texte-gris">Profession du {motResponsable} : </span>{inscription.profession_parent || '—'}</li>
+            <li><span className="texte-gris">Téléphone du {motResponsable} : </span>{inscription.telephone_parent || '—'}</li>
             <li><span className="texte-gris">Ancienne école : </span>{inscription.ancienne_ecole || '—'}</li>
             <li><span className="texte-gris">Dernière classe suivie : </span>{inscription.ancienne_classe || '—'}</li>
             <li><span className="texte-gris">Raison du choix : </span>{inscription.raison_choix || '—'}</li>

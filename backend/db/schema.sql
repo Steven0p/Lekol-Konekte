@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS utilisateurs (
   mot_de_passe_hash VARCHAR(255) NULL,
   google_id         VARCHAR(255) NULL UNIQUE,
   role              ENUM('parent','eleve','admin','direction','proprietaire','professeur') NOT NULL DEFAULT 'parent',
+  compte_eleve      TINYINT(1) NOT NULL DEFAULT 0,  -- compte créé par un élève (auto-inscription)
   statut            ENUM('actif','inactif') NOT NULL DEFAULT 'actif',
   courriel_verifie  TINYINT(1) NOT NULL DEFAULT 0,
   cree_le           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
