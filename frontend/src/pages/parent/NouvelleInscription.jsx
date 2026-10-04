@@ -36,11 +36,20 @@ const dateMinNaissance = ilYaAnnees(40);
 export default function NouvelleInscription() {
   const navigate = useNavigate();
   const { utilisateur } = useAuth();
-  // Compte créé par un élève lui-même : on adapte les libellés « parent ».
+  // Compte créé par un élève lui-même : on adapte les libellés « parent » et le
+  // préremplissage. Pour un compte élève, le nom/prénom de l'élève reprend celui
+  // du compte (« Prénom Nom ») ; les champs « responsable » restent vides (c'est
+  // l'élève qui renseigne son parent/tuteur).
   const estCompteEleve = !!utilisateur?.compteEleve;
+  const nomCompte = (utilisateur?.nom || '').trim();
+  const espaceNom = nomCompte.indexOf(' ');
+  const prenomInit = estCompteEleve ? (espaceNom === -1 ? nomCompte : nomCompte.slice(0, espaceNom)) : '';
+  const nomInit = estCompteEleve ? (espaceNom === -1 ? '' : nomCompte.slice(espaceNom + 1)) : '';
   const [form, setForm] = useState({
-    eleveNom: '', elevePrenom: '', sexe: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
-    nomParent: utilisateur?.nom || '', professionParent: '', telephoneParent: '', courrielParent: utilisateur?.courriel || '',
+    eleveNom: nomInit, elevePrenom: prenomInit, sexe: '', dateNaissance: '', niveau: '', anneeScolaire: anneeScolaireCourante(),
+    nomParent: estCompteEleve ? '' : nomCompte,
+    professionParent: '', telephoneParent: '',
+    courrielParent: estCompteEleve ? '' : (utilisateur?.courriel || ''),
     ancienneEcole: '', ancienneClasse: '', raisonChoix: '',
   });
   const [erreur, setErreur] = useState('');
@@ -175,18 +184,6 @@ export default function NouvelleInscription() {
           <p className="texte-gris" style={{ fontSize: '.82rem', marginTop: '-.4rem' }}>
             Les notifications de résultats (à chaque trimestre) seront envoyées à cette adresse.
           </p>
-
-          <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Ancienne école</h3>
-          <Champ label="Nom de l'ancienne école" value={form.ancienneEcole}
-            onChange={maj('ancienneEcole')} placeholder="Laisser vide si première inscription" />
-          <Champ label="Dernière classe suivie" value={form.ancienneClasse}
-            onChange={maj('ancienneClasse')} placeholder="ex. 5e année" />
-
-          <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Motivation</h3>
-          <Champ label="Raison du choix de l'école" id="insc-raison" enfant={
-            <textarea id="insc-raison" value={form.raisonChoix} onChange={maj('raisonChoix')} rows={3}
-              placeholder="Pourquoi avez-vous choisi Lekòl Konekte ?" />
-          } />
 
           {paiementRequis ? (
             <Alerte type="info">
