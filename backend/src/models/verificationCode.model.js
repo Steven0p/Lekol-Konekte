@@ -40,3 +40,12 @@ export async function incrementerTentatives(idCode) {
 export async function marquerUtilise(idCode) {
   await pool.query('UPDATE codes_verification SET utilise = 1 WHERE id = ?', [idCode]);
 }
+
+// Nettoyage : supprime les codes expirés ou déjà utilisés de plus de 7 jours.
+// Les codes sont hachés et à usage unique — ce nettoyage est de l'hygiène de
+// base de données, pas une mesure de sécurité.
+export async function purgerCodesAnciens() {
+  await pool.query(
+    "DELETE FROM codes_verification WHERE (utilise = 1 OR expire_le < NOW()) AND cree_le < (NOW() - INTERVAL 7 DAY)"
+  );
+}
