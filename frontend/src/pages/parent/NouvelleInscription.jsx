@@ -8,6 +8,25 @@ import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 
+// Liste de professions proposées (≈ 60) + option « Autre » pour saisie libre.
+const PROFESSIONS = [
+  'Agent de sécurité', 'Agriculteur / Agricultrice', 'Architecte', 'Artisan(e)',
+  'Assistant(e) social(e)', 'Avocat(e)', 'Banquier / Banquière', 'Boulanger / Boulangère',
+  'Chauffeur', "Chef d'entreprise", 'Coiffeur / Coiffeuse', 'Commerçant(e)', 'Comptable',
+  'Cordonnier / Cordonnière', 'Couturier / Couturière', 'Cuisinier / Cuisinière', 'Dentiste',
+  'Développeur / Informaticien(ne)', 'Directeur / Directrice', 'Douanier / Douanière',
+  'Économiste', 'Électricien(ne)', 'Employé(e) de bureau', 'Enseignant(e) / Professeur(e)',
+  'Entrepreneur(e)', 'Épicier / Épicière', 'Étudiant(e)', 'Fermier / Fermière', 'Fonctionnaire',
+  'Gestionnaire', 'Infirmier / Infirmière', 'Ingénieur(e)', 'Journaliste', 'Juge', 'Juriste',
+  'Maçon', 'Mécanicien(ne)', 'Médecin', 'Menuisier', 'Militaire', 'Musicien(ne)', 'Notaire',
+  'Ouvrier / Ouvrière', 'Pasteur / Prêtre / Religieux(se)', 'Pâtissier / Pâtissière', 'Pêcheur',
+  'Peintre', 'Pharmacien(ne)', 'Photographe', 'Plombier', 'Policier / Policière', 'Pompier',
+  'Restaurateur / Restauratrice', 'Sage-femme', 'Secrétaire', 'Serveur / Serveuse', 'Soudeur',
+  'Tailleur / Tailleuse', 'Technicien(ne)', 'Traducteur / Traductrice',
+  'Travailleur / Travailleuse social(e)', 'Vendeur / Vendeuse', 'Vétérinaire',
+  'Au foyer / Ménagère', 'Sans emploi', 'Retraité(e)',
+];
+
 // Âge minimum 2 ans : la date de naissance la plus récente autorisée est
 // aujourd'hui moins 2 ans ; la plus ancienne, moins 40 ans (plausibilité).
 const ilYaAnnees = (n) => { const d = new Date(); d.setFullYear(d.getFullYear() - n); return d.toISOString().slice(0, 10); };
@@ -27,6 +46,8 @@ export default function NouvelleInscription() {
   const [tarif, setTarif] = useState(null);
   // Le paiement à l'inscription peut être désactivé par le propriétaire.
   const [paiementRequis, setPaiementRequis] = useState(true);
+  // Choix du menu profession ('' | une profession de la liste | 'Autre')
+  const [professionChoix, setProfessionChoix] = useState('');
   const envoiEnCours = useRef(false); // double-clic : bloqué avant même le re-rendu
 
   useEffect(() => {
@@ -36,6 +57,13 @@ export default function NouvelleInscription() {
   }, []);
 
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
+
+  // Profession : menu déroulant ; « Autre » ouvre un champ de saisie libre.
+  const choisirProfession = (e) => {
+    const v = e.target.value;
+    setProfessionChoix(v);
+    setForm({ ...form, professionParent: v === 'Autre' ? '' : v });
+  };
 
   const soumettre = async (e) => {
     e.preventDefault();
@@ -109,8 +137,17 @@ export default function NouvelleInscription() {
           <h3 style={{ fontSize: '1rem', margin: '1.5rem 0 .75rem' }}>Informations sur le parent / tuteur</h3>
           <Champ label="Nom complet du parent" value={form.nomParent}
             onChange={maj('nomParent')} />
-          <Champ label="Profession du parent" value={form.professionParent}
-            onChange={maj('professionParent')} placeholder="ex. Commerçant(e)" />
+          <Champ label="Profession du parent" id="insc-profession" enfant={
+            <select id="insc-profession" value={professionChoix} onChange={choisirProfession}>
+              <option value="">— Choisir —</option>
+              {PROFESSIONS.map((p) => <option key={p} value={p}>{p}</option>)}
+              <option value="Autre">Autre (préciser)…</option>
+            </select>
+          } />
+          {professionChoix === 'Autre' && (
+            <Champ label="Précisez la profession" value={form.professionParent}
+              onChange={maj('professionParent')} placeholder="Votre profession" autoFocus />
+          )}
           <Champ label="Téléphone du parent" type="tel" value={form.telephoneParent}
             onChange={maj('telephoneParent')} placeholder="ex. +509 ..." required />
           <Champ label="Courriel du parent" type="email" value={form.courrielParent}
