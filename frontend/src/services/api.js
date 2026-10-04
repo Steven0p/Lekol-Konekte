@@ -196,6 +196,7 @@ export const adminApi = {
 
 export const directionApi = {
   statistiques: () => request('/direction/statistiques'),
+  rapport: (mois) => request(`/direction/rapport${qs({ mois })}`),
   matieres: (niveau) => request(`/matieres${qs({ niveau })}`),
   creerMatiere: (body) => request('/matieres', { method: 'POST', body: json(body) }),
   majMatiere: (id, body) => request(`/matieres/${id}`, { method: 'PATCH', body: json(body) }),
@@ -369,6 +370,7 @@ export const urlPreuvePaiement = (id) => `${API_URL}/paiements/${id}/preuve`;
 export const urlPhotoEleve = () => `${API_URL}/eleve/photo`;
 export const urlPhotoEleveAdmin = (id) => `${API_URL}/admin/eleves/${id}/photo`;
 export const urlLogoEcole = () => `${API_URL}/ecole/logo`;
+export const urlRapportExport = (mois) => `${API_URL}/direction/rapport/export${qs({ mois })}`;
 export const urlPhotoVlog = (id) => `${API_URL}/vlog/${id}/photo`;
 export const urlPhotoProf = (id) => `${API_URL}/professeurs/${id}/photo`;
 export const urlPhotoExamen = (id) => `${API_URL}/examens/${id}/photo`;

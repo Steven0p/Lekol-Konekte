@@ -91,6 +91,7 @@ const MENUS = {
     { titre: null, items: [
       { to: '/tableau-de-bord', libelle: 'Contrôle d\'accès', icone: 'verrou', fin: true },
       { to: '/proprietaire/statistiques', libelle: 'Statistiques & santé du site', icone: 'statistiques' },
+      { to: '/proprietaire/rapport', libelle: 'Rapport mensuel', icone: 'clipboard' },
       { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
       { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },
