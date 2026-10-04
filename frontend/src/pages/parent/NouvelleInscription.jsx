@@ -56,6 +56,19 @@ export default function NouvelleInscription() {
       .catch(() => {});
   }, []);
 
+  // Élève qui vient de créer son compte : préremplit nom/prénom de l'élève
+  // avec ce qu'il a saisi à l'inscription du compte (voir Register.jsx).
+  useEffect(() => {
+    try {
+      const brut = sessionStorage.getItem('eleve_auto');
+      if (brut) {
+        const { nom, prenom } = JSON.parse(brut);
+        setForm((f) => ({ ...f, eleveNom: nom || f.eleveNom, elevePrenom: prenom || f.elevePrenom }));
+        sessionStorage.removeItem('eleve_auto');
+      }
+    } catch { /* stockage indisponible : pas de préremplissage */ }
+  }, []);
+
   const maj = (champ) => (e) => setForm({ ...form, [champ]: e.target.value });
 
   // Profession : menu déroulant ; « Autre » ouvre un champ de saisie libre.

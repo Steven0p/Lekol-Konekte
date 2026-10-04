@@ -38,6 +38,12 @@ export default function Register() {
       // Le compte stocke un nom complet unique : « Prénom Nom ».
       const nomComplet = `${prenom.trim()} ${nom.trim()}`.trim();
       await register({ nom: nomComplet, courriel, motDePasse });
+      // Élève : on garde nom/prénom pour préremplir le formulaire d'inscription.
+      if (estEleve) {
+        try {
+          sessionStorage.setItem('eleve_auto', JSON.stringify({ nom: nom.trim(), prenom: prenom.trim() }));
+        } catch { /* stockage indisponible : préremplissage ignoré */ }
+      }
       // La session est ouverte par register : on enchaîne (inscription pour un
       // élève, tableau de bord sinon).
       navigate(apresInscription);
