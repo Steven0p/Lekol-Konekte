@@ -8,6 +8,12 @@ import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
 
+// Âge minimum 2 ans : la date de naissance la plus récente autorisée est
+// aujourd'hui moins 2 ans ; la plus ancienne, moins 40 ans (plausibilité).
+const ilYaAnnees = (n) => { const d = new Date(); d.setFullYear(d.getFullYear() - n); return d.toISOString().slice(0, 10); };
+const dateMaxNaissance = ilYaAnnees(2);
+const dateMinNaissance = ilYaAnnees(40);
+
 export default function NouvelleInscription() {
   const navigate = useNavigate();
   const { utilisateur } = useAuth();
@@ -34,8 +40,14 @@ export default function NouvelleInscription() {
   const soumettre = async (e) => {
     e.preventDefault();
     if (envoiEnCours.current) return;
-    envoiEnCours.current = true;
     setErreur('');
+    // Âge minimum 2 ans : une date de naissance postérieure à (aujourd'hui − 2 ans)
+    // signifie un enfant de moins de 2 ans — refusé (le serveur revérifie aussi).
+    if (form.dateNaissance && form.dateNaissance > dateMaxNaissance) {
+      setErreur("L'élève doit avoir au moins 2 ans pour être inscrit(e).");
+      return;
+    }
+    envoiEnCours.current = true;
     setEnCours(true);
     try {
       const d = await inscriptionsApi.creer(form);
@@ -78,7 +90,7 @@ export default function NouvelleInscription() {
             } />
           </div>
           <Champ label="Date de naissance" type="date" value={form.dateNaissance}
-            onChange={maj('dateNaissance')} max={new Date().toISOString().slice(0, 10)} required />
+            onChange={maj('dateNaissance')} max={dateMaxNaissance} min={dateMinNaissance} required />
           <Champ label="Niveau scolaire visé" id="insc-niveau" enfant={
             <select id="insc-niveau" value={form.niveau} onChange={maj('niveau')} required>
               <option value="">— Choisir —</option>

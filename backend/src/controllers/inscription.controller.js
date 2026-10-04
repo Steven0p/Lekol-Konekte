@@ -97,12 +97,18 @@ export async function creer(req, res, next) {
         return res.status(400).json({ erreur: `Champ trop long (${champ}, ${max} caractères max).` });
       }
     }
-    // Date de naissance réelle (pas de 2026-02-31), dans le passé, âge plausible
+    // Date de naissance réelle (pas de 2026-02-31) et dans le passé
     const naissance = new Date(`${dateNaissance}T00:00:00Z`);
-    const age = (Date.now() - naissance.getTime()) / (365.25 * 24 * 3600 * 1000);
-    if (Number.isNaN(naissance.getTime()) || naissance.toISOString().slice(0, 10) !== dateNaissance
-        || age < 2 || age > 40) {
+    if (Number.isNaN(naissance.getTime()) || naissance.toISOString().slice(0, 10) !== dateNaissance) {
       return res.status(400).json({ erreur: 'Date de naissance invalide.' });
+    }
+    const age = (Date.now() - naissance.getTime()) / (365.25 * 24 * 3600 * 1000);
+    // Âge minimum : 2 ans. En dessous, l'inscription est refusée.
+    if (age < 2) {
+      return res.status(400).json({ erreur: "L'élève doit avoir au moins 2 ans pour être inscrit(e)." });
+    }
+    if (age > 40) {
+      return res.status(400).json({ erreur: 'Date de naissance invalide (âge non plausible).' });
     }
     const telephone = (req.body.telephoneParent || '').trim();
     if (telephone && !/^\+?[0-9 ()-]{8,20}$/.test(telephone)) {
