@@ -71,11 +71,16 @@ export default function Register() {
           </p>
 
           {inscriptionEleve && (
-            <p className="auth-lien" style={{ marginTop: 0, marginBottom: '1rem' }}>
-              {estEleve
-                ? <>Vous êtes parent ? <Link to="/register">Créer un compte parent</Link></>
-                : <>Vous êtes élève ? <Link to="/register?profil=eleve">Créer un compte élève</Link></>}
-            </p>
+            <div className="segmente" role="group" aria-label="Type de compte">
+              <button type="button" className={!estEleve ? 'actif' : ''}
+                aria-pressed={!estEleve} onClick={() => navigate('/register')}>
+                Je suis parent
+              </button>
+              <button type="button" className={estEleve ? 'actif' : ''}
+                aria-pressed={estEleve} onClick={() => navigate('/register?profil=eleve')}>
+                Je suis élève
+              </button>
+            </div>
           )}
 
           <Alerte type="erreur">{erreur}</Alerte>

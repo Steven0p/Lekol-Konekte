@@ -133,6 +133,19 @@ a:hover { text-decoration: underline; }
 }
 .auth-note svg { width: 15px; height: 15px; color: var(--a-or); flex-shrink: 0; }
 
+/* Choix segmenté (ex. type de compte : parent / élève) */
+.segmente {
+  display: flex; gap: 0; margin: 0 0 1.25rem; border: 1px solid var(--a-bord);
+  border-radius: 10px; overflow: hidden; background: #fff;
+}
+.segmente button {
+  flex: 1; padding: .7rem .5rem; border: none; background: transparent; cursor: pointer;
+  font: inherit; font-weight: 700; font-size: .92rem; color: var(--a-navy);
+}
+.segmente button + button { border-left: 1px solid var(--a-bord); }
+.segmente button.actif { background: var(--a-navy); color: #fff; }
+.segmente button:not(.actif):hover { background: var(--a-focus-bg, #eef2f8); }
+
 /* ---------- Animation de vérification du code (OTP) ---------- */
 /* Voile posé sur le formulaire du code pendant la vérification, puis coche de
    succès juste avant la redirection vers le tableau de bord. */
