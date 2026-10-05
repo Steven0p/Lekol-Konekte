@@ -22,7 +22,7 @@
 import {
   SYNC_TABLES, SYNC_NOMS, SYNC_TABLE_PAR_NOM,
   COLONNE_SYNC_ID, COLONNE_SYNC_MAJ, COLONNE_SYNC_DIRTY, COLONNES_TECHNIQUES,
-  fksDe,
+  COLONNES_NON_POUSSABLES, fksDe,
 } from './tables.js';
 
 // ---- Résolution des clés étrangères ↔ sync_id --------------------------
@@ -247,6 +247,13 @@ async function upsertLigne(conn, table, colonnes, { estHub }) {
   const cols = { ...colonnes };
   if (!estHub) {
     cols[COLONNE_SYNC_DIRTY] = 0;
+  } else {
+    // Push (nœud → nuage) : on refuse d'écrire les colonnes sensibles
+    // (privilèges, authentification) même venant d'un poste authentifié.
+    const protegees = COLONNES_NON_POUSSABLES[table];
+    if (protegees) {
+      for (const c of protegees) delete cols[c];
+    }
   }
 
   const noms = Object.keys(cols);

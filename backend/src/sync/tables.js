@@ -122,6 +122,20 @@ export const SYNC_TABLES = [
   ] },
 ];
 
+// Colonnes qu'un POSTE ne peut JAMAIS écrire via un push (défense en
+// profondeur si un jeton de poste est compromis) : le nuage ignore ces
+// colonnes à l'application d'un push (valeur par défaut à l'insertion, valeur
+// du nuage conservée à la mise à jour). Elles touchent les privilèges et
+// l'authentification — un poste n'a aucune raison légitime de les fixer (les
+// comptes admin et les mots de passe sont gérés côté nuage).
+// NB : ne concerne QUE les push (nœud → nuage) ; un poste qui tire du nuage
+// (source de confiance) applique tout normalement.
+export const COLONNES_NON_POUSSABLES = {
+  utilisateurs: new Set([
+    'role', 'mot_de_passe_hash', 'google_id', 'statut', 'courriel_verifie', 'compte_eleve',
+  ]),
+};
+
 // Accès rapide par nom.
 export const SYNC_TABLE_PAR_NOM = Object.fromEntries(
   SYNC_TABLES.map((t) => [t.nom, t])
