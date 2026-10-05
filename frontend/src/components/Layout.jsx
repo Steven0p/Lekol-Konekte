@@ -1,6 +1,7 @@
 // Mise en page des pages authentifiées : barre de nav + contenu
 import { Outlet } from 'react-router-dom';
 import BarreNav from './BarreNav.jsx';
+import SyncIndicator from './SyncIndicator.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Layout() {
@@ -14,6 +15,7 @@ export default function Layout() {
       <main className="contenu">
         <Outlet />
       </main>
+      <SyncIndicator />
     </div>
   );
 }

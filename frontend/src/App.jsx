@@ -50,6 +50,7 @@ import TableauProfesseur from './pages/professeur/TableauProfesseur.jsx';
 import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
 import Rapport from './pages/proprietaire/Rapport.jsx';
+import Postes from './pages/proprietaire/Postes.jsx';
 import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
 import AnnonceCourriel from './pages/proprietaire/AnnonceCourriel.jsx';
 import MonCompte from './pages/MonCompte.jsx';
@@ -139,6 +140,7 @@ export default function App() {
         {/* Propriétaire — Contrôle d'accès */}
         <Route path="/proprietaire/statistiques" element={<RoutePrivee roles={['proprietaire']}><Statistiques /></RoutePrivee>} />
         <Route path="/proprietaire/rapport" element={<RoutePrivee roles={['proprietaire']}><Rapport /></RoutePrivee>} />
+        <Route path="/proprietaire/postes" element={<RoutePrivee roles={['proprietaire']}><Postes /></RoutePrivee>} />
         <Route path="/proprietaire/sante" element={<RoutePrivee roles={['proprietaire']}><SanteServeur /></RoutePrivee>} />
         <Route path="/proprietaire/messages" element={<RoutePrivee roles={['proprietaire']}><BoiteReception /></RoutePrivee>} />
       </Route>

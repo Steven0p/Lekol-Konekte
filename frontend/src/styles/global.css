@@ -326,6 +326,8 @@ a:hover { text-decoration: underline; }
 .alerte-erreur { background: var(--erreur-fond); color: var(--erreur); border: 1px solid #fecaca; }
 .alerte-info { background: var(--bleu-clair); color: var(--bleu-fonce); border: 1px solid #c7d7fe; }
 .alerte-info a { color: var(--bleu-fonce); font-weight: 600; }
+.alerte-succes { background: #effaf1; color: #1a7f3c; border: 1px solid #b7e4c7; }
+.alerte-succes code { background: rgba(0,0,0,.06); }
 
 /* ---------- Barre de navigation ---------- */
 .navbar {

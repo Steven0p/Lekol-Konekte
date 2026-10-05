@@ -222,6 +222,16 @@ export const directionApi = {
   supprimerLogo: () => request('/ecole/logo', { method: 'DELETE' }),
 };
 
+// Synchronisation — postes de bureau hors ligne (propriétaire) + état local.
+export const syncApi = {
+  noeuds: () => request('/sync/noeuds'),
+  creerNoeud: (nom) => request('/sync/noeuds', { method: 'POST', body: json({ nom }) }),
+  revoquerNoeud: (id) => request(`/sync/noeuds/${id}`, { method: 'DELETE' }),
+  // État local (seulement quand on tourne sur un poste de bureau)
+  etatPoste: () => request('/poste/sync'),
+  synchroniserMaintenant: () => request('/poste/sync', { method: 'POST' }),
+};
+
 // Économat — système indépendant (propre authentification par courriel)
 export const economatApi = {
   adminMe: () => request('/economat/admin/me'),
