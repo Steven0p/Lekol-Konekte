@@ -1,7 +1,7 @@
 // Modèle des nœuds de synchronisation (postes de bureau enregistrés).
 // Chaque poste s'authentifie auprès du nuage avec un jeton de la forme
 // « <id>.<secret> » ; seul le bcrypt du secret est stocké (jeton_hash).
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { pool } from '../config/db.js';
 

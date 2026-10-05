@@ -1,5 +1,5 @@
 // Contrôleur « Académie » — sections publiques par niveau + gestion par l'admin dédié (système indépendant)
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
 import { adminBloque, adminEchec, adminSucces } from '../services/securite.service.js';
 import * as sectionModel from '../models/academie.model.js';

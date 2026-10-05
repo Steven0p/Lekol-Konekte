@@ -6,7 +6,7 @@
 //
 // L'URL publique se trouve dans Railway → service MySQL → Variables → MYSQL_PUBLIC_URL.
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import mysql from 'mysql2/promise';
 
 // Chaque module a sa propre table d'admins (systèmes indépendants).

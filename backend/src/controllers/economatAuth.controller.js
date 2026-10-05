@@ -1,5 +1,5 @@
 // Contrôleur — authentification admin Économat (système indépendant)
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { comparerMotDePasse } from '../utils/motDePasse.js';
 import { adminBloque, adminEchec, adminSucces } from '../services/securite.service.js';
 import * as adminModel from '../models/economatAdmin.model.js';

@@ -1,6 +1,6 @@
 // Seed — crée un compte admin de la page « À propos » (système indépendant).
 // Usage : npm run seed:apropos
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
 const IDENTIFIANT = 'aproposadmin';

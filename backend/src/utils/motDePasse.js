@@ -3,7 +3,7 @@
 // quand même contre un hash factice de même coût — sinon la réponse rapide
 // d'un compte inexistant révélerait, par le temps de réponse, quels courriels
 // ou identifiants ont un compte.
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const HASH_FACTICE = bcrypt.hashSync('lekol-konekte-compte-factice', 12);
 

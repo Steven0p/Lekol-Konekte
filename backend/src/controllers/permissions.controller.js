@@ -1,5 +1,5 @@
 // Contrôleur — interrupteurs de permissions gérés par le propriétaire
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { listerPermissions, definirPermission } from '../services/permissions.service.js';
 import { findByIdAvecHash, findByCourriel, mettreAJourCourriel, mettreAJourMotDePasse } from '../models/user.model.js';
 import { tracer } from '../services/securite.service.js';

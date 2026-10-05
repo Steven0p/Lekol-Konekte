@@ -1,6 +1,6 @@
 // Service OTP — génération, envoi et vérification des codes à usage unique
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import {
   invaliderCodesActifs,
   creerCode,

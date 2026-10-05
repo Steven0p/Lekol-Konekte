@@ -1,6 +1,6 @@
 // Seed — crée un compte admin des « Examens passés » (système indépendant).
 // Usage : npm run seed:examens
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
 const IDENTIFIANT = 'examensadmin';

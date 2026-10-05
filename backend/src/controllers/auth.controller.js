@@ -1,5 +1,5 @@
 // Contrôleur d'authentification
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import {
   findByCourriel,
   findById,

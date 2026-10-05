@@ -1,6 +1,6 @@
 // Script de seed — crée des comptes admin et direction (déjà vérifiés) pour dev/test.
 // Usage : npm run seed
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
 const COMPTES = [

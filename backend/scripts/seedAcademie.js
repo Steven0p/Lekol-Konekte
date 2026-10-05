@@ -1,6 +1,6 @@
 // Seed — crée un compte admin de la section « Académie » (système indépendant).
 // Usage : npm run seed:academie
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
 const IDENTIFIANT = 'academieadmin';

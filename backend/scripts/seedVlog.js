@@ -1,6 +1,6 @@
 // Seed — crée un compte admin du vlog (système indépendant).
 // Usage : npm run seed:vlog
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { pool } from '../src/config/db.js';
 
 const IDENTIFIANT = 'vlogadmin';

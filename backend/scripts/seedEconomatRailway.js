@@ -6,7 +6,7 @@
 //
 // L'URL publique se trouve dans Railway → service MySQL → Variables → MYSQL_PUBLIC_URL.
 
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import mysql from 'mysql2/promise';
 
 const urlArg = process.argv[2] || process.env.MYSQL_PUBLIC_URL || process.env.DATABASE_PUBLIC_URL;
