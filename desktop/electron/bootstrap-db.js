@@ -5,9 +5,9 @@
 const fs = require('fs');
 const mysql = require('mysql2/promise');
 
-async function assurerBaseLocale({ port, nomBase, schemaPath, onLog } = {}) {
+async function assurerBaseLocale({ port, nomBase, schemaPath, motDePasse = '', onLog } = {}) {
   const conn = await mysql.createConnection({
-    host: '127.0.0.1', port, user: 'root', password: '', multipleStatements: true,
+    host: '127.0.0.1', port, user: 'root', password: motDePasse, multipleStatements: true,
   });
   try {
     const [bases] = await conn.query('SHOW DATABASES LIKE ?', [nomBase]);

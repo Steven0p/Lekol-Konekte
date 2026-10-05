@@ -4,13 +4,12 @@
 // configuration (URL du nuage + jeton du poste fournis par le propriétaire).
 const { app, BrowserWindow, ipcMain, shell, dialog } = require('electron');
 const path = require('path');
-const crypto = require('crypto');
 
 const { demarrer: demarrerMariaDB } = require('./mariadb.js');
 const { assurerBaseLocale } = require('./bootstrap-db.js');
 const { demarrerBackend } = require('./backend.js');
 const {
-  PORT_MARIADB, PORT_BACKEND, NOM_BASE, lireConfig, ecrireConfig, estConfigure,
+  PORT_MARIADB, PORT_BACKEND, NOM_BASE, lireConfig, ecrireConfig, estConfigure, assurerSecrets,
 } = require('./config.js');
 
 // ---- Chemins (dev vs empaqueté) ----------------------------------------
@@ -65,19 +64,22 @@ function creerFenetre() {
 // Démarre toute la pile locale. Résout quand le backend répond.
 async function demarrerPile() {
   if (pileDemarree) return;
-  const config = lireConfig(app.getPath('userData'));
+  // Secrets locaux garantis (mot de passe root MariaDB + secret de session).
+  const config = assurerSecrets(app.getPath('userData'));
   config.nomBase = NOM_BASE;
-  if (!config.sessionSecret) {
-    config.sessionSecret = crypto.randomBytes(24).toString('hex');
-    ecrireConfig(app.getPath('userData'), config);
-  }
 
   const dataDir = path.join(app.getPath('userData'), 'mariadb-data');
   envoyerLog('Démarrage de la base locale…');
-  mdb = await demarrerMariaDB({ dataDir, port: PORTS.mariadb, binDir: CHEMINS.mariadbBinDir, onLog: envoyerLog });
+  mdb = await demarrerMariaDB({
+    dataDir, port: PORTS.mariadb, binDir: CHEMINS.mariadbBinDir,
+    motDePasse: config.dbPassword, onLog: envoyerLog,
+  });
 
   envoyerLog('Préparation des données…');
-  await assurerBaseLocale({ port: PORTS.mariadb, nomBase: NOM_BASE, schemaPath: CHEMINS.schemaPath, onLog: envoyerLog });
+  await assurerBaseLocale({
+    port: PORTS.mariadb, nomBase: NOM_BASE, schemaPath: CHEMINS.schemaPath,
+    motDePasse: config.dbPassword, onLog: envoyerLog,
+  });
 
   envoyerLog('Démarrage du serveur local…');
   backend = demarrerBackend({ backendDir: CHEMINS.backendDir, config, ports: PORTS, onLog: envoyerLog });

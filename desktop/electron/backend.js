@@ -12,7 +12,7 @@ function demarrerBackend({ backendDir, config, ports, onLog } = {}) {
     DB_HOST: '127.0.0.1',
     DB_PORT: String(ports.mariadb),
     DB_USER: 'root',
-    DB_PASSWORD: '',
+    DB_PASSWORD: config.dbPassword || '',
     DB_NAME: config.nomBase || 'lekol_konekte',
     // Serveur local (http://127.0.0.1 → cookies non « secure », pas de HTTPS)
     PORT: String(ports.backend),

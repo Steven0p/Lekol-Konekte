@@ -62,16 +62,22 @@ async function initialiserDonnees({ dataDir, binDir }) {
   }
 }
 
-function attendrePret({ port, timeoutMs = 30000 }) {
+async function essaiConnexion(port, password) {
+  const c = await mysql.createConnection({ host: '127.0.0.1', port, user: 'root', password });
+  try { await c.ping(); } finally { await c.end().catch(() => {}); }
+}
+
+// Attend que le serveur réponde. Renvoie 'password' s'il accepte le mot de
+// passe fourni, 'none' s'il répond encore sans mot de passe (fraîche init ou
+// ancienne base sans mot de passe à migrer).
+function attendrePretAuth({ port, motDePasse, timeoutMs = 30000 }) {
   const debut = Date.now();
   return new Promise((resolve, reject) => {
     const essayer = async () => {
-      try {
-        const c = await mysql.createConnection({ host: '127.0.0.1', port, user: 'root', password: '' });
-        await c.ping();
-        await c.end();
-        resolve();
-      } catch (err) {
+      if (motDePasse) {
+        try { await essaiConnexion(port, motDePasse); return resolve('password'); } catch { /* pas encore / pas de mdp */ }
+      }
+      try { await essaiConnexion(port, ''); return resolve('none'); } catch (err) {
         if (Date.now() - debut > timeoutMs) return reject(new Error(`MariaDB n'a pas démarré à temps : ${err.message}`));
         setTimeout(essayer, 500);
       }
@@ -80,8 +86,27 @@ function attendrePret({ port, timeoutMs = 30000 }) {
   });
 }
 
+// Définit le mot de passe root sur tous les comptes root (connexion sans mot
+// de passe au préalable). base64/hex sans caractères spéciaux → interpolation
+// sûre côté mysql2 (query = substitution client).
+async function definirMotDePasseRoot({ port, motDePasse }) {
+  const c = await mysql.createConnection({ host: '127.0.0.1', port, user: 'root', password: '' });
+  try {
+    const [hotes] = await c.query("SELECT Host FROM mysql.user WHERE User = 'root'");
+    for (const { Host } of hotes) {
+      await c.query(`ALTER USER 'root'@'${Host}' IDENTIFIED BY ?`, [motDePasse]).catch(() => {});
+    }
+    await c.query('FLUSH PRIVILEGES');
+  } finally {
+    await c.end().catch(() => {});
+  }
+}
+
 // Démarre MariaDB (initialise le dossier si besoin). Renvoie un handle { proc, port, arreter() }.
-async function demarrer({ dataDir, port, binDir, onLog } = {}) {
+// `motDePasse` : mot de passe root à exiger (défini à la première init, ou
+// appliqué à une ancienne base qui n'en avait pas). Si absent, root reste sans
+// mot de passe (ancien comportement).
+async function demarrer({ dataDir, port, binDir, motDePasse, onLog } = {}) {
   if (!donneesInitialisees(dataDir)) {
     if (onLog) onLog('Initialisation de la base locale…');
     await initialiserDonnees({ dataDir, binDir });
@@ -111,16 +136,25 @@ async function demarrer({ dataDir, port, binDir, onLog } = {}) {
   let sortiePrecoce = null;
   proc.on('exit', (code) => { if (code !== 0 && code !== null) sortiePrecoce = code; });
 
-  await attendrePret({ port });
+  const auth = await attendrePretAuth({ port, motDePasse });
   if (sortiePrecoce !== null) throw new Error(`MariaDB s'est arrêté (code ${sortiePrecoce}).`);
 
+  // Première init (ou ancienne base sans mot de passe) : poser le mot de passe root.
+  if (motDePasse && auth === 'none') {
+    if (onLog) onLog('Sécurisation de la base locale (mot de passe)…');
+    await definirMotDePasseRoot({ port, motDePasse });
+  }
+
   return {
-    proc, port, dataDir, binDir,
+    proc, port, dataDir, binDir, motDePasse,
     async arreter() {
       // Arrêt propre via mariadb-admin, sinon signal.
       const admin = trouverBinaire(binDir, ['mariadb-admin', 'mysqladmin']);
+      const args = ['--no-defaults', '-h', '127.0.0.1', '-P', String(port), '-u', 'root'];
+      if (motDePasse) args.push(`-p${motDePasse}`);
+      args.push('shutdown');
       try {
-        await execFileP(admin, ['--no-defaults', '-h', '127.0.0.1', '-P', String(port), '-u', 'root', 'shutdown']);
+        await execFileP(admin, args);
       } catch {
         try { proc.kill('SIGTERM'); } catch { /* ignore */ }
       }

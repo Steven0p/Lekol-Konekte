@@ -25,16 +25,25 @@ const ports = { mariadb: 47906, backend: 47900 };
 let mdb, backend;
 try {
   log(`baseDir = ${baseDir}`);
-  mdb = await demarrerMariaDB({ dataDir: path.join(baseDir, 'mariadb-data'), port: ports.mariadb, onLog: () => {} });
-  log('✅ MariaDB local démarré');
+  const dbPassword = crypto.randomBytes(24).toString('hex');
+  mdb = await demarrerMariaDB({ dataDir: path.join(baseDir, 'mariadb-data'), port: ports.mariadb, motDePasse: dbPassword, onLog: () => {} });
+  log('✅ MariaDB local démarré (mot de passe root posé)');
 
-  const r = await assurerBaseLocale({ port: ports.mariadb, nomBase: 'lekol_konekte', schemaPath, onLog: log });
+  // La connexion SANS mot de passe doit désormais échouer (sécurité #3)
+  const mysql = require('mysql2/promise');
+  let refuse = false;
+  try { const t = await mysql.createConnection({ host: '127.0.0.1', port: ports.mariadb, user: 'root', password: '' }); await t.end(); }
+  catch { refuse = true; }
+  console.log(refuse ? '✅ Connexion root SANS mot de passe refusée' : '❌ ÉCHEC : root accessible sans mot de passe');
+
+  const r = await assurerBaseLocale({ port: ports.mariadb, nomBase: 'lekol_konekte', schemaPath, motDePasse: dbPassword, onLog: log });
   log(`✅ Base locale prête (${r.tables} tables)`);
 
   const config = {
     nomBase: 'lekol_konekte',
     cloudUrl: 'http://127.0.0.1:1',   // nuage injoignable → sync hors ligne (attendu)
     jeton: '1.jeton-de-test',
+    dbPassword,
     sessionSecret: crypto.randomBytes(16).toString('hex'),
     syncIntervalleMs: 5000,
   };
@@ -52,8 +61,7 @@ try {
   console.log(ok ? '✅ Backend du poste répond (santé 200)' : '❌ ÉCHEC : backend injoignable');
 
   // Vérifier le schéma de synchro posé par le backend (mode poste)
-  const mysql = require('mysql2/promise');
-  const c = await mysql.createConnection({ host: '127.0.0.1', port: ports.mariadb, user: 'root', password: '', database: 'lekol_konekte' });
+  const c = await mysql.createConnection({ host: '127.0.0.1', port: ports.mariadb, user: 'root', password: dbPassword, database: 'lekol_konekte' });
   const [[{ n }]] = await c.query("SELECT COUNT(*) AS n FROM information_schema.triggers WHERE trigger_schema='lekol_konekte'");
   await c.end();
   console.log(n >= 57 ? `✅ Schéma de synchro local posé (${n} déclencheurs)` : `❌ ÉCHEC : seulement ${n} déclencheurs`);
