@@ -1,6 +1,8 @@
 // Point d'entrée du serveur
 import app from './app.js';
-import { testConnection } from './config/db.js';
+import { pool, testConnection } from './config/db.js';
+import { installerSchemaSync } from './sync/schema.js';
+import { demarrerWorkerSync, syncPosteConfigure } from './sync/worker.js';
 import { verifierMailer } from './config/mailer.js';
 import { verifierSms } from './config/sms.js';
 import { verifierPlopplop, plopplopConfigure } from './config/plopplop.js';
@@ -23,6 +25,17 @@ async function demarrer() {
   try {
     await testConnection();
     console.log('✔ Connexion MySQL établie.');
+
+    // Mode POSTE (app de bureau hors ligne) : la base est locale et le compte
+    // a tous les droits — on s'assure que le schéma de synchronisation est en
+    // place (colonnes sync_id/sync_maj_le, déclencheurs, tables de support).
+    // En mode nuage, ce schéma est posé par `npm run migrate:sync` (le compte
+    // applicatif n'a pas le droit ALTER).
+    if (syncPosteConfigure()) {
+      await installerSchemaSync(pool);
+      console.log('✔ Schéma de synchronisation local vérifié.');
+    }
+
     await verifierMailer();
     verifierSms();
     verifierPlopplop();
@@ -64,6 +77,10 @@ async function demarrer() {
         reconcilierPaiementsMobilesEnAttente().catch((err) => console.error('Reconciliation paiements mobiles échouée :', err.message));
       }, DEUX_MIN_MS);
     }
+
+    // Travailleur de synchronisation (app de bureau en mode « poste ») :
+    // tire/pousse les modifs vers le nuage dès qu'une connexion est disponible.
+    demarrerWorkerSync();
   } catch (err) {
     console.error('✖ Échec du démarrage — MySQL inaccessible :', err.message);
     process.exit(1);

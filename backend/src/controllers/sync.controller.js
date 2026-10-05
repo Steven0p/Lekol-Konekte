@@ -3,11 +3,13 @@
 //   POST /api/sync/push  : le poste envoie ses modifs locales.
 //   + gestion des postes (propriétaire) : créer / lister / révoquer.
 import { pool } from '../config/db.js';
-import { collecterDepuis, appliquer } from '../sync/engine.js';
+import { collecterDepuis, appliquer, compterEnAttente } from '../sync/engine.js';
 import {
   creerNoeud as creerNoeudModel, listerNoeuds as listerNoeudsModel,
   revoquerNoeud as revoquerNoeudModel, marquerPull, marquerPush,
 } from '../sync/noeud.model.js';
+import { resumeEtat } from '../sync/etat.model.js';
+import { syncPosteConfigure, cycleSync } from '../sync/worker.js';
 import { tracer, alerter } from '../services/securite.service.js';
 
 const LIMITE_PULL = 1000;                 // enregistrements max renvoyés par pull
@@ -86,6 +88,34 @@ export async function revoquerNoeud(req, res, next) {
     if (!ok) return res.status(404).json({ erreur: 'Poste introuvable.' });
     alerter('sync_noeud_revoque', `Poste de synchronisation #${req.params.id} révoqué.`, { req });
     res.json({ revoque: true });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// --- État de synchronisation LOCAL (interface du poste de bureau) --------
+// Disponible seulement quand le backend tourne en mode « poste ».
+export async function etatPoste(req, res, next) {
+  try {
+    if (!syncPosteConfigure()) {
+      return res.json({ mode: 'nuage', actif: false });
+    }
+    const resume = await resumeEtat();
+    resume.enAttente = await compterEnAttente(pool);
+    res.json({ mode: 'poste', actif: true, ...resume });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// Déclenche une synchronisation immédiate (bouton « Synchroniser maintenant »).
+export async function declencherSync(req, res, next) {
+  try {
+    if (!syncPosteConfigure()) {
+      return res.status(400).json({ erreur: 'Synchronisation non configurée (mode nuage).' });
+    }
+    cycleSync().catch(() => {}); // asynchrone : ne bloque pas la réponse
+    res.json({ lance: true });
   } catch (err) {
     next(err);
   }

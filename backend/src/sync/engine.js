@@ -51,6 +51,21 @@ function ciblePolymorphe(poly, row) {
 
 // ---- Sérialisation d'une ligne brute en enregistrement transportable ---
 
+// mysql2 renvoie les colonnes DATE/DATETIME/TIMESTAMP en objets Date. En JSON,
+// un Date devient une chaîne ISO « 2026-10-05T00:00:00.000Z » que MySQL refuse
+// à l'insertion (mode strict). On reformate en « YYYY-MM-DD HH:MM:SS.fff » avec
+// les composantes LOCALES (mysql2 parse par défaut en heure locale → round-trip
+// correct). Pour une colonne DATE, la partie heure est simplement tronquée.
+function versDateMySQL(d) {
+  const p = (n, l = 2) => String(n).padStart(l, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} `
+    + `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}.${p(d.getMilliseconds(), 3)}`;
+}
+
+function normaliserValeur(val) {
+  return val instanceof Date ? versDateMySQL(val) : val;
+}
+
 async function serialiserLigne(conn, table, row) {
   const { simples, polymorphes } = fksDe(table);
   const colonnesFk = new Set([...simples, ...polymorphes].map((f) => f.colonne));
@@ -60,7 +75,7 @@ async function serialiserLigne(conn, table, row) {
     if (col === COLONNE_SYNC_ID) continue;        // identité : champ à part
     if (COLONNES_TECHNIQUES.has(col)) continue;    // id, sync_maj_le, sync_dirty
     if (colonnesFk.has(col)) continue;             // clés étrangères → refs
-    data[col] = val;
+    data[col] = normaliserValeur(val);
   }
 
   const refs = {};
@@ -79,6 +94,20 @@ async function serialiserLigne(conn, table, row) {
     data,
     refs,
   };
+}
+
+// Nombre de modifs locales en attente de poussée (lignes « sales » +
+// pierres tombales). Lecture rapide (colonne dirty indexée).
+export async function compterEnAttente(conn) {
+  let total = 0;
+  for (const { nom } of SYNC_TABLES) {
+    const [[{ n }]] = await conn.query(
+      `SELECT COUNT(*) AS n FROM \`${nom}\` WHERE \`${COLONNE_SYNC_DIRTY}\` = 1`
+    );
+    total += n;
+  }
+  const [[{ n }]] = await conn.query('SELECT COUNT(*) AS n FROM sync_tombstones');
+  return total + n;
 }
 
 // ---- Collecte : modifs locales à pousser (POSTE → NUAGE) ---------------
@@ -117,7 +146,13 @@ export async function collecterSales(conn, { limite = 500 } = {}) {
 // figé en début de requête (NOW(3) du nuage) et devient le prochain curseur,
 // ce qui évite de sauter ou de rejouer les modifs de la même milliseconde.
 export async function collecterDepuis(conn, depuis, { limite = 500 } = {}) {
-  const [[{ instant }]] = await conn.query(`SELECT NOW(3) AS instant`);
+  // Instantané en CHAÎNE au format MySQL ('YYYY-MM-DD HH:MM:SS.ffffff') : il
+  // sert de curseur, transporté en JSON puis renvoyé tel quel au prochain pull.
+  // (NOW(3) renvoyé en Date deviendrait une chaîne ISO « …T…Z » que MySQL
+  // comparerait mal à une colonne DATETIME.)
+  const [[{ instant }]] = await conn.query(
+    `SELECT DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s.%f') AS instant`
+  );
   const borneBasse = depuis || '1970-01-01 00:00:00.000';
 
   const enregistrements = [];
@@ -170,17 +205,18 @@ async function reconstituerColonnes(conn, rec) {
   return colonnes;
 }
 
-async function upsertLigne(conn, table, colonnes, { estHub, syncMajSource }) {
+async function upsertLigne(conn, table, colonnes, { estHub }) {
   const [exist] = await conn.query(
     `SELECT id FROM \`${table}\` WHERE \`${COLONNE_SYNC_ID}\` = ? LIMIT 1`, [colonnes[COLONNE_SYNC_ID]]
   );
 
-  // Sur un POSTE, on conserve l'horloge du nuage (pour que le curseur de
-  // pull reste cohérent) et on laisse dirty=0. Sur le HUB, on laisse
-  // l'horloge locale (NOW du hub) faire autorité pour l'ordre des pull.
+  // Sur un POSTE, la ligne appliquée ne doit pas repartir (dirty=0). On NE
+  // fixe PAS sync_maj_le : le curseur de pull vient de l'instantané du hub
+  // (collecterDepuis), pas du sync_maj_le des lignes — laisser l'horloge
+  // locale le remplir évite d'insérer une date ISO « …T…Z » venue du JSON.
+  // Sur le HUB, l'horloge locale (NOW du hub) fait autorité pour l'ordre des pull.
   const cols = { ...colonnes };
   if (!estHub) {
-    if (syncMajSource != null) cols[COLONNE_SYNC_MAJ] = syncMajSource;
     cols[COLONNE_SYNC_DIRTY] = 0;
   }
 
@@ -217,9 +253,7 @@ export async function appliquer(conn, lot, { estHub = false } = {}) {
       if (!SYNC_TABLE_PAR_NOM[rec.table]) continue; // table inconnue : ignorée
       const colonnes = await reconstituerColonnes(conn, rec);
       if (colonnes == null) { res.reporte++; continue; }
-      const issue = await upsertLigne(conn, rec.table, colonnes, {
-        estHub, syncMajSource: rec.sync_maj_le,
-      });
+      const issue = await upsertLigne(conn, rec.table, colonnes, { estHub });
       res[issue === 'insere' ? 'insere' : 'maj']++;
     }
 
