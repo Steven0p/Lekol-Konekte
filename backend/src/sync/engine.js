@@ -182,11 +182,40 @@ export async function collecterDepuis(conn, depuis, { limite = 500 } = {}) {
 
 // ---- Application d'un lot reçu -----------------------------------------
 
-// Reconstruit les colonnes d'un enregistrement : données métier + clés
-// étrangères retraduites (sync_id → id local). Renvoie null si une clé
-// étrangère NON nullable reste introuvable (cible absente → à rejouer).
+// Colonnes réelles d'une table (cache par process). Sert de LISTE BLANCHE :
+// un poste (même authentifié) ne peut écrire que dans de vraies colonnes, ce
+// qui bloque toute injection SQL par nom de colonne (une clé forgée contenant
+// un backtick n'existe pas dans le schéma → ignorée) et tout écrit dans les
+// colonnes techniques gérées par le moteur.
+const _cacheColonnes = new Map();
+async function colonnesReelles(conn, table) {
+  if (_cacheColonnes.has(table)) return _cacheColonnes.get(table);
+  const [r] = await conn.query(
+    `SELECT column_name AS c FROM information_schema.columns
+      WHERE table_schema = DATABASE() AND table_name = ?`, [table]
+  );
+  const set = new Set(r.map((x) => x.c || x.column_name));
+  _cacheColonnes.set(table, set);
+  return set;
+}
+
+const COLONNES_GEREES = new Set(['id', COLONNE_SYNC_ID, COLONNE_SYNC_MAJ, COLONNE_SYNC_DIRTY]);
+
+// Reconstruit les colonnes d'un enregistrement : données métier (restreintes
+// aux vraies colonnes de la table) + clés étrangères retraduites (sync_id →
+// id local). Renvoie null si une clé étrangère NON nullable reste introuvable
+// (cible absente → à rejouer).
 async function reconstituerColonnes(conn, rec) {
-  const colonnes = { ...rec.data, [COLONNE_SYNC_ID]: rec.sync_id };
+  const colsReelles = await colonnesReelles(conn, rec.table);
+  const data = (rec.data && typeof rec.data === 'object') ? rec.data : {};
+
+  // Liste blanche : seules les vraies colonnes métier sont reprises.
+  const colonnes = { [COLONNE_SYNC_ID]: rec.sync_id };
+  for (const [cle, valeur] of Object.entries(data)) {
+    if (!colsReelles.has(cle) || COLONNES_GEREES.has(cle)) continue;
+    colonnes[cle] = valeur;
+  }
+
   const { simples, polymorphes } = fksDe(rec.table);
 
   for (const fk of simples) {
