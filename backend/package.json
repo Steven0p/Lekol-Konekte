@@ -9,6 +9,7 @@
     "dev": "node --watch src/server.js",
     "test": "node --experimental-test-module-mocks --test \"test/*.test.js\"",
     "init:db": "node scripts/initDbRailway.js",
+    "migrate:sync": "node scripts/migrerSync.js",
     "seed:admin:railway": "node scripts/seedAdminRailway.js",
     "seed:admins-modules:railway": "node scripts/seedAdminsModulesRailway.js",
     "seed:economat:railway": "node scripts/seedEconomatRailway.js",

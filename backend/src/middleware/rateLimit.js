@@ -71,6 +71,19 @@ export const paiementLimiter = rateLimit({
   message: { erreur: 'Trop de requêtes de paiement. Réessayez plus tard.' },
 });
 
+// Synchronisation des postes (pull/push machine-à-machine) : plafond par
+// POSTE (pas par IP — plusieurs postes d'une école partagent souvent une
+// même IP derrière le routeur). Généreux : un poste peut enchaîner plusieurs
+// lots lors d'un rattrapage, mais pas marteler le serveur.
+export const syncLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req.noeudSync ? `noeud:${req.noeudSync.id}` : req.ip),
+  message: { erreur: 'Trop de requêtes de synchronisation. Réessayez dans un instant.' },
+});
+
 // Webhook plopplop (notification serveur-à-serveur, pas d'utilisateur derrière) :
 // plafond large, juste un garde-fou anti-abus basique — la sécurité réelle
 // vient de la revérification systématique auprès de plopplop avant toute

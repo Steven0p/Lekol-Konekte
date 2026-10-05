@@ -25,6 +25,8 @@ import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
 import annonceRoutes from './routes/annonce.routes.js';
 import enseignantRoutes from './routes/enseignant.routes.js';
+import syncRoutes from './routes/sync.routes.js';
+import syncAdminRoutes from './routes/syncAdmin.routes.js';
 import { requireAuth } from './middleware/auth.js';
 import { enregistrerErreur } from './config/etatServeur.js';
 import { compter } from './services/securite.service.js';
@@ -45,6 +47,7 @@ for (const routeur of [
   authRoutes, inscriptionRoutes, notesRoutes, paiementRoutes, vlogRoutes, professeurRoutes,
   aproposRoutes, academieRoutes, examensRoutes, direstatsRoutes, permissionsRoutes,
   contactMessageRoutes, presenceRoutes, ancienEleveRoutes, annonceRoutes, enseignantRoutes,
+  syncAdminRoutes,
 ]) {
   routeur.param('id', validerIdentifiant);
   routeur.param('idMatiere', validerIdentifiant);
@@ -153,6 +156,13 @@ app.use((req, res, next) => {
   res.status(503).set('Content-Type', 'text/html').send(PAGE_MAINTENANCE);
 });
 
+// Synchronisation MACHINE (postes de bureau hors ligne ↔ nuage) : monté ICI,
+// avant le parseur JSON global (limité à 100 Ko), car un lot de synchronisation
+// peut être plus gros ; ce routeur a son propre parseur (5 Mo) et sa propre
+// authentification par jeton (pas de session ni de cookie). Placé après le
+// gardien de maintenance : la synchro est elle aussi suspendue en maintenance.
+app.use('/api/sync', syncRoutes);
+
 // Store de session dans MySQL
 const MySQLStore = MySQLStoreFactory(session);
 const sessionStore = new MySQLStore({
@@ -232,6 +242,10 @@ app.use('/api', annonceRoutes);
 
 // Professeurs : comptes (direction), devoirs/documents/horaires (professeur + élève)
 app.use('/api', enseignantRoutes);
+
+// Gestion des postes de synchronisation (propriétaire) — enregistrer/révoquer
+// les postes de bureau autorisés à se synchroniser.
+app.use('/api', syncAdminRoutes);
 
 // Exemple de route protégée par rôle (utilisée pour vérifier le contrôle d'accès)
 import { requireRole } from './middleware/auth.js';
