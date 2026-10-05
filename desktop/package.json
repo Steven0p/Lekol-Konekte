@@ -1,0 +1,52 @@
+{
+  "name": "lekol-konekte-poste",
+  "version": "1.0.0",
+  "description": "Lekòl Konekte — application de bureau (hors ligne, synchronisée)",
+  "author": "Plaisival Steven",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "commonjs",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "stack:test": "node electron/_test-stack.mjs",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win --x64"
+  },
+  "dependencies": {
+    "mysql2": "3.24.4"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "online.lekolkonekte.poste",
+    "productName": "Lekol Konekte",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**/*",
+      "!electron/_test-stack.mjs"
+    ],
+    "extraResources": [
+      { "from": "../backend", "to": "backend",
+        "filter": ["**/*", "!.env", "!uploads/**", "!node_modules/.cache/**"] },
+      { "from": "../frontend/dist", "to": "frontend/dist" },
+      { "from": "vendor/mariadb/${os}", "to": "mariadb" }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "Lekol Konekte"
+    }
+  }
+}
