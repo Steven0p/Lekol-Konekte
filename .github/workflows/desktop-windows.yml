@@ -1,0 +1,64 @@
+name: Build app de bureau (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mariadb_version:
+        description: "Version de MariaDB Windows à embarquer"
+        required: true
+        default: "11.4.4"
+  push:
+    tags:
+      - "poste-v*"
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Construire le frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Dependances backend (embarquees)
+        working-directory: backend
+        run: npm ci --omit=dev
+
+      - name: Telecharger et embarquer MariaDB (Windows x64)
+        shell: pwsh
+        run: |
+          $ver = "${{ github.event.inputs.mariadb_version }}"
+          if ([string]::IsNullOrWhiteSpace($ver)) { $ver = "11.4.4" }
+          $url = "https://archive.mariadb.org/mariadb-$ver/winx64-packages/mariadb-$ver-winx64.zip"
+          Invoke-WebRequest -Uri $url -OutFile mariadb.zip
+          Expand-Archive -Path mariadb.zip -DestinationPath mariadb-extract -Force
+          $src = Join-Path mariadb-extract "mariadb-$ver-winx64"
+          $dst = "desktop/vendor/mariadb/win"
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          Copy-Item -Recurse -Force (Join-Path $src "*") $dst
+          if (-not (Test-Path (Join-Path $dst "bin/mariadbd.exe"))) { throw "mariadbd.exe introuvable" }
+
+      - name: Dependances du poste
+        working-directory: desktop
+        run: npm install
+
+      - name: Reconstruire bcrypt pour Electron
+        working-directory: desktop
+        run: npx --yes @electron/rebuild --version 33.2.1 --module-dir ../backend --only bcrypt
+
+      - name: Construire l'installateur (.exe)
+        working-directory: desktop
+        run: npm run dist:win
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lekol-konekte-poste-windows
+          path: desktop/dist/*.exe
+          if-no-files-found: error
+          retention-days: 30
