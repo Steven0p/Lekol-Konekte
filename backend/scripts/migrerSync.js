@@ -22,8 +22,12 @@ const urlArg = process.argv[2] || process.env.MYSQL_PUBLIC_URL || process.env.DA
 
 function configDepuisUrl(urlArg) {
   const u = new URL(urlArg);
-  // nom de base : dernier segment du chemin (ex. /railway), sinon DB_NAME
-  const base = decodeURIComponent(u.pathname.replace(/^\//, '')) || process.env.DB_NAME || 'lekol_konekte';
+  // nom de base : SYNC_DB_NAME prioritaire (sur Railway, l'URL publique MySQL
+  // pointe sur « railway », alors que l'app utilise « lekol_konekte »), sinon
+  // le chemin de l'URL, sinon DB_NAME.
+  const base = process.env.SYNC_DB_NAME
+    || decodeURIComponent(u.pathname.replace(/^\//, ''))
+    || process.env.DB_NAME || 'lekol_konekte';
   return {
     host: u.hostname,
     port: Number(u.port) || 3306,

@@ -11,12 +11,13 @@
     "start": "electron .",
     "stack:test": "node electron/_test-stack.mjs",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win --x64"
+    "dist:win": "electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "mysql2": "3.24.4"
   },
   "devDependencies": {
+    "@electron/rebuild": "3.7.1",
     "electron": "33.2.1",
     "electron-builder": "25.1.8"
   },
@@ -35,11 +36,10 @@
       { "from": "../backend", "to": "backend",
         "filter": ["**/*", "!.env", "!uploads/**", "!node_modules/.cache/**"] },
       { "from": "../frontend/dist", "to": "frontend/dist" },
-      { "from": "vendor/mariadb/${os}", "to": "mariadb" }
+      { "from": "vendor/mariadb/win", "to": "mariadb" }
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
-      "icon": "build/icon.ico"
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
     },
     "nsis": {
       "oneClick": false,
