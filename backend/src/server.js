@@ -12,6 +12,7 @@ import { purgerJournal } from './services/securite.service.js';
 import { purgerCodesAnciens } from './models/verificationCode.model.js';
 import { reconcilierPaiementsMobilesEnAttente, annulerInscriptionsNonPayees } from './services/paiement.service.js';
 import { migrerLogoEtBulletins } from './migrations/logoBulletins.js';
+import { migrerSyncNuage } from './migrations/syncCloud.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -35,6 +36,10 @@ async function demarrer() {
       await installerSchemaSync(pool);
       console.log('✔ Schéma de synchronisation local vérifié.');
     }
+
+    // Côté nuage : migration ponctuelle du schéma de synchronisation, avec un
+    // compte privilégié (SYNC_MIGRATE_URL). No-op sans RUN_SYNC_MIGRATION=run.
+    await migrerSyncNuage();
 
     await verifierMailer();
     verifierSms();
