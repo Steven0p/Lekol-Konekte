@@ -9,13 +9,20 @@ const { demarrer: demarrerMariaDB } = require('./mariadb.js');
 const { assurerBaseLocale } = require('./bootstrap-db.js');
 const { demarrerBackend } = require('./backend.js');
 
-// Sous Linux, beaucoup de systèmes durcis (Parrot, Kali…) restreignent les
-// « user namespaces », ce qui empêche le bac à sable de Chromium de démarrer
-// et fait quitter l'application au lancement. L'app ne charge QUE du contenu
-// local et de confiance (le frontend embarqué + le backend sur 127.0.0.1) —
-// désactiver le bac à sable est sans risque ici et garantit le démarrage.
+// Sous Linux, plusieurs particularités cassent le démarrage selon la machine :
+//  - systèmes durcis (Parrot, Kali…) : les « user namespaces » restreints
+//    empêchent le bac à sable de Chromium → on le désactive (l'app ne charge
+//    que du contenu local et de confiance : sans risque ici) ;
+//  - mémoire partagée (/dev/shm) indisponible/limitée → --disable-dev-shm-usage
+//    (Chromium bascule sur /tmp) ;
+//  - pas d'accélération GPU (VM, pilotes absents) : le process GPU plantait sur
+//    la mémoire partagée et laissait une fenêtre blanche → rendu logiciel.
+// Ces réglages garantissent le démarrage sur des postes très variés.
 if (process.platform === 'linux') {
   app.commandLine.appendSwitch('no-sandbox');
+  app.commandLine.appendSwitch('disable-dev-shm-usage');
+  app.commandLine.appendSwitch('disable-gpu');
+  app.disableHardwareAcceleration();
 }
 const {
   PORT_MARIADB, PORT_BACKEND, NOM_BASE, lireConfig, ecrireConfig, estConfigure, assurerSecrets,
