@@ -8,10 +8,12 @@ import {
 
 const router = Router();
 
-// Gestion des postes (propriétaire, côté nuage)
-router.get('/sync/noeuds', requireRole('proprietaire'), listerNoeuds);
-router.post('/sync/noeuds', requireRole('proprietaire'), creerNoeud);
-router.delete('/sync/noeuds/:id', requireRole('proprietaire'), revoquerNoeud);
+// Gestion des postes (propriétaire, côté nuage). Chemin sous /api/poste (et
+// NON /api/sync) : le routeur machine est monté sur TOUT /api/sync et exige un
+// jeton de poste — il intercepterait sinon ces routes de gestion.
+router.get('/poste/noeuds', requireRole('proprietaire'), listerNoeuds);
+router.post('/poste/noeuds', requireRole('proprietaire'), creerNoeud);
+router.delete('/poste/noeuds/:id', requireRole('proprietaire'), revoquerNoeud);
 
 // État local de synchronisation (interface du poste de bureau) — chemin
 // distinct de /api/sync (réservé au trafic machine par jeton).

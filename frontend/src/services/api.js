@@ -224,9 +224,9 @@ export const directionApi = {
 
 // Synchronisation — postes de bureau hors ligne (propriétaire) + état local.
 export const syncApi = {
-  noeuds: () => request('/sync/noeuds'),
-  creerNoeud: (nom) => request('/sync/noeuds', { method: 'POST', body: json({ nom }) }),
-  revoquerNoeud: (id) => request(`/sync/noeuds/${id}`, { method: 'DELETE' }),
+  noeuds: () => request('/poste/noeuds'),
+  creerNoeud: (nom) => request('/poste/noeuds', { method: 'POST', body: json({ nom }) }),
+  revoquerNoeud: (id) => request(`/poste/noeuds/${id}`, { method: 'DELETE' }),
   // État local (seulement quand on tourne sur un poste de bureau)
   etatPoste: () => request('/poste/sync'),
   synchroniserMaintenant: () => request('/poste/sync', { method: 'POST' }),
