@@ -8,8 +8,13 @@ import { fileURLToPath } from 'url';
 import { fileTypeFromFile } from 'file-type';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// backend/uploads/inscriptions
-export const UPLOAD_ROOT = path.join(__dirname, '..', '..', 'uploads');
+// Dossier des fichiers téléversés/générés. Par défaut backend/uploads ; mais
+// quand l'app est installée en lecture seule (AppImage du poste de bureau),
+// le backend doit écrire ailleurs : UPLOAD_DIR pointe alors vers un dossier
+// inscriptible (ex. le dossier de données utilisateur).
+export const UPLOAD_ROOT = process.env.UPLOAD_DIR
+  ? path.resolve(process.env.UPLOAD_DIR)
+  : path.join(__dirname, '..', '..', 'uploads');
 const DEST = path.join(UPLOAD_ROOT, 'inscriptions');
 
 const TYPES_AUTORISES = {

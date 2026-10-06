@@ -95,6 +95,9 @@ async function demarrerPile() {
   // Secrets locaux garantis (mot de passe root MariaDB + secret de session).
   const config = assurerSecrets(app.getPath('userData'));
   config.nomBase = NOM_BASE;
+  // Fichiers écrits dans le dossier de données utilisateur (l'app est en
+  // lecture seule) : documents, preuves, photos, bulletins générés…
+  config.uploadDir = path.join(app.getPath('userData'), 'uploads');
 
   const dataDir = path.join(app.getPath('userData'), 'mariadb-data');
   envoyerLog('Démarrage de la base locale…');

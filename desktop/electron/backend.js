@@ -26,6 +26,9 @@ function demarrerBackend({ backendDir, config, ports, onLog } = {}) {
     // Sur un poste hors ligne, pas d'envoi direct de courriel/SMS : le nuage
     // reste la source des notifications (évite les doublons et les échecs).
     MAIL_PROVIDER: 'none',
+    // Dossier inscriptible pour les fichiers (l'app empaquetée est en lecture
+    // seule) : documents, preuves, photos, bulletins générés…
+    UPLOAD_DIR: config.uploadDir,
   };
 
   const electron = !!process.versions.electron;

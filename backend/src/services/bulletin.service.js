@@ -5,10 +5,9 @@ import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import crypto from 'crypto';
 import fs from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import { UPLOAD_ROOT } from '../config/upload.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const BULLETINS_DIR = path.join(__dirname, '..', '..', 'uploads', 'bulletins');
+const BULLETINS_DIR = path.join(UPLOAD_ROOT, 'bulletins');
 
 const LIBELLE_TRIM = {
   '1er_trimestre': '1er Trimestre',
