@@ -2,6 +2,7 @@
   "name": "lekol-konekte-poste",
   "version": "1.0.0",
   "description": "Lekòl Konekte — application de bureau (hors ligne, synchronisée)",
+  "homepage": "https://lekolkonekte.online",
   "author": "Plaisival Steven",
   "license": "UNLICENSED",
   "private": true,
@@ -11,7 +12,8 @@
     "start": "electron .",
     "stack:test": "node electron/_test-stack.mjs",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win --x64 --publish never"
+    "dist:win": "electron-builder --win --x64 --publish never",
+    "dist:linux": "electron-builder --linux --x64 --publish never"
   },
   "dependencies": {
     "mysql2": "3.24.4"
@@ -35,11 +37,13 @@
     "extraResources": [
       { "from": "../backend", "to": "backend",
         "filter": ["**/*", "!.env", "!uploads/**", "!node_modules/.cache/**"] },
-      { "from": "../frontend/dist", "to": "frontend/dist" },
-      { "from": "vendor/mariadb/win", "to": "mariadb" }
+      { "from": "../frontend/dist", "to": "frontend/dist" }
     ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }]
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "extraResources": [
+        { "from": "vendor/mariadb/win", "to": "mariadb" }
+      ]
     },
     "nsis": {
       "oneClick": false,
@@ -47,6 +51,16 @@
       "perMachine": false,
       "createDesktopShortcut": true,
       "shortcutName": "Lekol Konekte"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Education",
+      "maintainer": "Plaisival Steven <plaisivalsteven8@gmail.com>",
+      "synopsis": "Plateforme de gestion scolaire (poste hors ligne)",
+      "description": "Lekòl Konekte — application de bureau : fonctionne hors ligne sur une base MariaDB locale et se synchronise avec le nuage."
+    },
+    "deb": {
+      "depends": ["mariadb-server"]
     }
   }
 }

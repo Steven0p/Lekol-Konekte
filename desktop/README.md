@@ -47,6 +47,35 @@ poste** (créé par le propriétaire : Espace propriétaire → Postes de
 synchronisation). La configuration est enregistrée dans le dossier de données
 utilisateur ; MariaDB et le backend démarrent, puis l'app s'ouvre.
 
+## Empaqueter pour Linux (Parrot / Debian / Ubuntu)
+
+Contrairement à Windows, la version Linux utilise **MariaDB installé sur le
+système** (pas de binaires embarqués). Le paquet `.deb` en dépend
+automatiquement ; pour l'AppImage, installer MariaDB au préalable.
+
+```bash
+npm --prefix ../frontend run build   # frontend
+npm install                          # dépendances du poste
+npm run dist:linux                   # produit un .AppImage et un .deb dans dist/
+```
+
+**Installer / lancer :**
+
+- **AppImage** (portable, aucune installation) :
+  ```bash
+  sudo apt install mariadb-server libfuse2   # une seule fois
+  chmod +x "Lekol Konekte-1.0.0.AppImage"
+  ./"Lekol Konekte-1.0.0.AppImage"
+  ```
+- **Paquet .deb** (installation native, dépendances automatiques) :
+  ```bash
+  sudo apt install ./lekol-konekte-poste_1.0.0_amd64.deb
+  ```
+
+> Note : sur les systèmes durcis (Parrot, Kali), le bac à sable de Chromium est
+> désactivé automatiquement sous Linux (l'app ne charge que du contenu local),
+> sinon l'application se fermerait au lancement.
+
 ## Empaqueter pour Windows (.exe)
 
 1. **Construire le frontend** (`npm --prefix ../frontend run build`).

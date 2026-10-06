@@ -8,6 +8,15 @@ const path = require('path');
 const { demarrer: demarrerMariaDB } = require('./mariadb.js');
 const { assurerBaseLocale } = require('./bootstrap-db.js');
 const { demarrerBackend } = require('./backend.js');
+
+// Sous Linux, beaucoup de systèmes durcis (Parrot, Kali…) restreignent les
+// « user namespaces », ce qui empêche le bac à sable de Chromium de démarrer
+// et fait quitter l'application au lancement. L'app ne charge QUE du contenu
+// local et de confiance (le frontend embarqué + le backend sur 127.0.0.1) —
+// désactiver le bac à sable est sans risque ici et garantit le démarrage.
+if (process.platform === 'linux') {
+  app.commandLine.appendSwitch('no-sandbox');
+}
 const {
   PORT_MARIADB, PORT_BACKEND, NOM_BASE, lireConfig, ecrireConfig, estConfigure, assurerSecrets,
 } = require('./config.js');
@@ -15,11 +24,17 @@ const {
 // ---- Chemins (dev vs empaqueté) ----------------------------------------
 const estEmpaquete = app.isPackaged;
 const racineDev = path.resolve(__dirname, '..', '..');
+// MariaDB : sous Windows, les binaires sont embarqués (resources/mariadb) ;
+// sous Linux/macOS, on utilise MariaDB installé sur le système (le paquet .deb
+// en dépend). binDir undefined => mariadb.js résout via le PATH système.
+const mariadbBinDir = (estEmpaquete && process.platform === 'win32')
+  ? path.join(process.resourcesPath, 'mariadb')
+  : undefined;
 const CHEMINS = estEmpaquete
   ? {
       backendDir: path.join(process.resourcesPath, 'backend'),
       schemaPath: path.join(process.resourcesPath, 'backend', 'db', 'schema.sql'),
-      mariadbBinDir: path.join(process.resourcesPath, 'mariadb'),
+      mariadbBinDir,
     }
   : {
       backendDir: path.join(racineDev, 'backend'),
