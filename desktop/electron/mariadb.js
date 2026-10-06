@@ -15,10 +15,21 @@ function exe(nom) {
   return process.platform === 'win32' ? `${nom}.exe` : nom;
 }
 
-// Cherche un binaire dans binDir/bin, binDir, puis le PATH système.
+// Répertoires système usuels où chercher MariaDB quand il n'est pas embarqué
+// (Linux/macOS). Le PATH d'une application GUI lancée depuis le menu est
+// souvent minimal et n'inclut PAS /sbin — or sur Debian/Parrot, mariadbd s'y
+// trouve. On cherche donc explicitement dans ces emplacements.
+const DOSSIERS_SYSTEME = [
+  '/usr/sbin', '/usr/bin', '/sbin', '/bin',
+  '/usr/local/sbin', '/usr/local/bin', '/opt/homebrew/bin',
+];
+
+// Cherche un binaire dans binDir/bin et binDir (embarqué), sinon dans les
+// répertoires système usuels, sinon via le PATH.
 function trouverBinaire(binDir, candidats) {
   const dossiers = [];
   if (binDir) dossiers.push(path.join(binDir, 'bin'), binDir);
+  else dossiers.push(...DOSSIERS_SYSTEME);
   for (const d of dossiers) {
     for (const c of candidats) {
       const p = path.join(d, exe(c));

@@ -80,6 +80,12 @@ function creerFenetre() {
     if (/^https?:\/\//.test(url)) { shell.openExternal(url); return { action: 'deny' }; }
     return { action: 'allow' };
   });
+  // Diagnostic : si le rendu échoue (crash renderer, échec de chargement),
+  // on le journalise plutôt que de rester sur une fenêtre blanche.
+  fenetre.webContents.on('render-process-gone', (_e, d) => console.error('↯ renderer gone:', JSON.stringify(d)));
+  fenetre.webContents.on('did-fail-load', (_e, c, desc, url) => console.error('↯ did-fail-load:', c, desc, url));
+  fenetre.webContents.on('unresponsive', () => console.error('↯ renderer unresponsive'));
+  fenetre.webContents.on('console-message', (_e, lvl, msg, line, src) => console.error('↯ console:', msg, '@', (src || '').split('/').pop() + ':' + line));
   fenetre.loadFile(path.join(__dirname, 'ui', 'chargement.html'));
 }
 
