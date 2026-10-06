@@ -5,9 +5,23 @@
 //   2) POUSSE vers le nuage les modifs locales (lignes « sales »).
 // Hors ligne, il échoue en silence et réessaie au cycle suivant : le travail
 // local n'est jamais bloqué.
+import fs from 'fs';
+import path from 'path';
 import { pool } from '../config/db.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
 import { collecterSales, appliquer, marquerPousse } from './engine.js';
 import { lireEtat, ecrireEtat } from './etat.model.js';
+
+// Colonnes des tables synchronisées qui contiennent un chemin de FICHIER
+// (relatif à UPLOAD_ROOT). Après un pull, le poste télécharge ceux qui manquent
+// pour que logos, photos et documents s'affichent aussi hors ligne.
+const FICHIERS_PAR_TABLE = {
+  ecole: ['logo_url'],
+  eleves: ['photo_url'],
+  documents_soumis: ['url_fichier'],
+  paiements: ['preuve_url'],
+  documents_officiels: ['url_pdf'],
+};
 
 const MODE = () => (process.env.SYNC_MODE || '').trim();
 const CLOUD = () => (process.env.SYNC_CLOUD_URL || '').replace(/\/+$/, '');
@@ -37,6 +51,51 @@ async function appelCloud(chemin, corps) {
   } finally {
     clearTimeout(minuteur);
   }
+}
+
+// Télécharge un fichier d'upload depuis le nuage. Renvoie un Buffer, ou null
+// si absent (404) / échec réseau.
+async function telechargerFichier(cheminRelatif) {
+  const ctrl = new AbortController();
+  const minuteur = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const url = `${CLOUD()}/api/sync/fichier?chemin=${encodeURIComponent(cheminRelatif)}`;
+    const rep = await fetch(url, { headers: { Authorization: `Bearer ${JETON()}` }, signal: ctrl.signal });
+    if (!rep.ok) return null;
+    return Buffer.from(await rep.arrayBuffer());
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+// Après un pull, récupère les fichiers (logos, photos, documents) référencés
+// par la base locale mais absents du disque, pour un affichage hors ligne.
+async function telechargerFichiersManquants(conn) {
+  let telecharges = 0;
+  for (const [table, colonnes] of Object.entries(FICHIERS_PAR_TABLE)) {
+    for (const col of colonnes) {
+      const [lignes] = await conn.query(
+        `SELECT DISTINCT \`${col}\` AS v FROM \`${table}\`
+          WHERE \`${col}\` IS NOT NULL AND \`${col}\` <> ''`
+      );
+      for (const { v } of lignes) {
+        const cheminRel = String(v).replace(/^[/\\]+/, '');
+        const local = path.join(UPLOAD_ROOT, cheminRel);
+        // garde-fou anti-traversal + fichier déjà présent
+        if (!path.resolve(local).startsWith(path.resolve(UPLOAD_ROOT))) continue;
+        if (fs.existsSync(local)) continue;
+        try {
+          const buf = await telechargerFichier(cheminRel);
+          if (buf) {
+            fs.mkdirSync(path.dirname(local), { recursive: true });
+            fs.writeFileSync(local, buf);
+            telecharges++;
+          }
+        } catch { /* réessayé au prochain cycle */ }
+      }
+    }
+  }
+  return telecharges;
 }
 
 async function tirer(conn) {
@@ -75,10 +134,14 @@ export async function cycleSync() {
     conn = await pool.getConnection();
     const recu = await tirer(conn);
     const envoye = await pousser(conn);
+    // Récupère les fichiers manquants (logos, photos, documents). Non bloquant
+    // pour l'état « en ligne » : un échec de fichier ne doit pas marquer erreur.
+    let fichiers = 0;
+    try { fichiers = await telechargerFichiersManquants(conn); } catch { /* réessai au prochain cycle */ }
     await ecrireEtat('statut', 'en_ligne');
     await ecrireEtat('derniere_erreur', null);
     await ecrireEtat('dernier_sync', new Date().toISOString());
-    if (recu || envoye) console.log(`↔ Synchro : ${recu} reçu(s), ${envoye} envoyé(s).`);
+    if (recu || envoye || fichiers) console.log(`↔ Synchro : ${recu} reçu(s), ${envoye} envoyé(s), ${fichiers} fichier(s).`);
   } catch (err) {
     const horsLigne = estHorsLigne(err.message || '');
     await ecrireEtat('statut', horsLigne ? 'hors_ligne' : 'erreur').catch(() => {});

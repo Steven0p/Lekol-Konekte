@@ -2,7 +2,10 @@
 //   POST /api/sync/pull  : le poste réclame les modifs depuis son curseur.
 //   POST /api/sync/push  : le poste envoie ses modifs locales.
 //   + gestion des postes (propriétaire) : créer / lister / révoquer.
+import fs from 'fs';
+import path from 'path';
 import { pool } from '../config/db.js';
+import { UPLOAD_ROOT } from '../config/upload.js';
 import { collecterDepuis, appliquer, compterEnAttente } from '../sync/engine.js';
 import {
   creerNoeud as creerNoeudModel, listerNoeuds as listerNoeudsModel,
@@ -58,6 +61,24 @@ export async function push(req, res, next) {
   } finally {
     if (conn) conn.release();
   }
+}
+
+// --- GET /api/sync/fichier?chemin=... -----------------------------------
+// Sert un fichier d'upload (logo, photo d'élève, document…) au poste, pour
+// qu'il fonctionne hors ligne. Authentifié par jeton de poste. Chemin RELATIF
+// sous UPLOAD_ROOT ; toute tentative de sortie (traversal) est refusée.
+export function fichierSync(req, res) {
+  const chemin = (req.query.chemin || '').toString();
+  if (!chemin) return res.status(400).json({ erreur: 'Chemin requis.' });
+  const racine = path.resolve(UPLOAD_ROOT);
+  const cible = path.resolve(racine, chemin);
+  if (cible !== racine && !cible.startsWith(racine + path.sep)) {
+    return res.status(400).json({ erreur: 'Chemin invalide.' });
+  }
+  if (!fs.existsSync(cible) || !fs.statSync(cible).isFile()) {
+    return res.status(404).json({ erreur: 'Fichier introuvable.' });
+  }
+  res.sendFile(cible);
 }
 
 // --- Gestion des postes (propriétaire) ----------------------------------

@@ -218,17 +218,24 @@ async function reconstituerColonnes(conn, rec) {
 
   const { simples, polymorphes } = fksDe(rec.table);
 
+  // Une clé étrangère NON nullable qui ne se résout pas → on IGNORE la ligne
+  // (return null) au lieu de planter :
+  //  - cible pas encore synchronisée (sid connu mais absent localement) : sera
+  //    retentée via l'ordre de dépendance ;
+  //  - référence orpheline (sid null : l'entité pointée a été supprimée côté
+  //    nuage, ex. une ligne d'historique sur un paiement effacé) : ignorée
+  //    définitivement plutôt que de violer la contrainte NOT NULL.
   for (const fk of simples) {
     const sid = rec.refs ? rec.refs[fk.colonne] : null;
     const idLocal = await idDepuisSyncId(conn, fk.cible, sid);
-    if (idLocal == null && sid != null && !fk.nullable) return null; // cible pas encore là
+    if (idLocal == null && !fk.nullable) return null;
     colonnes[fk.colonne] = idLocal;
   }
   for (const poly of polymorphes) {
     const sid = rec.refs ? rec.refs[poly.colonne] : null;
     const cible = poly.carte[rec.data[poly.colonneType]] || null;
     const idLocal = cible ? await idDepuisSyncId(conn, cible, sid) : null;
-    if (idLocal == null && sid != null && !poly.nullable) return null;
+    if (idLocal == null && !poly.nullable) return null;
     colonnes[poly.colonne] = idLocal;
   }
   return colonnes;
