@@ -13,7 +13,7 @@ import {
 } from '../sync/noeud.model.js';
 import { resumeEtat } from '../sync/etat.model.js';
 import { syncPosteConfigure, cycleSync } from '../sync/worker.js';
-import { creerCompletionLocale } from '../config/ia.js';
+import { creerCompletionLocale, MODELE_IA } from '../config/ia.js';
 import { tracer, alerter } from '../services/securite.service.js';
 
 const LIMITE_PULL = 1000;                 // enregistrements max renvoyés par pull
@@ -92,7 +92,10 @@ export async function iaSync(req, res, next) {
     if (!process.env.GROQ_API_KEY) {
       return res.status(503).json({ erreur: 'IA non configurée côté nuage.' });
     }
-    const completion = await creerCompletionLocale(req.body || {});
+    // Modèle imposé (un poste compromis ne choisit pas un autre modèle) ; les
+    // autres garde-fous (retrait des outils, consignes, vérification, plafond
+    // de tokens) sont appliqués par creerCompletionLocale.
+    const completion = await creerCompletionLocale({ ...(req.body || {}), model: MODELE_IA });
     res.json(completion);
   } catch (err) {
     next(err);

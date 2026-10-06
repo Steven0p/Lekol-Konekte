@@ -40,8 +40,14 @@ async function demarrer() {
     verifierSms();
     verifierPlopplop();
     verifierGoogleConfigure();
-    const serveur = app.listen(PORT, () => {
-      console.log(`✔ Serveur Lekol Konekte démarré sur http://localhost:${PORT}`);
+    // Adresse d'écoute. En mode poste (app de bureau), on écoute UNIQUEMENT sur
+    // 127.0.0.1 : le backend local ne doit JAMAIS être exposé au réseau de
+    // l'école (sinon l'app et l'API seraient accessibles depuis tout appareil
+    // du même Wi-Fi). Sur le nuage, HOST n'est pas défini → écoute sur toutes
+    // les interfaces (requis par l'hébergeur).
+    const HOST = process.env.HOST || (syncPosteConfigure() ? '127.0.0.1' : undefined);
+    const serveur = app.listen(PORT, HOST, () => {
+      console.log(`✔ Serveur Lekol Konekte démarré sur http://${HOST || 'localhost'}:${PORT}`);
     });
     // Requêtes lentes coupées : 60 s max par requête (téléversements de 5 Mo
     // compris), en-têtes en 20 s — une connexion qui traîne (volontairement

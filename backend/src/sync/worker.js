@@ -81,8 +81,10 @@ async function telechargerFichiersManquants(conn) {
       for (const { v } of lignes) {
         const cheminRel = String(v).replace(/^[/\\]+/, '');
         const local = path.join(UPLOAD_ROOT, cheminRel);
-        // garde-fou anti-traversal + fichier déjà présent
-        if (!path.resolve(local).startsWith(path.resolve(UPLOAD_ROOT))) continue;
+        // garde-fou anti-traversal (avec séparateur, pour ne pas accepter un
+        // dossier frère « …/uploads-evil ») + fichier déjà présent.
+        const racine = path.resolve(UPLOAD_ROOT);
+        if (path.resolve(local) !== racine && !path.resolve(local).startsWith(racine + path.sep)) continue;
         if (fs.existsSync(local)) continue;
         try {
           const buf = await telechargerFichier(cheminRel);
