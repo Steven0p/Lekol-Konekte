@@ -6,7 +6,7 @@ import { Router } from 'express';
 import express from 'express';
 import { requireNoeudSync } from '../sync/auth.js';
 import { syncLimiter } from '../middleware/rateLimit.js';
-import { pull, push, fichierSync } from '../controllers/sync.controller.js';
+import { pull, push, fichierSync, iaSync } from '../controllers/sync.controller.js';
 
 const router = Router();
 
@@ -20,5 +20,6 @@ router.use(express.json({ limit: '5mb', strict: true }));
 router.post('/pull', pull);
 router.post('/push', push);
 router.get('/fichier', fichierSync); // téléchargement d'un fichier (logo, photo…) par le poste
+router.post('/ia', iaSync);          // relais des appels IA du poste vers le nuage
 
 export default router;

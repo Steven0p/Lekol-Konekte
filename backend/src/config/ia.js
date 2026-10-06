@@ -12,8 +12,13 @@
 import OpenAI from 'openai';
 import { tracer } from '../services/securite.service.js';
 
-// L'assistant est actif uniquement si une clé Groq est configurée.
-export const iaConfiguree = () => !!process.env.GROQ_API_KEY;
+// Un POSTE de bureau n'a pas la clé Groq (elle reste sur le nuage) : il relaie
+// alors les appels IA au nuage, qui exécute la complétion. L'IA est donc
+// « configurée » soit avec une clé locale, soit en mode poste relié au nuage.
+const estPosteAvecNuage = () => (process.env.SYNC_MODE || '').trim() === 'poste'
+  && !!(process.env.SYNC_CLOUD_URL || '').trim() && !!(process.env.SYNC_JETON || '').trim();
+
+export const iaConfiguree = () => !!process.env.GROQ_API_KEY || estPosteAvecNuage();
 
 // Modèle gratuit chez Groq (surchargable via GROQ_MODEL). Groq retire
 // régulièrement d'anciens modèles (ex. llama-3.3-70b-versatile, décommissionné) :
@@ -71,9 +76,9 @@ function sdkGroq() {
   return sdk;
 }
 
-// Même interface que le SDK (client.chat.completions.create) pour ne pas
-// toucher aux appelants, mais chaque appel passe par les garde-fous ci-dessus.
-async function creerCompletion(params) {
+// Appel direct à Groq (côté nuage, ou tout serveur ayant la clé), avec tous les
+// garde-fous : retrait des outils, consignes de sécurité en tête, réponse vérifiée.
+async function creerCompletionDirecte(params) {
   const { tools, tool_choice, functions, function_call, ...reste } = params; // eslint-disable-line no-unused-vars
   const completion = await sdkGroq().chat.completions.create({
     ...reste,
@@ -93,10 +98,36 @@ async function creerCompletion(params) {
   return completion;
 }
 
+// Côté POSTE : relaie l'appel au nuage (qui détient la clé et applique les
+// garde-fous). Renvoie une complétion de même forme, ou lève en cas d'échec
+// (hors ligne, nuage indisponible) — l'appelant traite déjà ce cas.
+async function completionViaNuage(params) {
+  const base = (process.env.SYNC_CLOUD_URL || '').replace(/\/+$/, '');
+  const rep = await fetch(`${base}/api/sync/ia`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.SYNC_JETON}` },
+    body: JSON.stringify(params || {}),
+    signal: AbortSignal.timeout(DELAI_MS + 10_000),
+  });
+  if (!rep.ok) throw new Error(`IA (nuage) : HTTP ${rep.status}`);
+  return rep.json();
+}
+
+// Même interface que le SDK (client.chat.completions.create) pour ne pas
+// toucher aux appelants : appel direct si clé locale, sinon relais au nuage.
+async function creerCompletion(params) {
+  if (process.env.GROQ_API_KEY) return creerCompletionDirecte(params);
+  if (estPosteAvecNuage()) return completionViaNuage(params);
+  throw new Error('IA non configurée.');
+}
+
+// Appel direct garanti (clé locale) — utilisé par l'endpoint de relais du nuage.
+export const creerCompletionLocale = creerCompletionDirecte;
+
 const client = { chat: { completions: { create: creerCompletion } } };
 
 export function clientIA() {
-  if (!process.env.GROQ_API_KEY) return null;
+  if (!iaConfiguree()) return null;
   return client;
 }
 

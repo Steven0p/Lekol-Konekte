@@ -13,6 +13,7 @@ import {
 } from '../sync/noeud.model.js';
 import { resumeEtat } from '../sync/etat.model.js';
 import { syncPosteConfigure, cycleSync } from '../sync/worker.js';
+import { creerCompletionLocale } from '../config/ia.js';
 import { tracer, alerter } from '../services/securite.service.js';
 
 const LIMITE_PULL = 1000;                 // enregistrements max renvoyés par pull
@@ -79,6 +80,23 @@ export function fichierSync(req, res) {
     return res.status(404).json({ erreur: 'Fichier introuvable.' });
   }
   res.sendFile(cible);
+}
+
+// --- POST /api/sync/ia --------------------------------------------------
+// Relais IA pour les postes : le poste n'a pas la clé Groq (elle reste sur le
+// nuage). Il envoie ici les paramètres de complétion ; le nuage l'exécute avec
+// ses propres garde-fous (retrait des outils, consignes, vérification) et
+// renvoie la complétion. Authentifié par jeton de poste.
+export async function iaSync(req, res, next) {
+  try {
+    if (!process.env.GROQ_API_KEY) {
+      return res.status(503).json({ erreur: 'IA non configurée côté nuage.' });
+    }
+    const completion = await creerCompletionLocale(req.body || {});
+    res.json(completion);
+  } catch (err) {
+    next(err);
+  }
 }
 
 // --- Gestion des postes (propriétaire) ----------------------------------
