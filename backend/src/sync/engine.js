@@ -235,8 +235,11 @@ async function reconstituerColonnes(conn, rec) {
 }
 
 async function upsertLigne(conn, table, colonnes, { estHub }) {
+  // On teste seulement l'EXISTENCE par sync_id (la valeur de la PK n'est pas
+  // utilisée ici) : « SELECT 1 » plutôt que « SELECT id », car certaines tables
+  // synchronisées n'ont pas de colonne `id` (ex. permissions, dont la PK est `cle`).
   const [exist] = await conn.query(
-    `SELECT id FROM \`${table}\` WHERE \`${COLONNE_SYNC_ID}\` = ? LIMIT 1`, [colonnes[COLONNE_SYNC_ID]]
+    `SELECT 1 FROM \`${table}\` WHERE \`${COLONNE_SYNC_ID}\` = ? LIMIT 1`, [colonnes[COLONNE_SYNC_ID]]
   );
 
   // Sur un POSTE, la ligne appliquée ne doit pas repartir (dirty=0). On NE
