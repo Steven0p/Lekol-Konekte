@@ -1,5 +1,6 @@
 // Contrôleur d'authentification
 import bcrypt from 'bcryptjs';
+import { pool } from '../config/db.js';
 import {
   findByCourriel,
   findById,
@@ -9,6 +10,10 @@ import {
   lierGoogleId,
   createParentGoogle,
 } from '../models/user.model.js';
+import {
+  trouverValidePourMaj as trouverInvitationPourMaj,
+  marquerUtilisee as marquerInvitationUtilisee,
+} from '../models/invitationEleve.model.js';
 import { verifierIdTokenGoogle, clientIdPublic } from '../config/googleAuth.js';
 import { trouverParCode as trouverEleveParCode, trouverParId as trouverEleveParId }
   from '../models/eleve.model.js';
@@ -76,23 +81,65 @@ export async function register(req, res, next) {
     }
 
     // Contrôle d'accès à la création de compte (interrupteurs du propriétaire) :
-    //  - compte élève : autorisé seulement si l'auto-inscription des élèves est activée ;
+    //  - compte élève : autorisé seulement si l'auto-inscription des élèves est
+    //    activée ET si un CODE D'INVITATION valide est fourni (ainsi, seules les
+    //    personnes réellement admises par l'école peuvent créer un compte élève) ;
     //  - compte parent : autorisé seulement si l'inscription des parents est activée.
     // Une demande « élève » quand l'auto-inscription élève est désactivée retombe
     // sur un compte parent, donc soumise à l'autorisation « parent ».
-    const eleveAutorise = req.body.profilEleve === true
+    const veutEleve = req.body.profilEleve === true
       && await estAutorise(CLES.INSCRIPTION_ELEVE);
-    const parentAutorise = await estAutorise(CLES.INSCRIPTION_PARENT);
-    if (!eleveAutorise && !parentAutorise) {
-      return res.status(403).json({
-        erreur: "La création de compte n'est pas ouverte pour le moment. "
-          + "Contactez l'établissement pour obtenir un accès.",
-      });
-    }
-    const compteEleve = eleveAutorise;
 
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
-    const utilisateur = await createParent({ nom, courriel, motDePasseHash, compteEleve });
+
+    let utilisateur;
+    let compteEleve = false;
+
+    if (veutEleve) {
+      // Compte élève : un code d'invitation valide est OBLIGATOIRE. On vérifie et
+      // on consomme le code dans la MÊME transaction que la création du compte,
+      // pour qu'un code ne puisse jamais servir deux fois (même en cas de double
+      // soumission simultanée).
+      const code = (req.body.codeInvitation || '').toString().trim().toUpperCase();
+      if (!code) {
+        return res.status(400).json({ erreur: "Un code d'invitation est requis pour créer un compte élève." });
+      }
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+        const invitation = await trouverInvitationPourMaj(conn, code);
+        if (!invitation) {
+          await conn.rollback();
+          return res.status(403).json({ erreur: "Code d'invitation invalide, déjà utilisé ou expiré." });
+        }
+        utilisateur = await createParent({ nom, courriel, motDePasseHash, compteEleve: true }, { conn });
+        await marquerInvitationUtilisee(conn, invitation.id, utilisateur.id);
+        await conn.commit();
+        compteEleve = true;
+        tracer('inscription_eleve_invitation', { req, sujet: courriel, details: `Invitation #${invitation.id}` });
+      } catch (err) {
+        try { await conn.rollback(); } catch { /* ignore */ }
+        // Courriel devenu doublon entre-temps : même message neutre que plus haut.
+        if (err && err.code === 'ER_DUP_ENTRY') {
+          return res.status(409).json({
+            erreur: 'Impossible de créer un compte avec ce courriel. Si vous avez déjà un compte, '
+              + 'connectez-vous ou utilisez « Mot de passe oublié ».',
+          });
+        }
+        throw err;
+      } finally {
+        conn.release();
+      }
+    } else {
+      // Compte parent : soumis à l'autorisation « inscription des parents ».
+      if (!await estAutorise(CLES.INSCRIPTION_PARENT)) {
+        return res.status(403).json({
+          erreur: "La création de compte n'est pas ouverte pour le moment. "
+            + "Contactez l'établissement pour obtenir un accès.",
+        });
+      }
+      utilisateur = await createParent({ nom, courriel, motDePasseHash, compteEleve: false });
+    }
 
     await regenererSession(req);
     req.session.userId = utilisateur.id;

@@ -38,6 +38,7 @@ import AdminInscriptions from './pages/admin/AdminInscriptions.jsx';
 import AdminDetailInscription from './pages/admin/AdminDetailInscription.jsx';
 import AdminNotes from './pages/admin/AdminNotes.jsx';
 import AdminCodesEleves from './pages/admin/AdminCodesEleves.jsx';
+import AdminInvitations from './pages/admin/AdminInvitations.jsx';
 import AdminBadges from './pages/admin/AdminBadges.jsx';
 import EconomatAdmin from './pages/public/EconomatAdmin.jsx';
 import AdminPresences from './pages/admin/AdminPresences.jsx';
@@ -124,6 +125,7 @@ export default function App() {
         <Route path="/admin/inscriptions/:id" element={<RoutePrivee roles={['admin']}><AdminDetailInscription /></RoutePrivee>} />
         <Route path="/admin/notes" element={<RoutePrivee roles={['admin']}><AdminNotes /></RoutePrivee>} />
         <Route path="/admin/codes-eleves" element={<RoutePrivee roles={['admin']}><AdminCodesEleves /></RoutePrivee>} />
+        <Route path="/admin/invitations" element={<RoutePrivee roles={['admin', 'direction', 'proprietaire']}><AdminInvitations /></RoutePrivee>} />
         <Route path="/admin/badges" element={<RoutePrivee roles={['admin']}><AdminBadges /></RoutePrivee>} />
         <Route path="/admin/presences" element={<RoutePrivee roles={['admin', 'direction']}><AdminPresences /></RoutePrivee>} />
         <Route path="/admin/anciens-eleves" element={<RoutePrivee roles={['admin', 'direction']}><AdminAnciensEleves /></RoutePrivee>} />

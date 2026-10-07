@@ -27,6 +27,7 @@ export default function Register() {
   const [courriel, setCourriel] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [confirmation, setConfirmation] = useState('');
+  const [codeInvitation, setCodeInvitation] = useState('');
   const [erreur, setErreur] = useState('');
   const [enCours, setEnCours] = useState(false);
 
@@ -41,7 +42,11 @@ export default function Register() {
     try {
       // Le compte stocke un nom complet unique : « Prénom Nom ».
       const nomComplet = `${prenom.trim()} ${nom.trim()}`.trim();
-      await register({ nom: nomComplet, courriel, motDePasse, profilEleve: estEleve });
+      await register({
+        nom: nomComplet, courriel, motDePasse, profilEleve: estEleve,
+        // Code d'invitation : requis seulement pour un compte élève.
+        ...(estEleve ? { codeInvitation: codeInvitation.trim() } : {}),
+      });
       // Élève : on garde nom/prénom pour préremplir le formulaire d'inscription.
       if (estEleve) {
         try {
@@ -111,6 +116,19 @@ export default function Register() {
             {selecteur}
 
             <Alerte type="erreur">{erreur}</Alerte>
+
+            {estEleve && (
+              <>
+                <Champ label="CODE D'INVITATION" value={codeInvitation}
+                  onChange={(e) => setCodeInvitation(e.target.value.toUpperCase())}
+                  required autoComplete="off" placeholder="Ex. ABCD2345"
+                  style={{ textTransform: 'uppercase', letterSpacing: '.08em' }} />
+                <p className="texte-gris" style={{ margin: '-.4rem 0 .6rem', fontSize: '.82rem' }}>
+                  Ce code vous est remis par l'école. Sans code valide, la création
+                  d'un compte élève n'est pas possible.
+                </p>
+              </>
+            )}
 
             <div className="rangee" style={{ gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <Champ label="NOM" value={nom}

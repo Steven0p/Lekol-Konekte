@@ -1060,6 +1060,7 @@ table.insc-tableau tbody tr:hover { background: var(--i-hover); }
 .insc-badge-or { background: #FEFCBF; color: #975A16; }
 .insc-badge-rouge { background: #FED7D7; color: #C53030; }
 .insc-badge-ble { background: #EBF8FF; color: #2B4C7E; }
+.insc-badge-gris { background: #E2E8F0; color: #4A5568; }
 
 /* Bouton Traiter */
 .insc-traiter {

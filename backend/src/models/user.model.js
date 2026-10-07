@@ -107,10 +107,17 @@ export async function listerParentsAvecCourriel() {
 // courriel. La colonne courriel_verifie est conservée (mise à 1) pour pouvoir
 // réactiver cette étape plus tard sans migration.
 // Retourne l'utilisateur créé (sans le hash).
-export async function createParent({ nom, courriel, motDePasseHash, compteEleve = false }) {
-  const conn = await pool.getConnection();
+//
+// `options.conn` : connexion d'une transaction EXTERNE déjà ouverte (ex. création
+// d'un compte élève qui doit consommer un code d'invitation dans la même
+// transaction). Dans ce cas, on ne gère pas la transaction ni la connexion ici —
+// l'appelant commit/rollback/release lui-même.
+export async function createParent({ nom, courriel, motDePasseHash, compteEleve = false }, options = {}) {
+  const connExterne = options.conn || null;
+  const conn = connExterne || await pool.getConnection();
+  const gereTx = !connExterne;
   try {
-    await conn.beginTransaction();
+    if (gereTx) await conn.beginTransaction();
 
     const [res] = await conn.query(
       'INSERT INTO utilisateurs (nom, courriel, mot_de_passe_hash, role, compte_eleve, courriel_verifie) VALUES (?, ?, ?, ?, ?, 1)',
@@ -123,13 +130,13 @@ export async function createParent({ nom, courriel, motDePasseHash, compteEleve 
       [idUtilisateur]
     );
 
-    await conn.commit();
+    if (gereTx) await conn.commit();
     return { id: idUtilisateur, nom, courriel, role: 'parent', statut: 'actif' };
   } catch (err) {
-    await conn.rollback();
+    if (gereTx) await conn.rollback();
     throw err;
   } finally {
-    conn.release();
+    if (gereTx) conn.release();
   }
 }
 

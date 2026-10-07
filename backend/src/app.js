@@ -20,6 +20,7 @@ import academieRoutes from './routes/academie.routes.js';
 import examensRoutes from './routes/examens.routes.js';
 import direstatsRoutes from './routes/direction.routes.js';
 import permissionsRoutes from './routes/permissions.routes.js';
+import invitationEleveRoutes from './routes/invitationEleve.routes.js';
 import contactMessageRoutes from './routes/contactMessage.routes.js';
 import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
@@ -227,6 +228,9 @@ app.use('/api', direstatsRoutes);
 
 // Permissions gérées par le propriétaire
 app.use('/api', permissionsRoutes);
+
+// Invitations élève (codes d'accès à l'auto-inscription) — personnel de l'école
+app.use('/api', invitationEleveRoutes);
 
 // Formulaire de contact public + boîte de réception (propriétaire)
 app.use('/api', contactMessageRoutes);

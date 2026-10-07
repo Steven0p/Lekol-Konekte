@@ -337,6 +337,13 @@ export const permissionsApi = {
   modifierCompte: (body) => request('/mon-compte', { method: 'PATCH', body: json(body) }),
 };
 
+// Invitations élève — codes d'auto-inscription gérés par le personnel de l'école
+export const invitationsApi = {
+  lister: () => request('/invitations-eleve'),
+  creer: (payload) => request('/invitations-eleve', { method: 'POST', body: json(payload) }),
+  revoquer: (id) => request(`/invitations-eleve/${id}/revoquer`, { method: 'POST' }),
+};
+
 export const contactApi = {
   envoyer: (payload) => request('/contact', { method: 'POST', body: json(payload) }),
 };

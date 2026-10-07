@@ -171,6 +171,23 @@ CREATE TABLE IF NOT EXISTS permissions (
   FOREIGN KEY (modifie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- invitations_eleve : codes à usage unique remis aux VRAIS élèves pour qu'ils
+-- puissent créer leur compte eux-mêmes (auto-inscription élève). Empêche une
+-- personne non admise de s'inscrire comme élève. Consommé à la création du compte.
+CREATE TABLE IF NOT EXISTS invitations_eleve (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  code         VARCHAR(20) NOT NULL UNIQUE,
+  note         VARCHAR(160) NULL,                 -- repère libre (nom/niveau de l'élève attendu)
+  cree_par     INT NULL,
+  cree_le      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expire_le    DATETIME NULL,                     -- NULL = pas d'expiration
+  utilise_par  INT NULL,                          -- compte qui a consommé le code
+  utilise_le   DATETIME NULL,
+  revoque      TINYINT(1) NOT NULL DEFAULT 0,
+  FOREIGN KEY (cree_par)    REFERENCES utilisateurs(id) ON DELETE SET NULL,
+  FOREIGN KEY (utilise_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- messages_contact : messages soumis via le formulaire « Restons en contact »
 -- de la page d'accueil. Le propriétaire les consulte et y répond (avec
 -- brouillon IA) depuis « Contrôle d'accès ».
