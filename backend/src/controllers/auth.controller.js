@@ -75,10 +75,21 @@ export async function register(req, res, next) {
       });
     }
 
-    // Compte élève (auto-inscription) : honoré uniquement si le propriétaire a
-    // activé la fonctionnalité — sinon c'est un compte parent normal.
-    const compteEleve = req.body.profilEleve === true
+    // Contrôle d'accès à la création de compte (interrupteurs du propriétaire) :
+    //  - compte élève : autorisé seulement si l'auto-inscription des élèves est activée ;
+    //  - compte parent : autorisé seulement si l'inscription des parents est activée.
+    // Une demande « élève » quand l'auto-inscription élève est désactivée retombe
+    // sur un compte parent, donc soumise à l'autorisation « parent ».
+    const eleveAutorise = req.body.profilEleve === true
       && await estAutorise(CLES.INSCRIPTION_ELEVE);
+    const parentAutorise = await estAutorise(CLES.INSCRIPTION_PARENT);
+    if (!eleveAutorise && !parentAutorise) {
+      return res.status(403).json({
+        erreur: "La création de compte n'est pas ouverte pour le moment. "
+          + "Contactez l'établissement pour obtenir un accès.",
+      });
+    }
+    const compteEleve = eleveAutorise;
 
     const motDePasseHash = await bcrypt.hash(motDePasse, SALT_ROUNDS);
     const utilisateur = await createParent({ nom, courriel, motDePasseHash, compteEleve });
@@ -138,6 +149,15 @@ export async function googleAuth(req, res, next) {
         utilisateur = existant;
         tracer('compte_lie_google', { req, sujet: existant.courriel, details: existant.role });
       } else {
+        // Création d'un NOUVEAU compte parent via Google : soumise au même
+        // contrôle d'accès que l'inscription manuelle. La connexion d'un compte
+        // déjà existant (branche ci-dessus) reste toujours possible.
+        if (!await estAutorise(CLES.INSCRIPTION_PARENT)) {
+          return res.status(403).json({
+            erreur: "La création de compte n'est pas ouverte pour le moment. "
+              + "Contactez l'établissement pour obtenir un accès.",
+          });
+        }
         utilisateur = await createParentGoogle({
           nom: infosGoogle.nom, courriel: infosGoogle.courriel, googleId: infosGoogle.googleId,
         });

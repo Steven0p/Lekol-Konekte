@@ -10,6 +10,8 @@ export function MarqueProvider({ children }) {
   const [nom, setNom] = useState('Lekòl Konekte');
   const [aLogo, setALogo] = useState(false);
   const [inscriptionEleve, setInscriptionEleve] = useState(false);
+  const [inscriptionParent, setInscriptionParent] = useState(false);
+  const [pret, setPret] = useState(false); // la marque a-t-elle fini de charger ?
   const [version, setVersion] = useState(0); // pour forcer le rechargement de l'image
 
   const recharger = useCallback(async () => {
@@ -18,16 +20,19 @@ export function MarqueProvider({ children }) {
       setNom(m.nom || 'Lekòl Konekte');
       setALogo(!!m.aLogo);
       setInscriptionEleve(!!m.inscriptionEleve);
+      setInscriptionParent(!!m.inscriptionParent);
       setVersion((v) => v + 1);
     } catch {
       // En cas d'échec, on garde les valeurs par défaut (Lekòl Konekte, sans logo).
+    } finally {
+      setPret(true);
     }
   }, []);
 
   useEffect(() => { recharger(); }, [recharger]);
 
   return (
-    <MarqueContext.Provider value={{ nom, aLogo, inscriptionEleve, version, recharger }}>
+    <MarqueContext.Provider value={{ nom, aLogo, inscriptionEleve, inscriptionParent, pret, version, recharger }}>
       {children}
     </MarqueContext.Provider>
   );

@@ -12,6 +12,7 @@ const DESCRIPTION = {
   notes_publication: "Direction ne peut plus publier ni retirer de bulletins tant que c'est désactivé.",
   paiement_inscription: "Autorisé : les frais d'inscription doivent être payés en ligne (MonCash, NatCash, carte…) avant que le dossier n'arrive au secrétariat. Désactivé : les familles peuvent s'inscrire sans payer, le dossier est transmis directement au secrétariat.",
   inscription_eleve: "Désactivé par défaut. Autorisé : un élève peut créer lui-même son compte et s'inscrire (même parcours que les parents : il gère ensuite son inscription, ses notes et ses paiements). Désactivé : seuls les parents peuvent créer un compte et inscrire.",
+  inscription_parent: "Désactivé par défaut. Autorisé : les parents peuvent créer eux-mêmes un compte (page « Créer un compte parent »). Désactivé : la page d'inscription est fermée et personne ne peut créer de compte parent — c'est à l'établissement de donner l'accès.",
 };
 
 export default function Permissions() {

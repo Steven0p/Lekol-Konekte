@@ -167,6 +167,9 @@ export async function marqueEcole(req, res, next) {
       // Auto-inscription des élèves autorisée par le propriétaire ? (public : la
       // page de connexion affiche ou non l'option « élève : créer un compte »)
       inscriptionEleve: await estAutorise(CLES.INSCRIPTION_ELEVE),
+      // Inscription des parents autorisée par le propriétaire ? (public : la page
+      // « Créer un compte parent » est ouverte ou fermée selon cette valeur)
+      inscriptionParent: await estAutorise(CLES.INSCRIPTION_PARENT),
     });
   } catch (err) {
     next(err);
