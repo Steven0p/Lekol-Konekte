@@ -5,11 +5,10 @@ import PanneauMarque from './PanneauMarque.jsx';
 import Champ from '../../components/Champ.jsx';
 import Bouton from '../../components/Bouton.jsx';
 import Alerte from '../../components/Alerte.jsx';
-import BoutonGoogle from '../../components/BoutonGoogle.jsx';
 import { biometrieDisponible, autofillDisponible, connexionBiometrie, connexionBiometrieAutofill } from '../../services/biometrie.js';
 
 export default function Login() {
-  const { login, verifierConnexion, renvoyerCodeConnexion, googleLogin, connexionBiometrieOuvre } = useAuth();
+  const { login, verifierConnexion, renvoyerCodeConnexion, connexionBiometrieOuvre } = useAuth();
   const [biometrieEnCours, setBiometrieEnCours] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,19 +90,6 @@ export default function Login() {
     }
   };
 
-  const connecterAvecGoogle = async (credential) => {
-    setErreur('');
-    setEnCours(true);
-    try {
-      await googleLogin(credential);
-      navigate('/tableau-de-bord');
-    } catch (err) {
-      setErreur(err.message);
-    } finally {
-      setEnCours(false);
-    }
-  };
-
   const connecterAvecBiometrie = async () => {
     if (biometrieEnCours) return;
     setErreur('');
@@ -176,9 +162,9 @@ export default function Login() {
 
             <Bouton type="submit" bloc enCours={enCours}>Se connecter</Bouton>
 
-            <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
             {biometrieDisponible() && (
               <>
+                <p className="texte-gris" style={{ textAlign: 'center', margin: '1rem 0 0', fontSize: '.85rem' }}>— ou —</p>
                 <Bouton type="button" variante="secondaire" bloc disabled={biometrieEnCours}
                   onClick={connecterAvecBiometrie} style={{ marginBottom: '.35rem' }}>
                   <span className={`faceid${biometrieEnCours ? ' faceid-scan' : ''}`} aria-hidden="true">
@@ -201,7 +187,6 @@ export default function Login() {
                 </p>
               </>
             )}
-            <BoutonGoogle onCredential={connecterAvecGoogle} texte="signin_with" />
 
             <p className="auth-lien">
               Pas encore de compte ? <Link to="/register">Créer un compte</Link>
