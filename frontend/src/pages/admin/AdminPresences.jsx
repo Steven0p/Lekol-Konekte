@@ -20,13 +20,21 @@ const FUSEAU = { timeZone: 'America/Port-au-Prince', hour: '2-digit', minute: '2
 const heureFr = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', FUSEAU) : '—');
 
 const COOLDOWN_MS = 4000; // évite de re-soumettre le même badge pendant qu'il reste dans le cadre
+// L'analyse d'image (getImageData + jsQR) est coûteuse. On ne la fait pas à
+// chaque image de la caméra (~60/s, ce qui saturait le processeur et faisait
+// « vibrer » l'aperçu), mais au plus toutes les INTERVALLE_SCAN_MS, sur une
+// image réduite à MAX_SCAN_PX de côté — largement assez pour lire un QR.
+const INTERVALLE_SCAN_MS = 120; // ~8 analyses par seconde
+const MAX_SCAN_PX = 640;
 
 export default function AdminPresences() {
   const videoRef = useRef(null);
-  const canvasRef = useRef(document.createElement('canvas'));
+  const canvasRef = useRef(null);
+  const ctxRef = useRef(null);
   const flux = useRef(null);
   const dernierCode = useRef(null);
   const dernierScanLe = useRef(0);
+  const dernierFrameLe = useRef(0); // horodatage de la dernière analyse d'image
   const enTraitement = useRef(false);
   const typeRef = useRef('entree'); // lu par la boucle de scan (évite de la relancer à chaque changement de mode)
 
@@ -68,14 +76,29 @@ export default function AdminPresences() {
 
   const boucleScan = useCallback(() => {
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const code = jsQR(image.data, image.width, image.height);
+    const maintenant = performance.now();
+    // On laisse défiler l'aperçu à pleine fluidité, mais on n'analyse une image
+    // qu'au plus toutes les INTERVALLE_SCAN_MS (le reste du temps, on se contente
+    // de reprogrammer la boucle) — c'est ce qui supprime le « tremblement ».
+    if (video && video.readyState === video.HAVE_ENOUGH_DATA
+        && maintenant - dernierFrameLe.current >= INTERVALLE_SCAN_MS) {
+      dernierFrameLe.current = maintenant;
+      // Canvas + contexte créés une seule fois. willReadFrequently : indispensable
+      // pour getImageData répété (sinon lecture GPU à chaque fois = très lent).
+      if (!canvasRef.current) canvasRef.current = document.createElement('canvas');
+      if (!ctxRef.current) ctxRef.current = canvasRef.current.getContext('2d', { willReadFrequently: true });
+      const canvas = canvasRef.current;
+      const ctx = ctxRef.current;
+      // Image réduite (MAX_SCAN_PX max) : jsQR est bien plus rapide, lecture OK.
+      const ratio = Math.min(1, MAX_SCAN_PX / Math.max(video.videoWidth, video.videoHeight) || 1);
+      const w = Math.max(1, Math.round(video.videoWidth * ratio));
+      const h = Math.max(1, Math.round(video.videoHeight * ratio));
+      if (canvas.width !== w) canvas.width = w;
+      if (canvas.height !== h) canvas.height = h;
+      ctx.drawImage(video, 0, 0, w, h);
+      const image = ctx.getImageData(0, 0, w, h);
+      // dontInvert : le QR du badge est foncé sur clair — on évite la 2ᵉ passe.
+      const code = jsQR(image.data, image.width, image.height, { inversionAttempts: 'dontInvert' });
       if (code?.data) traiterCode(code.data);
     }
     if (flux.current) requestAnimationFrame(boucleScan);
