@@ -105,9 +105,16 @@ export default function Reinscription() {
                     ) : e.dejaReinscrit ? (
                       <span className="insc-badge insc-badge-vert">Déjà ré-inscrit(e)</span>
                     ) : (
-                      <Bouton type="button" enCours={enCours === e.id} onClick={() => reinscrire(e)}>
-                        Ré-inscrire
-                      </Bouton>
+                      <div style={{ textAlign: 'right' }}>
+                        <Bouton type="button" enCours={enCours === e.id} onClick={() => reinscrire(e)}>
+                          {e.paiementEnAttente ? 'Continuer le paiement' : 'Ré-inscrire'}
+                        </Bouton>
+                        {e.paiementEnAttente && (
+                          <p className="texte-gris" style={{ margin: '.35rem 0 0', fontSize: '.78rem' }}>
+                            Frais non encore payés
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>

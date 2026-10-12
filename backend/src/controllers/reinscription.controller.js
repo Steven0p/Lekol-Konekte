@@ -62,13 +62,23 @@ export async function reinscrire(req, res, next) {
     if (!r.ok) return res.status(r.code).json({ erreur: r.erreur });
 
     if (paiementRequis) {
-      const idPaiement = await paiementModel.creer({
-        typeFrais: 'inscription', idReference: r.idInscription, montant: tarif.montant, devise: tarif.devise,
-      });
+      // Dossier impayé réutilisé : on renvoie son paiement en cours s'il existe
+      // encore, sinon on (re)crée un paiement pour ce dossier.
+      let paiement = null;
+      if (r.reutilise) {
+        const p = await paiementModel.trouverPourInscription(r.idInscription);
+        if (p && p.statut === 'en_attente') paiement = { id: p.id, montant: p.montant, devise: p.devise };
+      }
+      if (!paiement) {
+        const idPaiement = await paiementModel.creer({
+          typeFrais: 'inscription', idReference: r.idInscription, montant: tarif.montant, devise: tarif.devise,
+        });
+        paiement = { id: idPaiement, montant: tarif.montant, devise: tarif.devise };
+      }
       return res.status(201).json({
         message: 'Ré-inscription créée — en attente du paiement des frais.',
         inscription: { id: r.idInscription, statut: 'attente_paiement', anneeCible: r.anneeCible, niveauDemande: r.niveauDemande },
-        paiement: { id: idPaiement, montant: tarif.montant, devise: tarif.devise },
+        paiement,
         delaiPaiementMinutes: DELAI_PAIEMENT_MINUTES,
       });
     }

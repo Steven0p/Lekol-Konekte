@@ -62,12 +62,27 @@ export async function creerReinscription({
   return { idInscription: res.insertId };
 }
 
-// Inscription non annulée déjà présente pour cet élève et cette année (évite une
-// double ré-inscription). Renvoie { id, statut } ou null.
+// Inscription SOUMISE déjà présente pour cet élève et cette année (dossier payé/
+// transmis au secrétariat) — bloque une nouvelle ré-inscription. Un dossier
+// encore impayé (attente_paiement) ou annulé ne compte PAS : le parent doit
+// pouvoir re-cliquer « Ré-inscrire » tant que les frais ne sont pas payés.
 export async function inscriptionActivePourAnnee(idEleve, anneeScolaire) {
   const [[ligne]] = await pool.query(
     `SELECT id, statut FROM inscriptions
-      WHERE id_eleve = ? AND annee_scolaire = ? AND statut <> 'annulee'
+      WHERE id_eleve = ? AND annee_scolaire = ?
+        AND statut NOT IN ('attente_paiement','annulee')
+      ORDER BY id DESC LIMIT 1`,
+    [idEleve, anneeScolaire]
+  );
+  return ligne || null;
+}
+
+// Ré-inscription impayée (attente_paiement) déjà créée pour cet élève et cette
+// année — réutilisée pour ne pas créer de doublon et permettre de (re)payer.
+export async function reinscriptionNonPayeePourAnnee(idEleve, anneeScolaire) {
+  const [[ligne]] = await pool.query(
+    `SELECT id, niveau_demande FROM inscriptions
+      WHERE id_eleve = ? AND annee_scolaire = ? AND statut = 'attente_paiement'
       ORDER BY id DESC LIMIT 1`,
     [idEleve, anneeScolaire]
   );

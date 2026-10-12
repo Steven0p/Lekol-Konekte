@@ -9,7 +9,8 @@ import { notesValideesToutes } from '../models/note.model.js';
 import { listerParentsAvecCourriel } from '../models/user.model.js';
 import { listerParParent, listerElevesAvecCourriel } from '../models/eleve.model.js';
 import {
-  creerReinscription, inscriptionActivePourAnnee, derniereInscriptionDeEleve,
+  creerReinscription, inscriptionActivePourAnnee, reinscriptionNonPayeePourAnnee,
+  derniereInscriptionDeEleve,
 } from '../models/inscription.model.js';
 import * as campagneModel from '../models/reinscription.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
@@ -106,7 +107,8 @@ export async function enfantsAReinscrire(idParent) {
   const resultat = [];
   for (const e of enfants) {
     const evalEleve = await evaluerEleve(e, seuil);
-    const existante = await inscriptionActivePourAnnee(e.id, campagne.annee_cible);
+    const soumise = await inscriptionActivePourAnnee(e.id, campagne.annee_cible);
+    const nonPayee = soumise ? null : await reinscriptionNonPayeePourAnnee(e.id, campagne.annee_cible);
     resultat.push({
       id: e.id,
       nom: e.nom,
@@ -115,8 +117,9 @@ export async function enfantsAReinscrire(idParent) {
       anneeEvaluee: evalEleve.anneeEvaluee,  // année dont provient la moyenne (ou null)
       resultat: evalEleve.resultat,          // promu | promu_defaut | maintenu | indetermine | diplome
       niveauPropose: evalEleve.niveauPropose,
-      dejaReinscrit: !!existante,
-      statutReinscription: existante ? existante.statut : null,
+      dejaReinscrit: !!soumise,              // dossier payé/transmis (bloque)
+      statutReinscription: soumise ? soumise.statut : null,
+      paiementEnAttente: !!nonPayee,         // dossier créé mais frais non encore payés
     });
   }
   return { active: true, anneeCible: campagne.annee_cible, enfants: resultat };
@@ -132,8 +135,19 @@ export async function reinscrireEnfant(idParent, idEleve) {
   const eleve = enfants.find((e) => e.id === Number(idEleve));
   if (!eleve) return { ok: false, code: 403, erreur: 'Cet élève ne fait pas partie de vos enfants.' };
 
-  const existante = await inscriptionActivePourAnnee(eleve.id, campagne.annee_cible);
-  if (existante) return { ok: false, code: 409, erreur: `Déjà ré-inscrit(e) pour ${campagne.annee_cible}.` };
+  // Dossier déjà soumis (payé/transmis) → on bloque.
+  const soumise = await inscriptionActivePourAnnee(eleve.id, campagne.annee_cible);
+  if (soumise) return { ok: false, code: 409, erreur: `Déjà ré-inscrit(e) pour ${campagne.annee_cible}.` };
+
+  // Ré-inscription impayée déjà créée → on la réutilise (le contrôleur renvoie
+  // son paiement en cours) au lieu d'en créer une seconde.
+  const nonPayee = await reinscriptionNonPayeePourAnnee(eleve.id, campagne.annee_cible);
+  if (nonPayee) {
+    return {
+      ok: true, reutilise: true, idInscription: nonPayee.id,
+      anneeCible: campagne.annee_cible, niveauDemande: nonPayee.niveau_demande,
+    };
+  }
 
   const ecole = await obtenirEcole();
   const seuil = ecole && ecole.seuil_reussite != null ? Number(ecole.seuil_reussite) : SEUIL_DEFAUT;
@@ -155,6 +169,7 @@ export async function reinscrireEnfant(idParent, idEleve) {
 
   return {
     ok: true,
+    reutilise: false,
     idInscription,
     anneeCible: campagne.annee_cible,
     niveauDemande: evalEleve.niveauPropose,
