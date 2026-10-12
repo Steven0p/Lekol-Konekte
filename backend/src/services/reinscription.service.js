@@ -7,7 +7,7 @@ import { niveauSuivant, estDernierNiveau } from '../config/niveaux.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { notesValideesToutes } from '../models/note.model.js';
 import { listerParentsAvecCourriel } from '../models/user.model.js';
-import { listerParParent } from '../models/eleve.model.js';
+import { listerParParent, listerElevesAvecCourriel } from '../models/eleve.model.js';
 import {
   creerReinscription, inscriptionActivePourAnnee, derniereInscriptionDeEleve,
 } from '../models/inscription.model.js';
@@ -202,7 +202,18 @@ export async function lancerCampagne(idAuteur) {
   const campagne = await campagneModel.creerCampagne({ anneeCible, lanceePar: idAuteur });
 
   const ecole = await obtenirEcole();
-  const destinataires = await listerParentsAvecCourriel();
+  // Destinataires : parents + courriels renseignés sur les fiches élèves, dédoublonnés.
+  const parents = await listerParentsAvecCourriel();
+  const eleves = await listerElevesAvecCourriel();
+  const vus = new Set();
+  const destinataires = [];
+  for (const r of [...parents, ...eleves]) {
+    const mail = (r.courriel || '').trim();
+    const cle = mail.toLowerCase();
+    if (!mail || vus.has(cle)) continue;
+    vus.add(cle);
+    destinataires.push({ courriel: mail });
+  }
   const lien = `${ORIGINE()}/reinscription`;
   const { sujet, texte, html } = construireCourriel(ecole?.nom, anneeCible, lien);
 

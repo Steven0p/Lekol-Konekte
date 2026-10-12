@@ -132,6 +132,18 @@ export async function listerParParent(idParent) {
   return rows;
 }
 
+// Courriels de contact renseignés sur les fiches des élèves ACTUELS (pas les
+// anciens élèves) — pour les notifier (ex. ré-inscription) en plus des parents.
+export async function listerElevesAvecCourriel() {
+  const [rows] = await pool.query(
+    `SELECT DISTINCT TRIM(courriel_contact) AS courriel
+       FROM eleves
+      WHERE ancien_eleve = 0
+        AND courriel_contact IS NOT NULL AND TRIM(courriel_contact) <> ''`
+  );
+  return rows;
+}
+
 // Vérifie qu'un élève appartient bien à un parent (id de la fiche parents)
 export async function appartientAuParent(idEleve, idParent) {
   const [rows] = await pool.query(
