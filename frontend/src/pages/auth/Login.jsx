@@ -31,7 +31,13 @@ export default function Login() {
   // ?session=expiree : renvoi automatique depuis api.js (401 « Authentification
   // requise » en cours d'usage) — une navigation plein-page, sans location.state.
   const info = location.state?.info
-    || (searchParams.get('session') === 'expiree' ? 'Votre session a expiré. Reconnectez-vous.' : '');
+    || (searchParams.get('session') === 'expiree' ? 'Votre session a expiré. Reconnectez-vous.' : '')
+    || (searchParams.get('next') ? 'Connectez-vous pour continuer.' : '');
+
+  // Destination après connexion : ?next=/chemin (ex. lien de ré-inscription),
+  // uniquement si c'est un chemin interne sûr ; sinon le tableau de bord.
+  const nextParam = searchParams.get('next') || location.state?.next || '';
+  const destination = nextParam.startsWith('/') && !nextParam.startsWith('//') ? nextParam : '/tableau-de-bord';
 
   // Étape de double authentification (comptes parent) : 'identifiants' | 'code'
   const [etape, setEtape] = useState('identifiants');
@@ -53,7 +59,7 @@ export default function Login() {
         setEtape('code');
         setEnCours(false);
       } else {
-        navigate('/tableau-de-bord');
+        navigate(destination);
       }
     } catch (err) {
       setErreur(err.message);
@@ -71,7 +77,7 @@ export default function Login() {
       // Le code est validé : on montre le succès (coche verte) un court instant
       // avant de basculer sur le tableau de bord.
       setEtatVerif('succes');
-      setTimeout(() => navigate('/tableau-de-bord'), 5000);
+      setTimeout(() => navigate(destination), 5000);
     } catch (err) {
       setErreur(err.message);
       setEtatVerif(null);
@@ -97,7 +103,7 @@ export default function Login() {
     try {
       const data = await connexionBiometrie();
       connexionBiometrieOuvre(data);
-      navigate('/tableau-de-bord');
+      navigate(destination);
     } catch (err) {
       setErreur(err.message);
     } finally {
@@ -114,7 +120,7 @@ export default function Login() {
       .then((data) => {
         if (!monte) return;
         connexionBiometrieOuvre(data);
-        navigate('/tableau-de-bord');
+        navigate(destination);
       })
       .catch(() => { /* autofill ignoré/annulé : connexion classique disponible */ });
     return () => { monte = false; };
