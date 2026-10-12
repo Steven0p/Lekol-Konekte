@@ -135,10 +135,27 @@ CREATE TABLE IF NOT EXISTS inscriptions (
   ancienne_ecole    VARCHAR(160),
   ancienne_classe   VARCHAR(60),
   raison_choix      VARCHAR(500),
+  -- Ré-inscription : niveau demandé pour l'année visée (promotion). NULL pour une
+  -- première inscription (le niveau est alors déjà posé sur l'élève). Appliqué à
+  -- l'élève quand le dossier est accepté/confirmé.
+  niveau_demande    VARCHAR(60) NULL,
   statut            ENUM('attente_paiement','annulee','en_attente','complement_demande','accepte','refuse','confirmee')
                     NOT NULL DEFAULT 'en_attente',
   date_soumission   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (id_eleve) REFERENCES eleves(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- reinscription_campagne : campagne de ré-inscription lancée par le propriétaire
+-- en fin d'année scolaire. Une seule campagne active à la fois.
+CREATE TABLE IF NOT EXISTS reinscription_campagne (
+  id           INT AUTO_INCREMENT PRIMARY KEY,
+  annee_cible  VARCHAR(9) NOT NULL,                 -- année scolaire visée (ex. 2026-2027)
+  active       TINYINT(1) NOT NULL DEFAULT 1,
+  lancee_par   INT NULL,
+  lancee_le    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  cloturee_le  DATETIME NULL,
+  nb_courriels INT NOT NULL DEFAULT 0,              -- nombre de familles notifiées au lancement
+  FOREIGN KEY (lancee_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS documents_soumis (

@@ -1,5 +1,5 @@
 // Service Inscription — logique métier des changements de statut + notification courriel
-import { trouverAvecProprietaire, mettreAJourStatut, STATUTS_NON_PAYES } from '../models/inscription.model.js';
+import { trouverAvecProprietaire, mettreAJourStatut, STATUTS_NON_PAYES, appliquerNiveauEleve } from '../models/inscription.model.js';
 import { trouverPourInscription } from '../models/paiement.model.js';
 import { journaliser } from '../models/historique.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
@@ -46,6 +46,18 @@ export async function changerStatut({ idInscription, nouveauStatut, commentaire,
 
   const ancienStatut = inscription.statut;
   await mettreAJourStatut(idInscription, nouveauStatut);
+
+  // Ré-inscription : si le dossier portait un niveau demandé (promotion) et qu'il
+  // est accepté/confirmé, on applique ce niveau à l'élève. C'est ici que l'élève
+  // « monte de classe » (ou reste dans la même) pour la nouvelle année.
+  if ((nouveauStatut === 'accepte' || nouveauStatut === 'confirmee') && inscription.niveau_demande) {
+    try {
+      await appliquerNiveauEleve(inscription.id_eleve, inscription.niveau_demande);
+    } catch (err) {
+      console.error('Application du niveau (ré-inscription) échouée :', err.message);
+    }
+  }
+
   await journaliser({
     entite: 'inscription',
     idEntite: idInscription,

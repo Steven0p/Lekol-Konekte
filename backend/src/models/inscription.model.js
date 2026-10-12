@@ -44,6 +44,52 @@ export async function creerInscription({
   }
 }
 
+// Ré-inscription : crée une inscription pour un élève DÉJÀ existant (sans créer
+// de nouvel élève), pour l'année visée, avec le niveau demandé (promotion).
+// Statut initial « attente_paiement » comme une inscription normale.
+export async function creerReinscription({
+  idEleve, anneeScolaire, niveauDemande,
+  nomParent, professionParent, telephoneParent, courrielParent,
+}) {
+  const [res] = await pool.query(
+    `INSERT INTO inscriptions
+      (id_eleve, annee_scolaire, nom_parent, profession_parent, telephone_parent, courriel_parent,
+       niveau_demande, statut)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'attente_paiement')`,
+    [idEleve, anneeScolaire, nomParent || null, professionParent || null,
+      telephoneParent || null, courrielParent || null, niveauDemande || null]
+  );
+  return { idInscription: res.insertId };
+}
+
+// Inscription non annulée déjà présente pour cet élève et cette année (évite une
+// double ré-inscription). Renvoie { id, statut } ou null.
+export async function inscriptionActivePourAnnee(idEleve, anneeScolaire) {
+  const [[ligne]] = await pool.query(
+    `SELECT id, statut FROM inscriptions
+      WHERE id_eleve = ? AND annee_scolaire = ? AND statut <> 'annulee'
+      ORDER BY id DESC LIMIT 1`,
+    [idEleve, anneeScolaire]
+  );
+  return ligne || null;
+}
+
+// Dernière inscription connue d'un élève (pour réutiliser les coordonnées du parent).
+export async function derniereInscriptionDeEleve(idEleve) {
+  const [[ligne]] = await pool.query(
+    `SELECT nom_parent, profession_parent, telephone_parent, courriel_parent
+       FROM inscriptions WHERE id_eleve = ? ORDER BY id DESC LIMIT 1`,
+    [idEleve]
+  );
+  return ligne || null;
+}
+
+// Applique la promotion : met le niveau de l'élève à jour (appelé à l'acceptation
+// d'une ré-inscription qui portait un niveau_demande).
+export async function appliquerNiveauEleve(idEleve, niveau) {
+  await pool.query('UPDATE eleves SET niveau = ? WHERE id = ?', [niveau, idEleve]);
+}
+
 // Liste les dossiers d'un parent
 export async function listerParParent(idParent) {
   const [rows] = await pool.query(
@@ -63,7 +109,7 @@ export async function trouverAvecProprietaire(idInscription) {
   const [rows] = await pool.query(
     `SELECT i.id, i.annee_scolaire, i.statut, i.date_soumission,
             i.nom_parent, i.profession_parent, i.telephone_parent, i.courriel_parent,
-            i.ancienne_ecole, i.ancienne_classe, i.raison_choix,
+            i.ancienne_ecole, i.ancienne_classe, i.raison_choix, i.niveau_demande,
             e.id AS id_eleve, TRIM(CONCAT(COALESCE(e.prenom,''),' ',e.nom)) AS eleve_nom, e.niveau, e.sexe, e.date_naissance,
             p.id AS id_parent, u.id AS id_utilisateur,
             u.courriel AS parent_courriel, u.nom AS parent_nom

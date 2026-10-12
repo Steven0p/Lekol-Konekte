@@ -32,15 +32,10 @@ import { anneeScolaireCourante } from '../utils/dates.js';
 
 const TYPES_DOCUMENT = ['acte_naissance', 'bulletin', 'photo', 'autre'];
 
-// Niveaux scolaires proposés à l'inscription (système éducatif haïtien :
-// préscolaire, fondamentale 1-9, nouveau secondaire NS1-NS4). Liste fermée :
-// la saisie libre historique a produit des valeurs incohérentes en base
-// (« 6 anne », « NSII », « 1 »…) qu'un menu déroulant élimine à la source.
-export const NIVEAUX = [
-  '1ère année préscolaire', '2e année préscolaire', '3e année préscolaire',
-  '1ère AF', '2e AF', '3e AF', '4e AF', '5e AF', '6e AF', '7e AF', '8e AF', '9e AF',
-  'NS1', 'NS2', 'NS3', 'NS4',
-];
+// Niveaux scolaires proposés à l'inscription — liste ordonnée partagée
+// (voir config/niveaux.js, réutilisée par la ré-inscription pour la promotion).
+export { NIVEAUX } from '../config/niveaux.js';
+import { NIVEAUX } from '../config/niveaux.js';
 
 // Décisions possibles + libellé humain pour l'assistant IA
 const DECISIONS_IA = {

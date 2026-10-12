@@ -337,6 +337,17 @@ export const permissionsApi = {
   modifierCompte: (body) => request('/mon-compte', { method: 'PATCH', body: json(body) }),
 };
 
+// Ré-inscription de fin d'année
+export const reinscriptionApi = {
+  etat: () => request('/reinscription/etat'),
+  mesEnfants: () => request('/reinscription/mes-enfants'),
+  reinscrire: (idEleve) => request('/reinscription', { method: 'POST', body: json({ idEleve }) }),
+  // Propriétaire
+  statutProprio: () => request('/proprietaire/reinscription'),
+  lancer: () => request('/proprietaire/reinscription/lancer', { method: 'POST' }),
+  cloturer: () => request('/proprietaire/reinscription/cloturer', { method: 'POST' }),
+};
+
 // Invitations élève — codes d'auto-inscription gérés par le personnel de l'école
 export const invitationsApi = {
   lister: () => request('/invitations-eleve'),

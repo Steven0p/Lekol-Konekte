@@ -52,6 +52,8 @@ import Statistiques from './pages/proprietaire/Statistiques.jsx';
 import SanteServeur from './pages/proprietaire/SanteServeur.jsx';
 import Rapport from './pages/proprietaire/Rapport.jsx';
 import Postes from './pages/proprietaire/Postes.jsx';
+import ReinscriptionProprio from './pages/proprietaire/Reinscription.jsx';
+import Reinscription from './pages/parent/Reinscription.jsx';
 import BoiteReception from './pages/proprietaire/BoiteReception.jsx';
 import AnnonceCourriel from './pages/proprietaire/AnnonceCourriel.jsx';
 import MonCompte from './pages/MonCompte.jsx';
@@ -109,6 +111,9 @@ export default function App() {
         {/* Parent — Notes & bulletins */}
         <Route path="/notes" element={<RoutePrivee roles={['parent']}><NotesBulletins /></RoutePrivee>} />
 
+        {/* Parent — Ré-inscription de fin d'année */}
+        <Route path="/reinscription" element={<RoutePrivee roles={['parent']}><Reinscription /></RoutePrivee>} />
+
         {/* Espace élève (connexion par code) */}
         <Route path="/eleve/notes" element={<RoutePrivee roles={['eleve']}><EspaceEleve /></RoutePrivee>} />
         <Route path="/eleve/badge" element={<RoutePrivee roles={['eleve']}><BadgeEleve /></RoutePrivee>} />
@@ -143,6 +148,7 @@ export default function App() {
         <Route path="/proprietaire/statistiques" element={<RoutePrivee roles={['proprietaire']}><Statistiques /></RoutePrivee>} />
         <Route path="/proprietaire/rapport" element={<RoutePrivee roles={['proprietaire']}><Rapport /></RoutePrivee>} />
         <Route path="/proprietaire/postes" element={<RoutePrivee roles={['proprietaire']}><Postes /></RoutePrivee>} />
+        <Route path="/proprietaire/reinscription" element={<RoutePrivee roles={['proprietaire']}><ReinscriptionProprio /></RoutePrivee>} />
         <Route path="/proprietaire/sante" element={<RoutePrivee roles={['proprietaire']}><SanteServeur /></RoutePrivee>} />
         <Route path="/proprietaire/messages" element={<RoutePrivee roles={['proprietaire']}><BoiteReception /></RoutePrivee>} />
       </Route>

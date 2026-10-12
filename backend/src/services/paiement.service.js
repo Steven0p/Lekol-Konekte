@@ -5,6 +5,7 @@ import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import {
   trouverAvecProprietaire as trouverInscription, mettreAJourStatut as majInscription,
   transmettreApresPaiement, annulerSiNonPayee, listerNonPayeesExpirees, STATUTS_NON_PAYES,
+  appliquerNiveauEleve,
 } from '../models/inscription.model.js';
 import { trouverAvecProprietaire as trouverEleve, genererCodeAcces } from '../models/eleve.model.js';
 import { notesValideesToutes } from '../models/note.model.js';
@@ -235,6 +236,14 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
     sujet = 'Lekòl Konekte — dossier transmis au secrétariat';
   } else if (paiement.type_frais === 'inscription') {
     await majInscription(paiement.id_reference, 'confirmee');
+    // Ré-inscription : appliquer la promotion de niveau à la confirmation.
+    if (prop?.inscription?.niveau_demande) {
+      try {
+        await appliquerNiveauEleve(prop.idEleve, prop.inscription.niveau_demande);
+      } catch (err) {
+        console.error('Application du niveau (ré-inscription) échouée :', err.message);
+      }
+    }
     await journaliser({
       entite: 'inscription', idEntite: paiement.id_reference,
       ancienStatut: prop?.inscription?.statut || 'accepte', nouveauStatut: 'confirmee',

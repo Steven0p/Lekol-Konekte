@@ -21,6 +21,7 @@ import examensRoutes from './routes/examens.routes.js';
 import direstatsRoutes from './routes/direction.routes.js';
 import permissionsRoutes from './routes/permissions.routes.js';
 import invitationEleveRoutes from './routes/invitationEleve.routes.js';
+import reinscriptionRoutes from './routes/reinscription.routes.js';
 import contactMessageRoutes from './routes/contactMessage.routes.js';
 import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
@@ -231,6 +232,9 @@ app.use('/api', permissionsRoutes);
 
 // Invitations élève (codes d'accès à l'auto-inscription) — personnel de l'école
 app.use('/api', invitationEleveRoutes);
+
+// Ré-inscription de fin d'année (parent + propriétaire)
+app.use('/api', reinscriptionRoutes);
 
 // Formulaire de contact public + boîte de réception (propriétaire)
 app.use('/api', contactMessageRoutes);

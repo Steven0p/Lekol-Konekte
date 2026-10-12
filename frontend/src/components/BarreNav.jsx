@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useMarque } from '../context/MarqueContext.jsx';
-import { adminApi, urlLogoEcole } from '../services/api.js';
+import { adminApi, reinscriptionApi, urlLogoEcole } from '../services/api.js';
 
 // Logo de marque : image téléversée si présente, sinon le logo par défaut de Lekòl Konekte.
 function LogoMarque({ aLogo, version }) {
@@ -97,6 +97,7 @@ const MENUS = {
       { to: '/proprietaire/statistiques', libelle: 'Statistiques & santé du site', icone: 'statistiques' },
       { to: '/proprietaire/rapport', libelle: 'Rapport mensuel', icone: 'clipboard' },
       { to: '/proprietaire/postes', libelle: 'Postes de synchronisation', icone: 'desktop' },
+      { to: '/proprietaire/reinscription', libelle: 'Ré-inscription', icone: 'inscriptions' },
       { to: '/admin/invitations', libelle: "Codes d'invitation élève", icone: 'codes' },
       { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
       { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
@@ -125,11 +126,11 @@ export default function BarreNav() {
   const navigate = useNavigate();
   const location = useLocation();
   const role = utilisateur?.role;
-  const sections = MENUS[role] || [];
 
   const [reduit, setReduit] = useState(false);   // sidebar repliée (desktop)
   const [ouvert, setOuvert] = useState(false);   // tiroir ouvert (mobile)
   const [compteurs, setCompteurs] = useState({});
+  const [reinsActive, setReinsActive] = useState(false); // campagne de ré-inscription ouverte
 
   // Ferme le tiroir mobile à chaque changement de page
   useEffect(() => { setOuvert(false); }, [location.pathname]);
@@ -141,6 +142,22 @@ export default function BarreNav() {
       .then((d) => setCompteurs({ inscriptions: d.inscriptions.length }))
       .catch(() => {});
   }, [role]);
+
+  // Parent : n'afficher « Ré-inscription » que si une campagne est ouverte.
+  useEffect(() => {
+    if (role !== 'parent') return;
+    reinscriptionApi.etat()
+      .then((d) => setReinsActive(!!d.active))
+      .catch(() => {});
+  }, [role]);
+
+  // Menu du rôle, avec l'entrée « Ré-inscription » ajoutée pour le parent quand
+  // une campagne est active.
+  const sections = (MENUS[role] || []).map((sec) => (
+    role === 'parent' && reinsActive && sec.titre === 'Mon espace'
+      ? { ...sec, items: [...sec.items, { to: '/reinscription', libelle: 'Ré-inscription', icone: 'inscriptions' }] }
+      : sec
+  ));
 
   const seDeconnecter = async () => { await logout(); navigate('/login'); };
   const initiale = (utilisateur?.nom || '?').trim().charAt(0).toUpperCase();
