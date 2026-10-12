@@ -16,6 +16,10 @@ export function eleveVisible(alias = 'eleves') {
 export async function genererCodeAcces(idEleve) {
   const eleve = await trouverParId(idEleve);
   if (!eleve) return null;
+  // Le code d'accès est unique et PERMANENT : s'il en existe déjà un, on le
+  // conserve. Sans ce garde-fou, une ré-inscription payée régénérerait le code
+  // d'un élève existant et casserait son badge / son accès.
+  if (eleve.code_acces) return eleve.code_acces;
 
   // Lettres du nom complet (prénom + nom), sans accents ni espaces
   const lettres = `${eleve.prenom || ''}${eleve.nom || ''}`

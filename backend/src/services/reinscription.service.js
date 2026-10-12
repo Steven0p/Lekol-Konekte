@@ -16,7 +16,7 @@ import * as campagneModel from '../models/reinscription.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { echapperHtml } from '../utils/html.js';
 
-const SEUIL_DEFAUT = 50;
+const SEUIL_DEFAUT = 60; // repli si l'école n'a pas défini de seuil (cohérent avec /ecole/marque)
 const ORIGINE = () => (process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '');
 
 // Moyenne annuelle d'un élève pour une année, calculée comme dans l'espace élève
