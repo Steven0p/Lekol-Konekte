@@ -151,10 +151,12 @@ CREATE TABLE IF NOT EXISTS reinscription_campagne (
   id           INT AUTO_INCREMENT PRIMARY KEY,
   annee_cible  VARCHAR(9) NOT NULL,                 -- année scolaire visée (ex. 2026-2027)
   active       TINYINT(1) NOT NULL DEFAULT 1,
+  actif_unique CHAR(1) NULL,                        -- 'O' si active, NULL sinon : index UNIQUE = une seule active
   lancee_par   INT NULL,
   lancee_le    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   cloturee_le  DATETIME NULL,
-  nb_courriels INT NOT NULL DEFAULT 0,              -- nombre de familles notifiées au lancement
+  nb_courriels INT NOT NULL DEFAULT 0,              -- nombre de familles réellement notifiées
+  UNIQUE KEY uq_reinscription_actif (actif_unique),
   FOREIGN KEY (lancee_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 

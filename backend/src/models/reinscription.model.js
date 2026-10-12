@@ -20,8 +20,12 @@ export async function derniereCampagne() {
 }
 
 export async function creerCampagne({ anneeCible, lanceePar }) {
+  // actif_unique = 'O' pour une campagne active, NULL sinon. Un index UNIQUE sur
+  // cette colonne (plusieurs NULL autorisés en MySQL) garantit UNE SEULE campagne
+  // active : un second lancement concurrent lève ER_DUP_ENTRY.
   const [res] = await pool.query(
-    `INSERT INTO reinscription_campagne (annee_cible, active, lancee_par) VALUES (?, 1, ?)`,
+    `INSERT INTO reinscription_campagne (annee_cible, active, actif_unique, lancee_par)
+     VALUES (?, 1, 'O', ?)`,
     [anneeCible, lanceePar || null]
   );
   return { id: res.insertId, anneeCible };
@@ -33,7 +37,9 @@ export async function majNbCourriels(id, nb) {
 
 export async function cloturerCampagne(id) {
   const [res] = await pool.query(
-    `UPDATE reinscription_campagne SET active = 0, cloturee_le = NOW() WHERE id = ? AND active = 1`,
+    `UPDATE reinscription_campagne
+        SET active = 0, actif_unique = NULL, cloturee_le = NOW()
+      WHERE id = ? AND active = 1`,
     [id]
   );
   return res.affectedRows > 0;

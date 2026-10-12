@@ -6,6 +6,7 @@ import { anneeScolaireCourante, anneeSuivante } from '../utils/dates.js';
 import { niveauSuivant, estDernierNiveau } from '../config/niveaux.js';
 import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { notesValideesToutes } from '../models/note.model.js';
+import { calculerMoyenne } from './moyenne.service.js';
 import { listerParentsAvecCourriel } from '../models/user.model.js';
 import { listerParParent, listerElevesAvecCourriel } from '../models/eleve.model.js';
 import {
@@ -19,9 +20,10 @@ import { echapperHtml } from '../utils/html.js';
 const SEUIL_DEFAUT = 60; // repli si l'école n'a pas défini de seuil (cohérent avec /ecole/marque)
 const ORIGINE = () => (process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '');
 
-// Moyenne annuelle d'un élève pour une année, calculée comme dans l'espace élève
-// (moyenne des moyennes pondérées de chaque trimestre). Renvoie null si l'année
-// est incomplète (3e trimestre absent) ou s'il n'y a aucune note exploitable.
+// Moyenne annuelle d'un élève pour une année : moyenne des moyennes pondérées de
+// chaque trimestre, calculées via calculerMoyenne (le MÊME calcul que le bulletin
+// officiel — coefficient 0 = matière hors calcul, barème absent = 100). Renvoie
+// null si l'année est incomplète (3e trimestre absent) ou sans note exploitable.
 function moyenneAnnuelle(notesAnnee) {
   const parTrim = new Map();
   for (const n of notesAnnee) {
@@ -31,15 +33,8 @@ function moyenneAnnuelle(notesAnnee) {
   if (!parTrim.has('3e_trimestre')) return null; // année non terminée
   const moyennes = [];
   for (const notes of parTrim.values()) {
-    let sp = 0;
-    let sc = 0;
-    for (const n of notes) {
-      const c = Number(n.coefficient) || 1;
-      const bareme = Number(n.bareme) || 100;
-      sp += (Number(n.valeur) / bareme) * 100 * c;
-      sc += c;
-    }
-    if (sc) moyennes.push(sp / sc);
+    const { moyenneGenerale, sommeCoef } = calculerMoyenne(notes);
+    if (sommeCoef > 0) moyennes.push(moyenneGenerale);
   }
   if (!moyennes.length) return null;
   return Math.round((moyennes.reduce((a, b) => a + b, 0) / moyennes.length) * 100) / 100;
@@ -68,21 +63,28 @@ export async function evaluerEleve(eleve, seuil) {
     .reverse();
 
   const dernier = estDernierNiveau(eleve.niveau);
+  const suivant = niveauSuivant(eleve.niveau);
+  // « peut monter » = niveau reconnu dans la liste ET pas le dernier. Un niveau
+  // hérité incohérent (hors liste) donne suivant === niveau : on ne peut pas
+  // promouvoir automatiquement, le secrétariat fixera le niveau (évite un faux
+  // « Promu » qui n'augmente rien).
+  const peutMonter = suivant !== eleve.niveau;
 
   if (anneesCompletes.length) {
     const annee = anneesCompletes[0];
     const moyenne = moyenneAnnuelle(parAnnee.get(annee));
     if (moyenne != null && moyenne >= seuil) {
       if (dernier) return { moyenne, anneeEvaluee: annee, resultat: 'diplome', niveauPropose: eleve.niveau };
-      return { moyenne, anneeEvaluee: annee, resultat: 'promu', niveauPropose: niveauSuivant(eleve.niveau) };
+      if (!peutMonter) return { moyenne, anneeEvaluee: annee, resultat: 'indetermine', niveauPropose: eleve.niveau };
+      return { moyenne, anneeEvaluee: annee, resultat: 'promu', niveauPropose: suivant };
     }
     return { moyenne, anneeEvaluee: annee, resultat: 'maintenu', niveauPropose: eleve.niveau };
   }
 
-  // Aucun résultat complet : par défaut, on propose la promotion (sauf au dernier
-  // niveau, où l'on ne peut pas confirmer la fin de cycle sans résultats).
-  if (dernier) return { moyenne: null, anneeEvaluee: null, resultat: 'indetermine', niveauPropose: eleve.niveau };
-  return { moyenne: null, anneeEvaluee: null, resultat: 'promu_defaut', niveauPropose: niveauSuivant(eleve.niveau) };
+  // Aucun résultat complet : par défaut, on propose la promotion — sauf au dernier
+  // niveau ou si le niveau n'est pas reconnu (on ne peut pas déterminer le suivant).
+  if (!peutMonter) return { moyenne: null, anneeEvaluee: null, resultat: 'indetermine', niveauPropose: eleve.niveau };
+  return { moyenne: null, anneeEvaluee: null, resultat: 'promu_defaut', niveauPropose: suivant };
 }
 
 // Campagne active (ou null) — exposée au front (bannière, page parent).
@@ -203,8 +205,10 @@ function construireCourriel(nomEcole, anneeCible, lien) {
   return { sujet, texte, html };
 }
 
-// Envoi des courriels en arrière-plan (ne bloque pas la réponse HTTP).
-async function envoyerCourrielsReinscription(destinataires, sujet, texte, html) {
+// Envoi des courriels en arrière-plan (ne bloque pas la réponse HTTP). À la fin,
+// nb_courriels est mis à jour avec le nombre RÉELLEMENT envoyé (pas le nombre
+// ciblé), pour que le tableau de bord ne dise pas « notifiées » si tout a échoué.
+async function envoyerCourrielsReinscription(campagneId, destinataires, sujet, texte, html) {
   let envoyes = 0;
   for (const d of destinataires) {
     try {
@@ -214,19 +218,32 @@ async function envoyerCourrielsReinscription(destinataires, sujet, texte, html) 
       console.error(`Ré-inscription : courriel à ${d.courriel} échoué :`, err.message);
     }
   }
+  await campagneModel.majNbCourriels(campagneId, envoyes).catch(() => {});
   console.log(`↔ Ré-inscription : ${envoyes}/${destinataires.length} courriel(s) envoyé(s).`);
 }
 
 // Lance une campagne (propriétaire) : crée la campagne pour l'année suivante et
 // notifie toutes les familles par courriel (en arrière-plan). Refusé si une
-// campagne est déjà active.
+// campagne est déjà active (garde applicative + contrainte d'unicité en base
+// contre les doubles clics / requêtes concurrentes).
 export async function lancerCampagne(idAuteur) {
   const existante = await campagneModel.campagneActive();
   if (existante) {
     return { ok: false, code: 409, erreur: `Une campagne est déjà active (année ${existante.annee_cible}).` };
   }
   const anneeCible = anneeSuivante(anneeScolaireCourante());
-  const campagne = await campagneModel.creerCampagne({ anneeCible, lanceePar: idAuteur });
+
+  let campagne;
+  try {
+    campagne = await campagneModel.creerCampagne({ anneeCible, lanceePar: idAuteur });
+  } catch (err) {
+    // Deux lancements concurrents : la contrainte d'unicité (actif_unique) rejette
+    // le second. On renvoie un conflit plutôt que de créer une 2e campagne active.
+    if (err && err.code === 'ER_DUP_ENTRY') {
+      return { ok: false, code: 409, erreur: 'Une campagne de ré-inscription est déjà active.' };
+    }
+    throw err;
+  }
 
   const ecole = await obtenirEcole();
   // Destinataires : parents + courriels renseignés sur les fiches élèves, dédoublonnés.
@@ -244,9 +261,9 @@ export async function lancerCampagne(idAuteur) {
   const lien = `${ORIGINE()}/reinscription`;
   const { sujet, texte, html } = construireCourriel(ecole?.nom, anneeCible, lien);
 
-  await campagneModel.majNbCourriels(campagne.id, destinataires.length);
-  // Envoi non bloquant : la réponse part tout de suite, les courriels suivent.
-  envoyerCourrielsReinscription(destinataires, sujet, texte, html).catch(() => {});
+  // Envoi non bloquant : la réponse part tout de suite ; nb_courriels sera mis à
+  // jour avec le nombre réellement envoyé à la fin du traitement.
+  envoyerCourrielsReinscription(campagne.id, destinataires, sujet, texte, html).catch(() => {});
 
   return { ok: true, anneeCible, nbDestinataires: destinataires.length };
 }
