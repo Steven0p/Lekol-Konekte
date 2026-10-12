@@ -8,8 +8,9 @@ import Chargement from '../../components/Chargement.jsx';
 
 const BADGE = {
   promu: { libelle: 'Promu(e)', classe: 'insc-badge-vert' },
+  promu_defaut: { libelle: 'Promotion (à confirmer)', classe: 'insc-badge-vert' },
   maintenu: { libelle: 'Maintenu(e)', classe: 'insc-badge-or' },
-  indetermine: { libelle: 'Résultats incomplets', classe: 'insc-badge-gris' },
+  indetermine: { libelle: 'À confirmer', classe: 'insc-badge-gris' },
   diplome: { libelle: 'Fin de cycle', classe: 'insc-badge-ble' },
 };
 
@@ -66,8 +67,8 @@ export default function Reinscription() {
         <h1>Ré-inscription {data.anneeCible}</h1>
         <p>
           Ré-inscrivez votre/vos enfant(s) pour l'année {data.anneeCible}. Les élèves qui ont
-          réussi l'année {data.anneeEcoulee} passent au niveau supérieur ; les autres restent
-          au même niveau. Le dossier est ensuite validé par le secrétariat.
+          réussi passent au niveau supérieur ; ceux qui n'ont pas réussi restent au même niveau.
+          Le dossier est ensuite validé par le secrétariat.
         </p>
       </div>
 
@@ -87,7 +88,9 @@ export default function Reinscription() {
                     <p style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem' }}>{e.nom}</p>
                     <p className="texte-gris" style={{ margin: '.25rem 0 0', fontSize: '.9rem' }}>
                       Niveau actuel : <strong>{e.niveauActuel || '—'}</strong>
-                      {e.moyenne != null && <> · Moyenne {data.anneeEcoulee} : <strong>{e.moyenne.toFixed(2)}/100</strong></>}
+                      {e.moyenne != null
+                        ? <> · Moyenne {e.anneeEvaluee} : <strong>{e.moyenne.toFixed(2)}/100</strong></>
+                        : <> · Résultats non disponibles</>}
                     </p>
                     <p style={{ margin: '.5rem 0 0', fontSize: '.92rem' }}>
                       <span className={`insc-badge ${b.classe}`}>{b.libelle}</span>

@@ -44,31 +44,44 @@ function moyenneAnnuelle(notesAnnee) {
   return Math.round((moyennes.reduce((a, b) => a + b, 0) / moyennes.length) * 100) / 100;
 }
 
-// Détermine le résultat d'un élève pour l'année écoulée + le niveau proposé.
+// Détermine le résultat d'un élève (sur sa DERNIÈRE année complète) + le niveau
+// proposé. La base n'est pas l'année « courante » (qui, après la rentrée, n'a pas
+// encore de notes) mais la dernière année où l'élève a un 3e trimestre.
 //  - 'promu'        : a réussi (moyenne ≥ seuil) → niveau suivant ;
 //  - 'maintenu'     : a échoué (moyenne < seuil) → même niveau ;
-//  - 'indetermine'  : résultats incomplets → même niveau (par prudence).
-// 'diplome' : déjà au dernier niveau (NS4) et promu → fin de cycle.
-export async function evaluerEleve(eleve, anneeFin, seuil) {
+//  - 'promu_defaut' : aucun résultat complet → promotion par défaut (cas normal
+//                     de la ré-inscription ; le secrétariat valide et peut ajuster) ;
+//  - 'indetermine'  : aucun résultat complet et déjà au dernier niveau → même niveau ;
+//  - 'diplome'      : a réussi au dernier niveau (NS4) → fin de cycle.
+export async function evaluerEleve(eleve, seuil) {
   const toutes = await notesValideesToutes(eleve.id);
-  const notesAnnee = toutes.filter((n) => n.annee_scolaire === anneeFin);
-  const moyenne = moyenneAnnuelle(notesAnnee);
-
-  let resultat;
-  let niveauPropose = eleve.niveau;
-  if (moyenne == null) {
-    resultat = 'indetermine';
-  } else if (moyenne >= seuil) {
-    if (estDernierNiveau(eleve.niveau)) {
-      resultat = 'diplome';
-    } else {
-      resultat = 'promu';
-      niveauPropose = niveauSuivant(eleve.niveau);
-    }
-  } else {
-    resultat = 'maintenu';
+  const parAnnee = new Map();
+  for (const n of toutes) {
+    if (!parAnnee.has(n.annee_scolaire)) parAnnee.set(n.annee_scolaire, []);
+    parAnnee.get(n.annee_scolaire).push(n);
   }
-  return { moyenne, resultat, niveauPropose };
+  // Années complètes (avec 3e trimestre), la plus récente d'abord.
+  const anneesCompletes = [...parAnnee.keys()]
+    .filter((a) => parAnnee.get(a).some((n) => n.periode === '3e_trimestre'))
+    .sort()
+    .reverse();
+
+  const dernier = estDernierNiveau(eleve.niveau);
+
+  if (anneesCompletes.length) {
+    const annee = anneesCompletes[0];
+    const moyenne = moyenneAnnuelle(parAnnee.get(annee));
+    if (moyenne != null && moyenne >= seuil) {
+      if (dernier) return { moyenne, anneeEvaluee: annee, resultat: 'diplome', niveauPropose: eleve.niveau };
+      return { moyenne, anneeEvaluee: annee, resultat: 'promu', niveauPropose: niveauSuivant(eleve.niveau) };
+    }
+    return { moyenne, anneeEvaluee: annee, resultat: 'maintenu', niveauPropose: eleve.niveau };
+  }
+
+  // Aucun résultat complet : par défaut, on propose la promotion (sauf au dernier
+  // niveau, où l'on ne peut pas confirmer la fin de cycle sans résultats).
+  if (dernier) return { moyenne: null, anneeEvaluee: null, resultat: 'indetermine', niveauPropose: eleve.niveau };
+  return { moyenne: null, anneeEvaluee: null, resultat: 'promu_defaut', niveauPropose: niveauSuivant(eleve.niveau) };
 }
 
 // Campagne active (ou null) — exposée au front (bannière, page parent).
@@ -86,27 +99,27 @@ export async function enfantsAReinscrire(idParent) {
   const campagne = await campagneModel.campagneActive();
   if (!campagne) return { active: false, enfants: [] };
 
-  const anneeFin = anneeScolaireCourante();
   const ecole = await obtenirEcole();
   const seuil = ecole && ecole.seuil_reussite != null ? Number(ecole.seuil_reussite) : SEUIL_DEFAUT;
 
   const enfants = await listerParParent(idParent);
   const resultat = [];
   for (const e of enfants) {
-    const evalEleve = await evaluerEleve(e, anneeFin, seuil);
+    const evalEleve = await evaluerEleve(e, seuil);
     const existante = await inscriptionActivePourAnnee(e.id, campagne.annee_cible);
     resultat.push({
       id: e.id,
       nom: e.nom,
       niveauActuel: e.niveau,
       moyenne: evalEleve.moyenne,
-      resultat: evalEleve.resultat,         // promu | maintenu | indetermine | diplome
+      anneeEvaluee: evalEleve.anneeEvaluee,  // année dont provient la moyenne (ou null)
+      resultat: evalEleve.resultat,          // promu | promu_defaut | maintenu | indetermine | diplome
       niveauPropose: evalEleve.niveauPropose,
       dejaReinscrit: !!existante,
       statutReinscription: existante ? existante.statut : null,
     });
   }
-  return { active: true, anneeCible: campagne.annee_cible, anneeEcoulee: anneeFin, enfants: resultat };
+  return { active: true, anneeCible: campagne.annee_cible, enfants: resultat };
 }
 
 // Crée la ré-inscription d'un enfant (élève existant) pour l'année visée.
@@ -122,10 +135,9 @@ export async function reinscrireEnfant(idParent, idEleve) {
   const existante = await inscriptionActivePourAnnee(eleve.id, campagne.annee_cible);
   if (existante) return { ok: false, code: 409, erreur: `Déjà ré-inscrit(e) pour ${campagne.annee_cible}.` };
 
-  const anneeFin = anneeScolaireCourante();
   const ecole = await obtenirEcole();
   const seuil = ecole && ecole.seuil_reussite != null ? Number(ecole.seuil_reussite) : SEUIL_DEFAUT;
-  const evalEleve = await evaluerEleve(eleve, anneeFin, seuil);
+  const evalEleve = await evaluerEleve(eleve, seuil);
   if (evalEleve.resultat === 'diplome') {
     return { ok: false, code: 409, erreur: "L'élève a terminé le dernier niveau (fin de cycle)." };
   }
