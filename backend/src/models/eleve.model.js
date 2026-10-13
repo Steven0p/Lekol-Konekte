@@ -136,6 +136,29 @@ export async function listerParParent(idParent) {
   return rows;
 }
 
+// Crée un élève importé (liste ancienne, sans compte parent). Pas de code d'accès
+// généré automatiquement : le secrétariat le fera au besoin (page Codes élèves).
+export async function creerEleveImporte({ nom, prenom, sexe, dateNaissance, niveau }) {
+  const [res] = await pool.query(
+    `INSERT INTO eleves (id_parent, nom, prenom, sexe, date_naissance, niveau, statut_inscription)
+     VALUES (NULL, ?, ?, ?, ?, ?, 'confirmee')`,
+    [nom, prenom || null, sexe || null, dateNaissance || null, niveau || null]
+  );
+  return res.insertId;
+}
+
+// Doublon probable pour un import : même nom + prénom (et date de naissance si
+// fournie). Évite d'importer deux fois le même élève.
+export async function eleveExisteImport({ nom, prenom, dateNaissance }) {
+  const conditions = ['LOWER(TRIM(nom)) = LOWER(TRIM(?))', 'LOWER(TRIM(COALESCE(prenom,\'\'))) = LOWER(TRIM(?))'];
+  const params = [nom, prenom || ''];
+  if (dateNaissance) { conditions.push('date_naissance = ?'); params.push(dateNaissance); }
+  const [[ligne]] = await pool.query(
+    `SELECT id FROM eleves WHERE ${conditions.join(' AND ')} LIMIT 1`, params
+  );
+  return !!ligne;
+}
+
 // Courriels de contact renseignés sur les fiches élèves — TOUS les élèves, sans
 // exception (élèves actuels ET anciens élèves) — pour les notifier (ex.
 // ré-inscription) en plus des parents.

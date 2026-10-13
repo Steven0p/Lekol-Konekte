@@ -345,6 +345,13 @@ export const archivesApi = {
 };
 export const urlArchiveFichier = (id) => `${API_URL}/archives/${id}/fichier`;
 
+// Import de données depuis un tableur (Excel/CSV) avec correspondance de colonnes
+export const importApi = {
+  champs: (type) => request(`/import/champs?type=${type}`),
+  analyser: (formData) => request('/import/analyser', { method: 'POST', body: formData }),
+  lancer: (type, payload) => request(`/import/${type}`, { method: 'POST', body: json(payload) }),
+};
+
 // Ré-inscription de fin d'année
 export const reinscriptionApi = {
   etat: () => request('/reinscription/etat'),

@@ -68,6 +68,7 @@ const MENUS = {
     { titre: 'Administration', items: [
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
       { to: '/archives', libelle: 'Documents archivés', icone: 'archive' },
+      { to: '/import', libelle: 'Importer des données', icone: 'inbox' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },
       { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
@@ -83,6 +84,7 @@ const MENUS = {
       { to: '/admin/presences', libelle: 'Présence', icone: 'scan' },
       { to: '/admin/anciens-eleves', libelle: 'Anciens élèves', icone: 'archive' },
       { to: '/archives', libelle: 'Documents archivés', icone: 'archive' },
+      { to: '/import', libelle: 'Importer des données', icone: 'inbox' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },
       { to: '/mon-compte', libelle: 'Mon compte', icone: 'compte' },
     ] },
@@ -102,6 +104,7 @@ const MENUS = {
       { to: '/proprietaire/reinscription', libelle: 'Ré-inscription', icone: 'inscriptions' },
       { to: '/admin/invitations', libelle: "Codes d'invitation élève", icone: 'codes' },
       { to: '/archives', libelle: 'Documents archivés', icone: 'archive' },
+      { to: '/import', libelle: 'Importer des données', icone: 'inbox' },
       { to: '/proprietaire/sante', libelle: 'Santé du serveur', icone: 'sante' },
       { to: '/proprietaire/messages', libelle: 'Boîte de réception', icone: 'inbox' },
       { to: '/annonce-sms', libelle: 'Annonce SMS', icone: 'sms' },

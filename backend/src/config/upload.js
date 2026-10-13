@@ -97,6 +97,23 @@ export const uploadArchive = creerUpload(DEST_ARCHIVES, archiveFilter, TYPES_ARC
 // Extension d'origine conservée pour l'affichage (à partir du type MIME déclaré).
 export const EXT_ARCHIVE = TYPES_ARCHIVE;
 
+// Import de données depuis un tableur (Excel .xlsx ou CSV). Fichier temporaire
+// (analysé puis importé puis supprimé), stocké à part.
+const DEST_IMPORTS = path.join(UPLOAD_ROOT, 'imports');
+fs.mkdirSync(DEST_IMPORTS, { recursive: true });
+const TYPES_IMPORT = {
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'text/csv': '.csv',
+  'application/csv': '.csv',
+  'application/vnd.ms-excel': '.xls', // parfois le type déclaré pour un .csv/.xls
+};
+function importFilter(req, file, cb) {
+  if (TYPES_IMPORT[file.mimetype]) return cb(null, true);
+  cb(new Error('TYPE_NON_AUTORISE'));
+}
+export const DOSSIER_IMPORTS = DEST_IMPORTS;
+export const uploadImport = creerUpload(DEST_IMPORTS, importFilter, TYPES_IMPORT, 25 * 1024 * 1024);
+
 // Vérifie le CONTENU réel d'un fichier déjà téléversé (signature/magic bytes),
 // indépendamment du Content-Type déclaré par le client — un champ multipart
 // falsifié (ex. un exécutable renommé en .jpg) passerait sinon le fileFilter
