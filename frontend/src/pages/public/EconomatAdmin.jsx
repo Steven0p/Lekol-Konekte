@@ -5,11 +5,13 @@ import Alerte from '../../components/Alerte.jsx';
 import PaiementsTab from './economat/PaiementsTab.jsx';
 import TarifsTab from './economat/TarifsTab.jsx';
 import AcquittementsTab from './economat/AcquittementsTab.jsx';
+import ArchiveDocuments from '../../components/ArchiveDocuments.jsx';
 
 const ONGLETS = [
   { cle: 'paiements', libelle: 'Paiements' },
   { cle: 'tarifs', libelle: 'Tarifs' },
   { cle: 'acquittements', libelle: 'Acquittements élèves' },
+  { cle: 'archives', libelle: 'Archives' },
 ];
 
 // Minuterie partagée pour la déconnexion automatique en quittant la page.
@@ -129,6 +131,7 @@ function PanneauEconomat({ admin, onAdminMaj, onLogout }) {
       {onglet === 'paiements' && <PaiementsTab />}
       {onglet === 'tarifs' && <TarifsTab />}
       {onglet === 'acquittements' && <AcquittementsTab />}
+      {onglet === 'archives' && <ArchiveDocuments service="economat" titre="Documents archivés — Économat" />}
 
       <footer className="vadm-pied">© {new Date().getFullYear()} Lekòl Konekte. Tous droits réservés.</footer>
 

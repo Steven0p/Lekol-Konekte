@@ -30,13 +30,31 @@ const DEST_VLOG = path.join(UPLOAD_ROOT, 'vlog');       // photos des publicatio
 const DEST_PROFS = path.join(UPLOAD_ROOT, 'professeurs'); // photos des fiches du corps enseignant
 const DEST_EXAMENS = path.join(UPLOAD_ROOT, 'examens'); // photos des feuilles d'examen
 const DEST_COURS = path.join(UPLOAD_ROOT, 'cours');     // documents de cours (professeurs)
+const DEST_ARCHIVES = path.join(UPLOAD_ROOT, 'archives'); // archives (anciens Excel/Word/PPT/PDF)
 
 // Crée les sous-dossiers si absents (conteneur / volume vierge en production)
-for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS, DEST_EXAMENS, DEST_COURS]) {
+for (const dossier of [DEST, DEST_PREUVES, DEST_PHOTOS, DEST_LOGOS, DEST_VLOG, DEST_PROFS, DEST_EXAMENS, DEST_COURS, DEST_ARCHIVES]) {
   fs.mkdirSync(dossier, { recursive: true });
 }
 
 const TYPES_IMAGE = { 'image/jpeg': '.jpg', 'image/png': '.png' };
+
+// Types bureautiques acceptés pour l'archive (anciens documents de l'école).
+// Stockés tels quels sous un nom aléatoire et servis EN PIÈCE JOINTE (jamais
+// exécutés / affichés en ligne), ce qui neutralise le risque d'un contenu actif.
+const TYPES_ARCHIVE = {
+  'application/pdf': '.pdf',
+  'application/vnd.ms-excel': '.xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  'application/msword': '.doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
+  'application/vnd.ms-powerpoint': '.ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': '.pptx',
+  'text/csv': '.csv',
+  'application/csv': '.csv',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+};
 
 function fileFilter(req, file, cb) {
   if (TYPES_AUTORISES[file.mimetype]) return cb(null, true);
@@ -49,7 +67,7 @@ function imageFilter(req, file, cb) {
 }
 
 // Fabrique un middleware multer stockant dans un sous-dossier donné
-function creerUpload(dossier, filtre = fileFilter, typesExt = TYPES_AUTORISES) {
+function creerUpload(dossier, filtre = fileFilter, typesExt = TYPES_AUTORISES, maxOctets = 5 * 1024 * 1024) {
   const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, dossier),
     filename: (req, file, cb) => {
@@ -58,7 +76,12 @@ function creerUpload(dossier, filtre = fileFilter, typesExt = TYPES_AUTORISES) {
       cb(null, `${crypto.randomBytes(16).toString('hex')}${ext}`);
     },
   });
-  return multer({ storage, fileFilter: filtre, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 Mo
+  return multer({ storage, fileFilter: filtre, limits: { fileSize: maxOctets } });
+}
+
+function archiveFilter(req, file, cb) {
+  if (TYPES_ARCHIVE[file.mimetype]) return cb(null, true);
+  cb(new Error('TYPE_NON_AUTORISE'));
 }
 
 export const uploadDocument = creerUpload(DEST);         // documents d'inscription
@@ -69,6 +92,10 @@ export const uploadVlog = creerUpload(DEST_VLOG, imageFilter, TYPES_IMAGE);     
 export const uploadProf = creerUpload(DEST_PROFS, imageFilter, TYPES_IMAGE);    // photo fiche professeur
 export const uploadExamen = creerUpload(DEST_EXAMENS, imageFilter, TYPES_IMAGE); // photo feuille d'examen
 export const uploadCours = creerUpload(DEST_COURS);      // document de cours (professeur)
+// Archive de documents anciens (Excel/Word/PPT/PDF…). Limite plus large (25 Mo).
+export const uploadArchive = creerUpload(DEST_ARCHIVES, archiveFilter, TYPES_ARCHIVE, 25 * 1024 * 1024);
+// Extension d'origine conservée pour l'affichage (à partir du type MIME déclaré).
+export const EXT_ARCHIVE = TYPES_ARCHIVE;
 
 // Vérifie le CONTENU réel d'un fichier déjà téléversé (signature/magic bytes),
 // indépendamment du Content-Type déclaré par le client — un champ multipart

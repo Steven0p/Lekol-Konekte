@@ -337,6 +337,14 @@ export const permissionsApi = {
   modifierCompte: (body) => request('/mon-compte', { method: 'PATCH', body: json(body) }),
 };
 
+// Archive de documents anciens (Économat / Secrétariat / Direction)
+export const archivesApi = {
+  lister: (service) => request(`/archives${service ? `?service=${service}` : ''}`),
+  televerser: (formData) => request('/archives', { method: 'POST', body: formData }),
+  supprimer: (id) => request(`/archives/${id}`, { method: 'DELETE' }),
+};
+export const urlArchiveFichier = (id) => `${API_URL}/archives/${id}/fichier`;
+
 // Ré-inscription de fin d'année
 export const reinscriptionApi = {
   etat: () => request('/reinscription/etat'),

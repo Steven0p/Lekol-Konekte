@@ -95,6 +95,17 @@ export function requireAuthOuEconomatAdmin(req, res, next) {
   return res.status(401).json({ erreur: 'Authentification requise.' });
 }
 
+// Personnel de l'école : secrétariat (admin), direction, propriétaire OU admin
+// Économat (session indépendante). Exclut parents et élèves. Sert à l'archive
+// de documents partagée entre ces services.
+const ROLES_PERSONNEL = ['admin', 'direction', 'proprietaire'];
+export function requirePersonnel(req, res, next) {
+  if (req.session && (req.session.economatAdminId || ROLES_PERSONNEL.includes(req.session.role))) {
+    return next();
+  }
+  return res.status(403).json({ erreur: "Accès réservé au personnel de l'école." });
+}
+
 // Exige soit un compte école (professeur y compris, via userId), soit une
 // session élève — pour un fichier de cours qu'un professeur et un élève de sa
 // classe doivent tous deux pouvoir ouvrir.

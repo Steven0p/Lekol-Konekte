@@ -190,6 +190,25 @@ CREATE TABLE IF NOT EXISTS permissions (
   FOREIGN KEY (modifie_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
+-- documents_archive : anciens documents (Excel, Word, PowerPoint, PDF…) qui
+-- existaient avant le système et qu'on y intègre comme archive, classés par
+-- service (Économat / Secrétariat / Direction). Les fichiers sont stockés tels
+-- quels (pas de lecture automatique) et téléchargés en pièce jointe.
+CREATE TABLE IF NOT EXISTS documents_archive (
+  id                INT AUTO_INCREMENT PRIMARY KEY,
+  service           ENUM('economat','secretariat','direction','autre') NOT NULL DEFAULT 'autre',
+  titre             VARCHAR(200) NOT NULL,
+  description       VARCHAR(500) NULL,
+  nom_fichier       VARCHAR(255) NOT NULL,   -- nom d'origine (affiché / téléchargement)
+  chemin            VARCHAR(500) NOT NULL,   -- chemin relatif sous UPLOAD_ROOT (nom aléatoire)
+  type_mime         VARCHAR(150) NULL,
+  taille            INT NULL,
+  televerse_par     INT NULL,                -- utilisateur (role) ; NULL si admin Économat
+  televerse_par_nom VARCHAR(160) NULL,       -- nom lisible (gère aussi l'admin Économat)
+  televerse_le      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (televerse_par) REFERENCES utilisateurs(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
 -- invitations_eleve : codes à usage unique remis aux VRAIS élèves pour qu'ils
 -- puissent créer leur compte eux-mêmes (auto-inscription élève). Empêche une
 -- personne non admise de s'inscrire comme élève. Consommé à la création du compte.

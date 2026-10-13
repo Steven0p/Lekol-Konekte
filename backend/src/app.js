@@ -22,6 +22,7 @@ import direstatsRoutes from './routes/direction.routes.js';
 import permissionsRoutes from './routes/permissions.routes.js';
 import invitationEleveRoutes from './routes/invitationEleve.routes.js';
 import reinscriptionRoutes from './routes/reinscription.routes.js';
+import archiveRoutes from './routes/archive.routes.js';
 import contactMessageRoutes from './routes/contactMessage.routes.js';
 import presenceRoutes from './routes/presence.routes.js';
 import ancienEleveRoutes from './routes/ancienEleve.routes.js';
@@ -235,6 +236,9 @@ app.use('/api', invitationEleveRoutes);
 
 // Ré-inscription de fin d'année (parent + propriétaire)
 app.use('/api', reinscriptionRoutes);
+
+// Archive de documents anciens (Économat / Secrétariat / Direction)
+app.use('/api', archiveRoutes);
 
 // Formulaire de contact public + boîte de réception (propriétaire)
 app.use('/api', contactMessageRoutes);
