@@ -1,0 +1,44 @@
+# Déploiement du backend (API Express) sur Render — Blueprint.
+# Render lit ce fichier quand on connecte le dépôt (New → Blueprint).
+# Le frontend, lui, est déployé séparément sur Vercel (dossier frontend/).
+#
+# Les clés marquées "sync: false" sont à renseigner dans le dashboard Render
+# (valeurs du MySQL managé + clés des services). SESSION_SECRET est généré.
+services:
+  - type: web
+    name: lekol-konekte-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node src/server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Frontend (Vercel) et backend (Render) sur des domaines différents :
+      - key: CROSS_SITE
+        value: "true"
+      - key: SESSION_SECRET
+        generateValue: true
+      # URL du frontend Vercel (ex. https://lekol-konekte.vercel.app) — SANS slash final :
+      - key: CLIENT_ORIGIN
+        sync: false
+      # Base MySQL managée (Aiven / TiDB) :
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      # Services (à renseigner si utilisés) :
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false

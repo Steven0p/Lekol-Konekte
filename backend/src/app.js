@@ -59,6 +59,9 @@ for (const routeur of [
 
 const app = express();
 const isProd = process.env.NODE_ENV === 'production';
+// Frontend et backend sur des domaines différents (ex. frontend Vercel +
+// backend Render) : le cookie de session passe en SameSite=None; Secure.
+const crossSite = process.env.CROSS_SITE === 'true';
 
 // Échoue au démarrage plutôt que de signer les sessions avec le secret de dev
 // connu (visible dans le dépôt) — une session forgée avec ce secret serait
@@ -189,8 +192,12 @@ app.use(
     saveUninitialized: false,
     cookie: {
       httpOnly: true, // inaccessible au JavaScript côté client
-      secure: isProd, // HTTPS uniquement en production
-      sameSite: 'lax',
+      // Quand le frontend (ex. Vercel) et le backend (ex. Render) sont sur des
+      // domaines DIFFÉRENTS, le cookie de session doit être SameSite=None +
+      // Secure pour être envoyé avec les requêtes cross-site (CROSS_SITE=true).
+      // Sinon (même origine), on garde Lax, plus strict.
+      secure: isProd || crossSite,
+      sameSite: crossSite ? 'none' : 'lax',
       maxAge: 1000 * 60 * 60 * 8, // 8 heures
     },
   })
