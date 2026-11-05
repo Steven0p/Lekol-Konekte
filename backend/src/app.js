@@ -6,6 +6,7 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import MySQLStoreFactory from 'express-mysql-session';
 import dotenv from 'dotenv';
+import { configSsl } from './config/db.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -178,6 +179,7 @@ const sessionStore = new MySQLStore({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'lekol_konekte',
+  ssl: configSsl(), // TLS pour un MySQL managé (TiDB/Aiven), comme le pool principal
   // Table créée par schema.sql / migration 037 : le compte MySQL de
   // l'application n'a pas le droit CREATE (droits réduits au strict CRUD).
   createDatabaseTable: false,

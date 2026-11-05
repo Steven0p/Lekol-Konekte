@@ -35,11 +35,22 @@ async function main() {
     process.exit(1);
   }
 
+  // TLS pour un MySQL managé (TiDB/Aiven) : DB_SSL=true (vérifié) ou
+  // DB_SSL=no-verify (sans vérifier le certificat), ou ?ssl=true dans l'URL.
+  const sslVoulu = (process.env.DB_SSL || '').toLowerCase();
+  let ssl;
+  if (sslVoulu === 'true' || sslVoulu === '1' || u.searchParams.get('ssl') === 'true') {
+    ssl = { minVersion: 'TLSv1.2', rejectUnauthorized: true };
+  } else if (sslVoulu === 'no-verify' || sslVoulu === 'skip-verify') {
+    ssl = { rejectUnauthorized: false };
+  }
+
   const config = {
     host: u.hostname,
     port: Number(u.port) || 3306,
     user: decodeURIComponent(u.username),
     password: decodeURIComponent(u.password),
+    ssl,
     multipleStatements: true, // schema.sql contient plusieurs instructions (CREATE DATABASE, USE, CREATE TABLE…)
   };
 
