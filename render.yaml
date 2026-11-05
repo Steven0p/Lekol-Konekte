@@ -1,30 +1,25 @@
-# Déploiement du backend (API Express) sur Render — Blueprint.
-# Render lit ce fichier quand on connecte le dépôt (New → Blueprint).
-# Le frontend, lui, est déployé séparément sur Vercel (dossier frontend/).
+# Déploiement de TOUTE l'application (backend + frontend) sur Render, en UN seul
+# service — comme Railway : le backend Express sert le frontend compilé (même
+# domaine, donc pas de CORS ni de cookie cross-site).
 #
-# Les clés marquées "sync: false" sont à renseigner dans le dashboard Render
-# (valeurs du MySQL managé + clés des services). SESSION_SECRET est généré.
+# La base MySQL est managée à part (TiDB / Aiven, gratuit) : renseigner les
+# DB_* dans le dashboard. SESSION_SECRET est généré automatiquement.
 services:
   - type: web
-    name: lekol-konekte-api
+    name: lekol-konekte
     runtime: node
     plan: free
     rootDir: backend
-    buildCommand: npm install
+    # Installe le backend PUIS compile le frontend (script "build" du backend) :
+    buildCommand: npm install && npm run build
     startCommand: node src/server.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
-      # Frontend (Vercel) et backend (Render) sur des domaines différents :
-      - key: CROSS_SITE
-        value: "true"
       - key: SESSION_SECRET
         generateValue: true
-      # URL du frontend Vercel (ex. https://lekol-konekte.vercel.app) — SANS slash final :
-      - key: CLIENT_ORIGIN
-        sync: false
-      # Base MySQL managée (Aiven / TiDB) :
+      # Base MySQL managée (TiDB / Aiven) — TLS obligatoire :
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -35,7 +30,9 @@ services:
         sync: false
       - key: DB_NAME
         sync: false
-      # Services (à renseigner si utilisés) :
+      - key: DB_SSL
+        value: "true"
+      # Services optionnels (imel / IA) :
       - key: RESEND_API_KEY
         sync: false
       - key: MAIL_FROM
