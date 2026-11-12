@@ -1,6 +1,7 @@
 // Point d'entrée du serveur
 import app from './app.js';
 import { pool, testConnection } from './config/db.js';
+import { initialiserSchemaSiDemande } from './initSchema.js';
 import { installerSchemaSync } from './sync/schema.js';
 import { demarrerWorkerSync, syncPosteConfigure } from './sync/worker.js';
 import { verifierMailer } from './config/mailer.js';
@@ -25,6 +26,9 @@ async function demarrer() {
   try {
     await testConnection();
     console.log('✔ Connexion MySQL établie.');
+
+    // Initialisation ponctuelle du schéma sur une base neuve (RUN_INIT_DB=true).
+    await initialiserSchemaSiDemande();
 
     // Mode POSTE (app de bureau hors ligne) : la base est locale et le compte
     // a tous les droits — on s'assure que le schéma de synchronisation est en
