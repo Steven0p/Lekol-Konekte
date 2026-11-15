@@ -77,7 +77,7 @@ export default function MonCompte() {
               autoComplete="current-password" required />
           ) : (
             <Alerte type="info">
-              Votre compte utilise la connexion Google — aucun mot de passe actuel n'est requis pour en définir un.
+              Votre compte n'a pas encore de mot de passe — vous pouvez en définir un sans saisir de mot de passe actuel.
             </Alerte>
           )}
 

@@ -388,6 +388,11 @@ export async function login(req, res, next) {
         nom: utilisateur.nom,
         courriel: utilisateur.courriel,
         role: utilisateur.role,
+        // Indispensable à la page « Mon compte » : sans ce champ, le front croit
+        // que le compte est un compte Google (sans mot de passe) et masque le
+        // champ « mot de passe actuel », alors que le back l'exige. Même forme
+        // que GET /api/auth/me (findById).
+        aMotDePasse: utilisateur.mot_de_passe_hash != null,
       },
     });
   } catch (err) {
@@ -443,6 +448,8 @@ export async function verifierConnexion(req, res, next) {
         nom: utilisateur.nom,
         courriel: utilisateur.courriel,
         role: utilisateur.role,
+        // Même forme que GET /api/auth/me (voir commentaire côté connexion classique).
+        aMotDePasse: !!utilisateur.aMotDePasse,
       },
     });
   } catch (err) {

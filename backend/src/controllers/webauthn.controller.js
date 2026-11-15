@@ -166,8 +166,11 @@ export async function verifierConnexionPasskey(req, res, next) {
     req.session.role = cred.role;
     tracer('connexion_reussie', { req, sujet: cred.courriel, details: `${cred.role} (passkey)` });
 
+    // Même forme que GET /api/auth/me (findById) : inclut aMotDePasse, sinon la
+    // page « Mon compte » croit à tort que le compte est un compte Google.
+    const utilisateur = await findById(cred.uid);
     return res.json({
-      utilisateur: { id: cred.uid, nom: cred.nom, courriel: cred.courriel, role: cred.role },
+      utilisateur: utilisateur || { id: cred.uid, nom: cred.nom, courriel: cred.courriel, role: cred.role },
     });
   } catch (err) {
     next(err);
