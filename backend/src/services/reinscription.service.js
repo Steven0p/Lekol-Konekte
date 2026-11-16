@@ -16,6 +16,7 @@ import {
 import * as campagneModel from '../models/reinscription.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
 import { echapperHtml } from '../utils/html.js';
+import { gabaritCourriel, paragrapheCourriel, boutonCourriel } from '../utils/courrielGabarit.js';
 
 const SEUIL_DEFAUT = 60; // repli si l'école n'a pas défini de seuil (cohérent avec /ecole/marque)
 const ORIGINE = () => (process.env.CLIENT_ORIGIN || 'http://localhost:5173').replace(/\/+$/, '');
@@ -182,8 +183,6 @@ export async function reinscrireEnfant(idParent, idEleve) {
 // --- Lancement / clôture (propriétaire) ---------------------------------
 
 function construireCourriel(nomEcole, anneeCible, lien) {
-  const ecole = echapperHtml(nomEcole || 'Lekòl Konekte');
-  const annee = echapperHtml(anneeCible);
   const sujet = `${nomEcole || 'Lekòl Konekte'} — Ré-inscription ${anneeCible}`;
   const texte =
     `Bonjour,\n\n`
@@ -192,16 +191,18 @@ function construireCourriel(nomEcole, anneeCible, lien) {
     + `passent automatiquement au niveau supérieur ; ceux qui n'ont pas réussi restent au même niveau.\n\n`
     + `Lien de ré-inscription : ${lien}\n\n`
     + `Merci,\nL'administration`;
-  const html =
-    `<p>Bonjour,</p>`
-    + `<p>La <strong>ré-inscription pour l'année scolaire ${annee}</strong> est maintenant ouverte à ${ecole}.</p>`
-    + `<p>Connectez-vous à votre compte pour ré-inscrire votre/vos enfant(s). Les élèves qui ont réussi `
-    + `passent automatiquement au niveau supérieur ; ceux qui n'ont pas réussi restent au même niveau.</p>`
-    + `<p><a href="${lien}" style="display:inline-block;background:#1F3A5F;color:#fff;padding:10px 18px;`
-    + `border-radius:8px;text-decoration:none;font-weight:bold">Ré-inscrire mon enfant</a></p>`
-    + `<p>Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>`
-    + `<a href="${lien}">${echapperHtml(lien)}</a></p>`
-    + `<p>Merci,<br>L'administration</p>`;
+  const html = gabaritCourriel({
+    titre: `Ré-inscription ${anneeCible}`,
+    apercu: `La ré-inscription ${anneeCible} est ouverte à ${nomEcole || "l'école"}`,
+    contenu:
+      paragrapheCourriel('Bonjour,')
+      + paragrapheCourriel(`La ré-inscription pour l'année scolaire ${anneeCible} est maintenant ouverte à ${nomEcole || "l'école"}.`)
+      + paragrapheCourriel("Connectez-vous à votre compte pour ré-inscrire votre/vos enfant(s). Les élèves qui ont réussi passent automatiquement au niveau supérieur ; ceux qui n'ont pas réussi restent au même niveau.")
+      + boutonCourriel('Ré-inscrire mon enfant', lien)
+      + paragrapheCourriel('Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :', { couleur: '#6b7280', taille: '13px' })
+      + `<p style="margin:0 0 14px;font-size:13px;word-break:break-all;"><a href="${lien}" style="color:#2B4C7E;">${echapperHtml(lien)}</a></p>`
+      + paragrapheCourriel("Merci,\nL'administration"),
+  });
   return { sujet, texte, html };
 }
 

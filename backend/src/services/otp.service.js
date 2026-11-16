@@ -9,6 +9,7 @@ import {
   marquerUtilise,
 } from '../models/verificationCode.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, paragrapheCourriel, blocCode, boutonCourriel } from '../utils/courrielGabarit.js';
 
 const SALT_ROUNDS = 10;
 const MAX_TENTATIVES = 5;
@@ -49,12 +50,16 @@ export async function envoyerCodeVerification({ idUtilisateur, courriel, nom }) 
     `Votre code de vérification est : ${code}\n` +
     `Il expire dans ${minutes} minutes.\n\n` +
     `Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.`;
-  const html =
-    `<p>Bonjour ${nom || ''},</p>` +
-    `<p>Votre code de vérification est :</p>` +
-    `<p style="font-size:24px;font-weight:bold;letter-spacing:3px">${code}</p>` +
-    `<p>Il expire dans ${minutes} minutes.</p>` +
-    `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>`;
+  const html = gabaritCourriel({
+    titre: 'Code de vérification',
+    apercu: 'Votre code de vérification Lekòl Konekte',
+    contenu:
+      paragrapheCourriel(`Bonjour ${nom || ''},`) +
+      paragrapheCourriel('Votre code de vérification est :') +
+      blocCode(code) +
+      paragrapheCourriel(`Il expire dans ${minutes} minutes.`, { couleur: '#6b7280', taille: '14px' }) +
+      paragrapheCourriel("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.", { couleur: '#9ca3af', taille: '13px' }),
+  });
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };
@@ -79,13 +84,16 @@ export async function envoyerCodeReinitialisation({ idUtilisateur, courriel, nom
     `Il expire dans ${minutes} minutes.\n\n` +
     `Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : ` +
     `votre mot de passe reste inchangé.`;
-  const html =
-    `<p>Bonjour ${nom || ''},</p>` +
-    `<p>Vous avez demandé à réinitialiser votre mot de passe. Votre code est :</p>` +
-    `<p style="font-size:24px;font-weight:bold;letter-spacing:3px">${code}</p>` +
-    `<p>Il expire dans ${minutes} minutes.</p>` +
-    `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : ` +
-    `votre mot de passe reste inchangé.</p>`;
+  const html = gabaritCourriel({
+    titre: 'Réinitialisation du mot de passe',
+    apercu: 'Votre code de réinitialisation Lekòl Konekte',
+    contenu:
+      paragrapheCourriel(`Bonjour ${nom || ''},`) +
+      paragrapheCourriel('Vous avez demandé à réinitialiser votre mot de passe. Votre code est :') +
+      blocCode(code) +
+      paragrapheCourriel(`Il expire dans ${minutes} minutes.`, { couleur: '#6b7280', taille: '14px' }) +
+      paragrapheCourriel("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe reste inchangé.", { couleur: '#9ca3af', taille: '13px' }),
+  });
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };
@@ -114,13 +122,16 @@ export async function envoyerLienCreationMotDePasse({ idUtilisateur, courriel, n
     `Cliquez sur ce lien pour choisir votre mot de passe :\n${lien}\n\n` +
     `Si le lien ne fonctionne pas, utilisez le code ${code} sur la page « Mot de passe oublié » avec le courriel ${courriel}.\n` +
     `Ce lien est valable 7 jours.`;
-  const html =
-    `<p>Bonjour ${nom || ''},</p>` +
-    `<p>Un compte professeur vient d'être créé pour vous sur Lekòl Konekte.</p>` +
-    `<p><a href="${lien}">Cliquez ici pour choisir votre mot de passe</a></p>` +
-    `<p style="color:#6b7280">Si le lien ne fonctionne pas, utilisez le code ` +
-    `<strong>${code}</strong> sur la page « Mot de passe oublié » avec le courriel ${courriel}.</p>` +
-    `<p style="color:#6b7280">Ce lien est valable 7 jours.</p>`;
+  const html = gabaritCourriel({
+    titre: 'Créez votre mot de passe',
+    apercu: 'Votre compte professeur Lekòl Konekte est prêt',
+    contenu:
+      paragrapheCourriel(`Bonjour ${nom || ''},`) +
+      paragrapheCourriel("Un compte professeur vient d'être créé pour vous sur Lekòl Konekte. Cliquez sur le bouton ci-dessous pour choisir votre mot de passe :") +
+      boutonCourriel('Choisir mon mot de passe', lien) +
+      paragrapheCourriel(`Si le bouton ne fonctionne pas, utilisez le code ${code} sur la page « Mot de passe oublié » avec le courriel ${courriel}.`, { couleur: '#6b7280', taille: '14px' }) +
+      paragrapheCourriel('Ce lien est valable 7 jours.', { couleur: '#9ca3af', taille: '13px' }),
+  });
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };
@@ -144,13 +155,16 @@ export async function envoyerCodeConnexion({ idUtilisateur, courriel, nom }) {
     `Votre code de connexion est : ${code}\n` +
     `Il expire dans ${minutes} minutes.\n\n` +
     `Si vous n'êtes pas à l'origine de cette connexion, changez votre mot de passe.`;
-  const html =
-    `<p>Bonjour ${nom || ''},</p>` +
-    `<p>Une connexion à votre compte a été demandée. Votre code de connexion est :</p>` +
-    `<p style="font-size:24px;font-weight:bold;letter-spacing:3px">${code}</p>` +
-    `<p>Il expire dans ${minutes} minutes.</p>` +
-    `<p style="color:#6b7280">Si vous n'êtes pas à l'origine de cette connexion, ` +
-    `changez votre mot de passe.</p>`;
+  const html = gabaritCourriel({
+    titre: 'Code de connexion',
+    apercu: 'Votre code de connexion Lekòl Konekte',
+    contenu:
+      paragrapheCourriel(`Bonjour ${nom || ''},`) +
+      paragrapheCourriel('Une connexion à votre compte a été demandée. Votre code de connexion est :') +
+      blocCode(code) +
+      paragrapheCourriel(`Il expire dans ${minutes} minutes.`, { couleur: '#6b7280', taille: '14px' }) +
+      paragrapheCourriel("Si vous n'êtes pas à l'origine de cette connexion, changez votre mot de passe.", { couleur: '#9ca3af', taille: '13px' }),
+  });
 
   const { previewUrl } = await envoyerCourriel({ to: courriel, subject: sujet, text: texte, html });
   return { previewUrl };
