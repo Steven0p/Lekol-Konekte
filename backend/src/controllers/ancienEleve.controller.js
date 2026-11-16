@@ -8,6 +8,7 @@ import { obtenir as obtenirEcole } from '../models/ecole.model.js';
 import { calculerMoyenne } from '../services/moyenne.service.js';
 import { genererBulletinPDF } from '../services/bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, pHtml } from '../utils/courrielGabarit.js';
 import { echapperHtml } from '../utils/html.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import fs from 'fs/promises';
@@ -232,11 +233,14 @@ export async function genererBulletinCtrl(req, res, next) {
           text: `Bonjour ${nomComplet},\n\nVotre bulletin du ${libelle} (année ${anneeScolaire}) ` +
                 `est disponible en pièce jointe.\n\nVous pouvez aussi le retrouver à tout moment en vous ` +
                 `connectant avec votre code d'accès sur ${SITE_URL}.`,
-          html: `<p>Bonjour ${echapperHtml(nomComplet)},</p>` +
-                `<p>Votre bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) ` +
-                `est disponible en pièce jointe.</p>` +
-                `<p>Vous pouvez aussi le retrouver à tout moment en vous connectant avec votre code d'accès ` +
-                `sur <a href="${SITE_URL}">${SITE_URL}</a>.</p>`,
+          html: gabaritCourriel({
+            titre: `Votre bulletin — ${libelle}`,
+            apercu: `Votre bulletin ${libelle} (${anneeScolaire})`,
+            contenu:
+              pHtml(`Bonjour ${echapperHtml(nomComplet)},`) +
+              pHtml(`Votre bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) est disponible en pièce jointe.`) +
+              pHtml(`Vous pouvez aussi le retrouver à tout moment en vous connectant avec votre code d'accès sur <a href="${SITE_URL}" style="color:#2B4C7E;">${SITE_URL}</a>.`),
+          }),
           attachments: pdfBuffer
             ? [{ filename: `bulletin-${libelle.replace(/\s+/g, '-')}-${anneeScolaire}.pdf`, content: pdfBuffer.toString('base64') }]
             : undefined,

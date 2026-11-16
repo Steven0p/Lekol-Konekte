@@ -1,6 +1,7 @@
 // Contrôleur — formulaire de contact public + boîte de réception (propriétaire)
 import * as modele from '../models/contactMessage.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, paragrapheCourriel } from '../utils/courrielGabarit.js';
 import { clientIA, iaConfiguree, MODELE_IA } from '../config/ia.js';
 import { echapperHtml } from '../utils/html.js';
 
@@ -113,7 +114,11 @@ export async function repondreCtrl(req, res, next) {
       to: msg.courriel,
       subject: 'Lekòl Konekte — réponse à votre message',
       text: reponse,
-      html: reponse.split('\n').filter((l) => l.trim()).map((l) => `<p>${echapperHtml(l)}</p>`).join(''),
+      html: gabaritCourriel({
+        titre: 'Réponse à votre message',
+        apercu: 'Le secrétariat a répondu à votre message',
+        contenu: reponse.split('\n').filter((l) => l.trim()).map((l) => paragrapheCourriel(l)).join(''),
+      }),
     });
 
     await modele.enregistrerReponse(id, { reponse, renduPar: req.session.userId });

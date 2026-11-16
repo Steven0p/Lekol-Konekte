@@ -3,6 +3,7 @@ import { trouverAvecProprietaire, mettreAJourStatut, STATUTS_NON_PAYES, applique
 import { trouverPourInscription } from '../models/paiement.model.js';
 import { journaliser } from '../models/historique.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, pHtml } from '../utils/courrielGabarit.js';
 import { envoyerSms } from '../config/sms.js';
 import { echapperHtml } from '../utils/html.js';
 
@@ -76,12 +77,15 @@ export async function changerStatut({ idInscription, nouveauStatut, commentaire,
     `(année ${inscription.annee_scolaire}) est maintenant : ${libelle}.\n` +
     (commentaire ? `\nMessage du secrétariat : ${commentaire}\n` : '') +
     `\nConnectez-vous à votre compte pour plus de détails.`;
-  const html =
-    `<p>Bonjour ${echapperHtml(inscription.parent_nom)},</p>` +
-    `<p>Le statut du dossier d'inscription de <strong>${echapperHtml(inscription.eleve_nom)}</strong> ` +
-    `(année ${echapperHtml(inscription.annee_scolaire)}) est maintenant : <strong>${echapperHtml(libelle)}</strong>.</p>` +
-    (commentaire ? `<p>Message du secrétariat : ${echapperHtml(commentaire)}</p>` : '') +
-    `<p>Connectez-vous à votre compte pour plus de détails.</p>`;
+  const html = gabaritCourriel({
+    titre: `Dossier ${libelle}`,
+    apercu: `Statut du dossier d'inscription de ${inscription.eleve_nom}`,
+    contenu:
+      pHtml(`Bonjour ${echapperHtml(inscription.parent_nom)},`) +
+      pHtml(`Le statut du dossier d'inscription de <strong>${echapperHtml(inscription.eleve_nom)}</strong> (année ${echapperHtml(inscription.annee_scolaire)}) est maintenant : <strong>${echapperHtml(libelle)}</strong>.`) +
+      (commentaire ? pHtml(`Message du secrétariat : ${echapperHtml(commentaire)}`) : '') +
+      pHtml('Connectez-vous à votre compte pour plus de détails.'),
+  });
 
   let previewUrl = null;
   try {

@@ -22,6 +22,13 @@ export function paragrapheCourriel(texte, { couleur = '#2D3748', taille = '15px'
     + `${echapperHtml(texte).replace(/\n/g, '<br>')}</p>`;
 }
 
+// Paragraphe acceptant du HTML interne déjà construit (pour conserver <strong>,
+// <a>…). Contrairement à paragrapheCourriel, il N'échappe PAS son argument :
+// l'appelant doit échapper lui-même toute valeur d'origine utilisateur.
+export function pHtml(htmlInterne, { couleur = '#2D3748', taille = '15px' } = {}) {
+  return `<p style="margin:0 0 14px;color:${couleur};line-height:1.65;font-size:${taille};">${htmlInterne}</p>`;
+}
+
 // Bouton d'action (CTA). `href` est une URL de confiance construite côté serveur.
 export function boutonCourriel(libelle, href) {
   return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0;">`

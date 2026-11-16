@@ -9,6 +9,7 @@ import { creer as creerDocumentOfficiel, bulletinExiste,
 import { calculerMoyenne } from './moyenne.service.js';
 import { genererBulletinPDF } from './bulletin.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, pHtml } from '../utils/courrielGabarit.js';
 import { envoyerSms } from '../config/sms.js';
 import { UPLOAD_ROOT } from '../config/upload.js';
 import {
@@ -188,7 +189,7 @@ export async function publier({
     const bilanTexte = moyenneAnnuelle != null
       ? `\nMoyenne générale annuelle : ${moyenneAnnuelle.toFixed(2)}/100.` : '';
     const bilanHtml = moyenneAnnuelle != null
-      ? `<p>Moyenne générale annuelle : <strong>${moyenneAnnuelle.toFixed(2)}/100</strong>.</p>` : '';
+      ? pHtml(`Moyenne générale annuelle : <strong>${moyenneAnnuelle.toFixed(2)}/100</strong>.`) : '';
 
     const appreciation = await genererAppreciation({
       eleveNom: eleve.nom, niveau, trimestre, anneeScolaire, moyenneCourante, seuilReussite,
@@ -210,13 +211,17 @@ export async function publier({
         to: eleve.parent_courriel,
         subject: `Lekòl Konekte — bulletin ${libelle} disponible`,
         text: texteNotif,
-        html: `<p>Bonjour ${echapperHtml(eleve.parent_nom)},</p>` +
-              `<p>Le bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) de ` +
-              `<strong>${echapperHtml(eleve.nom)}</strong> est disponible en pièce jointe et dans votre compte.</p>` +
-              `<p>Moyenne du trimestre : <strong>${moyenneCourante.toFixed(2)}/100</strong>.</p>` +
-              bilanHtml +
-              `<p>${echapperHtml(appreciation)}</p>` +
-              `<p>Consultez tous les résultats et bulletins sur <a href="${SITE_URL}">${SITE_URL}</a>.</p>`,
+        html: gabaritCourriel({
+          titre: `Bulletin ${libelle} disponible`,
+          apercu: `Le bulletin de ${eleve.nom} est disponible`,
+          contenu:
+            pHtml(`Bonjour ${echapperHtml(eleve.parent_nom)},`) +
+            pHtml(`Le bulletin du <strong>${echapperHtml(libelle)}</strong> (année ${echapperHtml(anneeScolaire)}) de <strong>${echapperHtml(eleve.nom)}</strong> est disponible en pièce jointe et dans votre compte.`) +
+            pHtml(`Moyenne du trimestre : <strong>${moyenneCourante.toFixed(2)}/100</strong>.`) +
+            bilanHtml +
+            pHtml(echapperHtml(appreciation)) +
+            pHtml(`Consultez tous les résultats et bulletins sur <a href="${SITE_URL}" style="color:#2B4C7E;">${SITE_URL}</a>.`),
+        }),
         attachments,
       });
     } catch (err) {

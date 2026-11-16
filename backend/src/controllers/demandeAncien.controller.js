@@ -2,6 +2,7 @@
 import * as demandeModel from '../models/demandeAncien.model.js';
 import * as eleveModel from '../models/eleve.model.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, pHtml, blocCode } from '../utils/courrielGabarit.js';
 import { echapperHtml } from '../utils/html.js';
 
 const COURRIEL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -77,11 +78,16 @@ export async function approuverCtrl(req, res, next) {
           + `Code d'accès : ${code}\n\n`
           + `Rendez-vous sur ${SITE_URL}/eleve, saisissez ce code pour consulter et télécharger vos résultats pour toutes les années où vous avez fréquenté l'école.\n\n`
           + `Ce code est personnel et permanent : conservez-le.`,
-        html: `<p>Bonjour ${echapperHtml(demande.prenom || demande.nom)},</p>`
-          + `<p>Votre demande d'accès à vos résultats a été approuvée.</p>`
-          + `<p>Code d'accès : <strong style="font-family:monospace;font-size:1.1em">${echapperHtml(code)}</strong></p>`
-          + `<p>Rendez-vous sur <a href="${SITE_URL}/eleve">${SITE_URL}/eleve</a>, saisissez ce code pour consulter et télécharger vos résultats pour toutes les années où vous avez fréquenté l'école.</p>`
-          + `<p style="color:#888;font-size:.85em">Ce code est personnel et permanent : conservez-le.</p>`,
+        html: gabaritCourriel({
+          titre: 'Accès à vos résultats',
+          apercu: 'Votre code d\'accès Lekòl Konekte',
+          contenu:
+            pHtml(`Bonjour ${echapperHtml(demande.prenom || demande.nom)},`)
+            + pHtml('Votre demande d\'accès à vos résultats a été approuvée. Voici votre code d\'accès :')
+            + blocCode(code)
+            + pHtml(`Rendez-vous sur <a href="${SITE_URL}/eleve" style="color:#2B4C7E;">${SITE_URL}/eleve</a>, saisissez ce code pour consulter et télécharger vos résultats pour toutes les années où vous avez fréquenté l'école.`)
+            + pHtml('Ce code est personnel et permanent : conservez-le.', { couleur: '#9ca3af', taille: '13px' }),
+        }),
       });
     } catch (err) {
       console.error('Notification demande ancien élève échouée :', err.message);
@@ -112,10 +118,14 @@ export async function refuserCtrl(req, res, next) {
           + `Nous n'avons pas pu valider votre demande d'accès aux résultats`
           + (motif ? ` : ${motif}` : '.')
           + `\n\nPour toute question, contactez le secrétariat de l'école.`,
-        html: `<p>Bonjour ${echapperHtml(demande.prenom || demande.nom)},</p>`
-          + `<p>Nous n'avons pas pu valider votre demande d'accès aux résultats`
-          + (motif ? ` : ${echapperHtml(motif)}` : '.') + `</p>`
-          + `<p>Pour toute question, contactez le secrétariat de l'école.</p>`,
+        html: gabaritCourriel({
+          titre: 'Demande d\'accès aux résultats',
+          apercu: 'Suite à votre demande d\'accès',
+          contenu:
+            pHtml(`Bonjour ${echapperHtml(demande.prenom || demande.nom)},`)
+            + pHtml(`Nous n'avons pas pu valider votre demande d'accès aux résultats${motif ? ` : ${echapperHtml(motif)}` : '.'}`)
+            + pHtml('Pour toute question, contactez le secrétariat de l\'école.'),
+        }),
       });
     } catch (err) {
       console.error('Notification refus ancien élève échouée :', err.message);

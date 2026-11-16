@@ -13,6 +13,7 @@ import { creer as creerDocumentOfficiel } from '../models/documentOfficiel.model
 import { journaliser } from '../models/historique.model.js';
 import { grouperTranscript, genererReleve } from './releve.service.js';
 import { envoyerCourriel } from '../config/mailer.js';
+import { gabaritCourriel, paragrapheCourriel } from '../utils/courrielGabarit.js';
 import { envoyerSms } from '../config/sms.js';
 import {
   clientIA, iaConfiguree, MODELE_IA, MARQUEUR_ELEVE, MARQUEUR_PARENT, CONSIGNE_MARQUEURS, restaurerMarqueurs,
@@ -265,7 +266,12 @@ export async function traiterValidation({ idPaiement, statut, commentaire, idAdm
   let previewUrl = null;
   try {
     if (prop?.parentCourriel) {
-      ({ previewUrl } = await envoyerCourriel({ to: prop.parentCourriel, subject: sujet, text: corps }));
+      const titreCourriel = sujet.replace(/^Lekòl Konekte\s*—\s*/, '');
+      const html = gabaritCourriel({
+        titre: titreCourriel.charAt(0).toUpperCase() + titreCourriel.slice(1),
+        contenu: corps.split('\n').filter((l) => l.trim()).map((l) => paragrapheCourriel(l)).join(''),
+      });
+      ({ previewUrl } = await envoyerCourriel({ to: prop.parentCourriel, subject: sujet, text: corps, html }));
     }
   } catch (err) {
     console.error('Notification paiement échouée :', err.message);
