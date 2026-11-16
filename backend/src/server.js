@@ -3,6 +3,7 @@ import app from './app.js';
 import { pool, testConnection } from './config/db.js';
 import { initialiserSchemaSiDemande } from './initSchema.js';
 import { seedProprietaireSiDemande } from './initSeed.js';
+import { seedComptesSiDemande } from './initSeedComptes.js';
 import { installerSchemaSync } from './sync/schema.js';
 import { demarrerWorkerSync, syncPosteConfigure } from './sync/worker.js';
 import { verifierMailer } from './config/mailer.js';
@@ -32,6 +33,9 @@ async function demarrer() {
     await initialiserSchemaSiDemande();
     // Création ponctuelle du compte propriétaire (RUN_SEED=true + SEED_OWNER_*).
     await seedProprietaireSiDemande();
+    // Création ponctuelle des comptes admin/direction/modules/économat
+    // (RUN_SEED_COMPTES=true) — à retirer après usage.
+    await seedComptesSiDemande();
 
     // Mode POSTE (app de bureau hors ligne) : la base est locale et le compte
     // a tous les droits — on s'assure que le schéma de synchronisation est en
