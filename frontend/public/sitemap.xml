@@ -1,13 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://lekolkonekte.online/</loc></url>
-  <url><loc>https://lekolkonekte.online/a-propos</loc></url>
-  <url><loc>https://lekolkonekte.online/vlog</loc></url>
-  <url><loc>https://lekolkonekte.online/professeurs</loc></url>
-  <url><loc>https://lekolkonekte.online/examens</loc></url>
-  <url><loc>https://lekolkonekte.online/academie/prescolaire</loc></url>
-  <url><loc>https://lekolkonekte.online/academie/primaire</loc></url>
-  <url><loc>https://lekolkonekte.online/academie/secondaire</loc></url>
-  <url><loc>https://lekolkonekte.online/contact</loc></url>
-  <url><loc>https://lekolkonekte.online/calendrier</loc></url>
+  <url><loc>https://lekolkonekte.online/</loc><lastmod>2026-11-16</lastmod><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://lekolkonekte.online/a-propos</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lekolkonekte.online/academie/prescolaire</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lekolkonekte.online/academie/primaire</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lekolkonekte.online/academie/secondaire</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://lekolkonekte.online/professeurs</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lekolkonekte.online/examens</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lekolkonekte.online/vlog</loc><lastmod>2026-11-16</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://lekolkonekte.online/calendrier</loc><lastmod>2026-11-16</lastmod><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://lekolkonekte.online/contact</loc><lastmod>2026-11-16</lastmod><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://lekolkonekte.online/support</loc><lastmod>2026-11-16</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lekolkonekte.online/anciens-eleves</loc><lastmod>2026-11-16</lastmod><changefreq>yearly</changefreq><priority>0.5</priority></url>
 </urlset>
